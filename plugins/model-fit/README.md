@@ -74,10 +74,10 @@ python3 -m unittest discover -s evals/model-fit -p 'test_*.py'
 python3 tools/build.py
 ```
 
-The [eval README](../../evals/model-fit/README.md) explains optional live
-behavioral runs. Re-run setup and review hook trust after updating the stable
-clone, because changed definitions may need renewed trust. The full plugin is
-distributed manually through GitHub; the separate guidance-only package is
+The [eval README](https://github.com/atls/codex/blob/master/evals/model-fit/README.md)
+explains optional live behavioral runs. Re-run setup and review hook trust after
+updating the stable clone, because changed definitions may need renewed trust.
+The full plugin is distributed manually through GitHub; the separate guidance-only package is
 prepared for public directory review and has no automatic switching.
 After pulling a new source version, use `codex plugin marketplace upgrade
 atls-codex` and `codex plugin add model-fit@atls-codex` to refresh the installed

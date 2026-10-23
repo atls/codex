@@ -25,8 +25,9 @@ jobs:
       - name: Package both plugins
         run: |
           python tools/build.py
-          python -m zipfile -t dist/model-fit-0.1.0.zip
-          python -m zipfile -t dist/model-fit-guidance-0.1.0.zip
+          for package in dist/*.zip; do
+            python -m zipfile -t "$package"
+          done
       - name: Style
         if: matrix.python == '3.13'
         run: |

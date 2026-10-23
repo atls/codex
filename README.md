@@ -21,6 +21,12 @@ directory. The ZIPs are separate products with separate behavior and review.
 The [verification workflow](.github/workflows/verify.yml) builds both ZIPs on
 each PR and master push and uploads them as a GitHub Actions artifact. OpenAI's
 public directory still requires a separate package upload and review.
+Locally, `python3 tools/build.py` writes versioned `dist/model-fit-*.zip` and
+`dist/model-fit-guidance-*.zip`. The first copies the full plugin tree; the
+second copies the shared skill up to its hook-specific section, then adds its
+own manifest, README, icon and license. Tests inspect the exact ZIP members,
+manifest identity, privacy boundary and byte-for-byte reproducibility;
+`zipfile -t` checks archive integrity. CI uploads those same two files.
 
 ## Distribution and updates
 
@@ -49,6 +55,10 @@ There are two separate OpenAI routes:
 The official [`openai/codex-action`](https://github.com/openai/codex-action)
 runs Codex in GitHub Actions using an API key; it does not package plugins.
 This repository's build script creates the two archives without an API key.
+For an update, change the source and the affected manifest version(s), run the same
+checks, publish the new Git marketplace revision, and then submit separate
+upstream Community Plugins PR and Directory ZIP update as applicable. Neither
+OpenAI channel is updated merely because this repository's CI passed.
 
 Neither package includes user conversations, Thread Memory, credentials,
 attachments, project hook definitions, or local audit data.
