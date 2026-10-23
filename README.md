@@ -27,11 +27,12 @@ input for a separate OpenAI directory upload and review.
 Locally, `python3 tools/build.py` writes versioned `dist/model-fit-*.zip` and
 `dist/model-fit-guidance-*.zip`. The first copies the full plugin tree; the
 second copies the shared skill up to its hook-specific section, then adds its
-own manifest, README, icon and license. Tests inspect the exact ZIP members,
-manifest identity, privacy boundary and byte-for-byte reproducibility;
-Both manifests share one release version. The package tests inspect archive
-contents and reproducibility; GitHub Release creation fails if that version
-already has a release.
+own manifest, README, icon and license. That transformation is why this
+package builder exists: a generic ZIP action can archive a directory but
+cannot derive the guidance-only variant from the shared skill. Both manifests
+share one release version. Tests inspect the ZIP members, manifest identity,
+privacy boundary and byte-for-byte reproducibility. GitHub Release creation
+fails if that version already has a release.
 
 ## Distribution and updates
 
