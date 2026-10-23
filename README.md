@@ -42,8 +42,10 @@ There are two separate OpenAI routes:
 
 - [OpenAI Community Plugins](https://github.com/openai/community-plugins/blob/main/CONTRIBUTING.md)
   accepts external contributions through a fork and PR. A contribution needs
-  the package, marketplace entry, cold-start guide, repository-specific test
-  suite, CLA and maintainer review. We do not auto-push to that repository. An
+  the package source under `plugins/model-fit/`, its required Codex manifest,
+  marketplace entry, cold-start guide, repository-specific master test suite,
+  CLA and maintainer review. Their repository shape is adapted in the fork;
+  the ZIP is not pushed there. We do not auto-push to that repository. An
   update is a new upstream PR based on a new version of this source.
 - The [public Plugins Directory](https://developers.openai.com/plugins/deploy/submission)
   accepts a plugin ZIP through the submission portal. Only the separate
