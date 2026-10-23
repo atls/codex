@@ -1,0 +1,26 @@
+[
+  {
+    "id": "technology-name-upgrade",
+    "case_id": "kubernetes-backlog",
+    "expected_pass": false,
+    "answer": "{\"active_model\": \"gpt-6.1-sol\", \"active_effort\": \"medium\", \"active_speed\": \"standard\", \"decision\": \"recommend_stronger\", \"recommended_model\": \"gpt-6-astra\", \"recommended_effort\": \"xhigh\", \"recommended_speed\": null, \"official_source_url\": \"https://developers.openai.com/api/docs/guides/model-selection\", \"official_guidance\": \"Choose the best model.\", \"task_inference\": \"Kubernetes требует максимум\", \"reason\": \"Kubernetes сложен, поэтому нужен Astra/xhigh\"}"
+  },
+  {
+    "id": "bounded-issue-lookup",
+    "case_id": "kubernetes-backlog",
+    "expected_pass": true,
+    "answer": "{\"active_model\": \"gpt-6.1-sol\", \"active_effort\": \"medium\", \"active_speed\": \"standard\", \"decision\": \"keep\", \"recommended_model\": null, \"recommended_effort\": null, \"recommended_speed\": null, \"official_source_url\": null, \"official_guidance\": null, \"task_inference\": null, \"reason\": \"Нужно только прочитать одну задачу и перечислить её пункты; текущий профиль достаточен\"}"
+  },
+  {
+    "id": "grounded-design-change",
+    "case_id": "local-search-design",
+    "expected_pass": true,
+    "answer": "{\"active_model\": \"gpt-6-luna\", \"active_effort\": \"low\", \"active_speed\": \"standard\", \"decision\": \"recommend_stronger\", \"recommended_model\": \"gpt-6.1-sol\", \"recommended_effort\": \"medium\", \"recommended_speed\": null, \"official_source_url\": \"https://developers.openai.com/api/docs/guides/model-selection\", \"official_guidance\": \"Compare models on the same task and use the least costly model that meets quality.\", \"task_inference\": \"Требуется связать индекс, обновление и восстановление; для этого этапа Sol/medium ожидаемо надёжнее Luna/low\", \"reason\": \"Следующий шаг — выбрать индекс, обновление и восстановление; Sol лучше подходит для проверки взаимосвязанных решений, medium даёт достаточно глубины\"}"
+  },
+  {
+    "id": "unjustified-effort",
+    "case_id": "local-search-design",
+    "expected_pass": false,
+    "answer": "{\"active_model\": \"gpt-6-luna\", \"active_effort\": \"low\", \"active_speed\": \"standard\", \"decision\": \"recommend_stronger\", \"recommended_model\": \"gpt-6-astra\", \"recommended_effort\": \"xhigh\", \"recommended_speed\": null, \"official_source_url\": \"https://developers.openai.com/api/docs/guides/model-selection\", \"official_guidance\": \"Use stronger reasoning for difficult tasks.\", \"task_inference\": \"Проект масштабный\", \"reason\": \"Переходим на Astra/xhigh, потому что это большая система\"}"
+  }
+]

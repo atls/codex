@@ -1,0 +1,57 @@
+[
+  {
+    "id": "backlog-read",
+    "source": "Synthetic read-only task",
+    "prompt": "Покажи три открытые задачи этого репозитория и ничего не меняй",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": "standard",
+    "expected": "Assess the bounded issue lookup rather than the surrounding project"
+  },
+  {
+    "id": "issue-draft",
+    "source": "Synthetic writing task",
+    "prompt": "Составь черновик одной bug-задачи по готовым фактам, не публикуй её",
+    "model": "gpt-6-astra",
+    "effort": "high",
+    "speed": "standard",
+    "expected": "Justify any lighter recommendation separately for model and effort"
+  },
+  {
+    "id": "local-search-design",
+    "source": "Synthetic architecture task",
+    "prompt": "Спроектируй поиск по локальным снимкам: индексацию, обновление и восстановление после сбоя",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "expected": "Explain the concrete quality gap for the next design step"
+  },
+  {
+    "id": "kubernetes-backlog",
+    "source": "Synthetic technology-name control",
+    "prompt": "Открой одну задачу о Kubernetes и кратко перечисли её незакрытые пункты без изменений",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": "standard",
+    "expected": "Do not infer a frontier model from the word Kubernetes alone"
+  },
+  {
+    "id": "confirmed-choice",
+    "source": "Synthetic user-choice control",
+    "prompt": "Продолжи ту же проверку конфигурации после моего выбора оставить текущий профиль",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": "standard",
+    "prior_choice": "The user explicitly kept this profile for the same work",
+    "expected": "Keep without another model invocation"
+  },
+  {
+    "id": "missing-source",
+    "source": "Synthetic source-failure control",
+    "prompt": "Оцени профиль для ограниченной правки после недоступности каталога моделей",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "expected": "Return unknown rather than inventing a verified profile"
+  }
+]

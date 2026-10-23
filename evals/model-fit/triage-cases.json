@@ -1,0 +1,37 @@
+[
+  {
+    "id": "backlog-read",
+    "base_case_id": "backlog-read",
+    "expected_decisions": ["keep", "recommend_lighter"],
+    "behavioral_review": true
+  },
+  {
+    "id": "issue-draft",
+    "base_case_id": "issue-draft",
+    "expected_decisions": ["keep", "recommend_lighter"],
+    "behavioral_review": true
+  },
+  {
+    "id": "local-search-design",
+    "base_case_id": "local-search-design",
+    "expected_decisions": ["recommend_stronger"],
+    "behavioral_review": true
+  },
+  {
+    "id": "kubernetes-backlog",
+    "base_case_id": "kubernetes-backlog",
+    "expected_decisions": ["keep", "recommend_lighter"],
+    "behavioral_review": true
+  },
+  {
+    "id": "confirmed-choice",
+    "base_case_id": "confirmed-choice",
+    "expected_decisions": ["keep"]
+  },
+  {
+    "id": "missing-source",
+    "base_case_id": "missing-source",
+    "expected_decisions": ["unknown"],
+    "source_failure": "Codex model catalog"
+  }
+]

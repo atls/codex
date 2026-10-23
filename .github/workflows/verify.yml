@@ -1,0 +1,42 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  model-fit:
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Deterministic tests
+        run: python -m unittest discover -s evals/model-fit -p 'test_*.py'
+      - name: Package both plugins
+        run: |
+          python tools/build.py
+          python -m zipfile -t dist/model-fit-0.1.0.zip
+          python -m zipfile -t dist/model-fit-guidance-0.1.0.zip
+      - name: Style
+        if: matrix.python == '3.13'
+        run: |
+          python -m pip install ruff==0.17.2
+          ruff check plugins/model-fit evals/model-fit tools
+          ruff format --check plugins/model-fit evals/model-fit tools
+      - name: Upload plugin packages
+        if: matrix.python == '3.13'
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-fit-plugins
+          path: dist/*.zip
+          if-no-files-found: error
