@@ -1,0 +1,22 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "model-fit",
+  "version": "0.1.0",
+  "description": "Task-aware model selection and opt-in profile handoff for Codex Desktop.",
+  "repository": "https://github.com/atls/codex",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Model Fit",
+        "shortDescription": "Model choice for Codex",
+        "longDescription": "Recommend a model for the next bounded Codex task and, when explicitly enabled for one Codex Desktop thread, hand the complete request to the selected profile.",
+        "category": "Developer Tools",
+        "defaultPrompt": ["Recommend a model for my next task"],
+        "websiteURL": "https://github.com/atls/codex",
+        "supportURL": "https://github.com/atls/codex/issues",
+        "logo": "./assets/icon.png",
+        "composerIcon": "./assets/icon.png"
+      }
+    }
+  }
+}

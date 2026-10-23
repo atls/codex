@@ -1,0 +1,4 @@
+interface:
+  display_name: "Model Fit"
+  short_description: "Recommend or allocate a fitting model profile"
+  default_prompt: "Use $model-fit to recommend a suitable Codex profile for this task or allocate one for its next subagent."
