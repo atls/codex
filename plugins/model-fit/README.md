@@ -18,7 +18,8 @@ The package does not require an OpenAI API key.
 
 1. Keep a clone of `https://github.com/atls/codex` in a stable location. From
    that clone, run `codex plugin marketplace add "$PWD"`, restart Codex Desktop,
-   and install `model-fit` from the `ATLS Codex` source in the Plugins Directory.
+   and install `model-fit` from the `ATLS Codex` source in the Plugins Directory
+   or with `codex plugin add model-fit@atls-codex`.
    A removed test worktree must never be the source of a working hook command.
 2. Choose one project directory and one Codex thread. Tell Codex in that thread
    that Model Fit may switch its model automatically.
@@ -78,3 +79,6 @@ behavioral runs. Re-run setup and review hook trust after updating the stable
 clone, because changed definitions may need renewed trust. The full plugin is
 distributed manually through GitHub; the separate guidance-only package is
 prepared for public directory review and has no automatic switching.
+After pulling a new source version, use `codex plugin marketplace upgrade
+atls-codex` and `codex plugin add model-fit@atls-codex` to refresh the installed
+copy, then re-run the project setup command from the stable clone.

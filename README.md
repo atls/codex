@@ -22,6 +22,34 @@ The [verification workflow](.github/workflows/verify.yml) builds both ZIPs on
 each PR and master push and uploads them as a GitHub Actions artifact. OpenAI's
 public directory still requires a separate package upload and review.
 
+## Distribution and updates
+
+The installable source under `plugins/model-fit/` is the primary GitHub
+distribution. A user adds `atls/codex` as a Codex marketplace, installs the
+plugin, and explicitly configures hooks for a selected project and thread.
+After a new version is released, they refresh the marketplace and reinstall
+the plugin; project-local hook definitions are reviewed and trusted again if
+their commands changed. A CI artifact is only a downloadable build receipt,
+not a plugin installation or a public release.
+
+There are two separate OpenAI routes:
+
+- [OpenAI Community Plugins](https://github.com/openai/community-plugins/blob/main/CONTRIBUTING.md)
+  accepts external contributions through a fork and PR. A contribution needs
+  the package, marketplace entry, cold-start guide, repository-specific test
+  suite, CLA and maintainer review. We do not auto-push to that repository. An
+  update is a new upstream PR based on a new version of this source.
+- The [public Plugins Directory](https://developers.openai.com/plugins/deploy/submission)
+  accepts a plugin ZIP through the submission portal. Only the separate
+  `model-fit-guidance` archive is intended for that route. After publisher
+  verification, upload the archive, resolve the portal's automated findings,
+  submit for review, and publish the approved version. An update bumps the
+  version, uploads a new complete ZIP, and passes the portal checks again.
+
+The official [`openai/codex-action`](https://github.com/openai/codex-action)
+runs Codex in GitHub Actions using an API key; it does not package plugins.
+This repository's build script creates the two archives without an API key.
+
 Neither package includes user conversations, Thread Memory, credentials,
 attachments, project hook definitions, or local audit data.
 
