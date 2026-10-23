@@ -2,119 +2,22 @@ name: Verify
 
 on:
   pull_request:
-  push:
-    branches: [master]
 
 permissions:
   contents: read
 
 jobs:
-  model-fit:
-    runs-on: macos-15
-    strategy:
-      fail-fast: false
-      matrix:
-        python: ["3.9", "3.13"]
+  verify:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
       - uses: actions/setup-python@v7
         with:
-          python-version: ${{ matrix.python }}
-      - name: Deterministic tests
-        run: python -m unittest discover -s evals/model-fit -p 'test_*.py'
-      - name: Package both plugins
-        run: |
-          python tools/build.py
-          for package in dist/*.zip; do
-            python -m zipfile -t "$package"
-          done
-      - name: Style
-        if: matrix.python == '3.13'
-        run: |
-          python -m pip install ruff==0.17.2
-          ruff check plugins/model-fit evals/model-fit tools
-          ruff format --check plugins/model-fit evals/model-fit tools
-      - name: Check release version
-        if: matrix.python == '3.13'
-        run: |
-          set -euo pipefail
-          version="$(python tools/build.py --version)"
-          tag="v${version}"
-          if git rev-parse -q --verify "refs/tags/${tag}^{commit}" > /dev/null; then
-            tagged_sha="$(git rev-parse "refs/tags/${tag}^{commit}")"
-            if ! git diff --quiet "${tagged_sha}" HEAD -- plugins/ LICENSE tools/build.py; then
-              echo "Plugin source changed without a manifest version bump."
-              exit 1
-            fi
-          fi
-      - name: Upload plugin packages
-        if: matrix.python == '3.13'
-        uses: actions/upload-artifact@v4
+          python-version: '3.9'
+      - uses: astral-sh/ruff-action@v4.1.0
         with:
-          name: model-fit-plugins
-          path: dist/*.zip
-          if-no-files-found: error
-
-  release:
-    name: Publish GitHub Release
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    needs: model-fit
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    concurrency:
-      group: model-fit-release
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - uses: actions/download-artifact@v4
-        with:
-          name: model-fit-plugins
-          path: dist
-      - name: Verify package versions and assets
-        run: |
-          set -euo pipefail
-          version="$(python3 tools/build.py --version)"
-          test -f "dist/model-fit-${version}.zip"
-          test -f "dist/model-fit-guidance-${version}.zip"
-          python3 -m zipfile -t "dist/model-fit-${version}.zip"
-          python3 -m zipfile -t "dist/model-fit-guidance-${version}.zip"
-      - name: Publish exact verified packages
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          version="$(python3 tools/build.py --version)"
-          tag="v${version}"
-          expected="model-fit-${version}.zip model-fit-guidance-${version}.zip"
-          release_sha="${GITHUB_SHA}"
-          git fetch --tags origin
-
-          if git rev-parse -q --verify "refs/tags/${tag}^{commit}" > /dev/null; then
-            tagged_sha="$(git rev-parse "refs/tags/${tag}^{commit}")"
-            if [[ "${tagged_sha}" != "${GITHUB_SHA}" ]]; then
-              if git diff --quiet "${tagged_sha}" "${GITHUB_SHA}" -- plugins/ LICENSE tools/build.py; then
-                release_sha="${tagged_sha}"
-                echo "Plugin source is unchanged since ${tag}; verifying its release."
-              else
-                echo "Plugin source changed without a manifest version bump."
-                exit 1
-              fi
-            fi
-          fi
-
-          if gh release view "${tag}" > /dev/null 2>&1; then
-            echo "Release ${tag} already exists; verifying its assets."
-          else
-            gh release create "${tag}" "dist/model-fit-${version}.zip" "dist/model-fit-guidance-${version}.zip" --target "${release_sha}" --title "Model Fit ${tag}" --generate-notes
-          fi
-
-          actual="$(gh release view "${tag}" --json assets --jq '.assets | map(.name) | sort | join(" ")')"
-          test "${actual}" = "${expected}"
-          test "$(gh release view "${tag}" --json isDraft --jq .isDraft)" = false
-          git fetch --tags origin
-          test "$(git rev-parse "refs/tags/${tag}^{commit}")" = "${release_sha}"
+          version: '0.17.2'
+          src: plugins/model-fit evals/model-fit tools
+      - run: ruff format --check plugins/model-fit evals/model-fit tools
+      - run: python -m unittest discover -s evals/model-fit -p 'test_*.py'
+      - run: python tools/build.py

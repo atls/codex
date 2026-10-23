@@ -18,20 +18,20 @@ The full package is distributed from this repository for manual Desktop
 installation. OpenAI's public Plugins Directory currently excludes plugins
 containing lifecycle hooks; the guidance-only ZIP is the candidate for that
 directory. The ZIPs are separate products with separate behavior and review.
-The [release workflow](.github/workflows/verify.yml) tests and builds both ZIPs
-on each PR and master push. After a successful master build with a new shared
-manifest version, it creates a GitHub Release with both ZIPs attached. A merge
-that does not change the package verifies the existing release. The Actions
-artifact is only the transfer between the tested build job and the release job.
-The release's `model-fit-guidance` ZIP is the input for a separate OpenAI directory upload
-and review.
+The [verification workflow](.github/workflows/verify.yml) runs on PRs with
+Ubuntu, Python 3.9, Ruff's own GitHub Action, deterministic tests and package
+assembly. The [release workflow](.github/workflows/release.yml) runs the same
+checks when package source reaches `master`, then creates a versioned GitHub
+Release with both ZIPs attached. The release's `model-fit-guidance` ZIP is the
+input for a separate OpenAI directory upload and review.
 Locally, `python3 tools/build.py` writes versioned `dist/model-fit-*.zip` and
 `dist/model-fit-guidance-*.zip`. The first copies the full plugin tree; the
 second copies the shared skill up to its hook-specific section, then adds its
 own manifest, README, icon and license. Tests inspect the exact ZIP members,
 manifest identity, privacy boundary and byte-for-byte reproducibility;
-`zipfile -t` checks archive integrity. Both manifests share one release version;
-the release job refuses changed package source at an existing version.
+Both manifests share one release version. The package tests inspect archive
+contents and reproducibility; GitHub Release creation fails if that version
+already has a release.
 
 ## Distribution and updates
 
@@ -40,8 +40,7 @@ distribution. A user adds `atls/codex` as a Codex marketplace, installs the
 plugin, and explicitly configures hooks for a selected project and thread.
 After a new version is released, they refresh the marketplace and reinstall
 the plugin; project-local hook definitions are reviewed and trusted again if
-their commands changed. A CI artifact is only a downloadable build receipt,
-not a plugin installation or a public release.
+their commands changed.
 
 There are two separate OpenAI routes:
 
