@@ -8,6 +8,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,11 +18,20 @@ SPEC.loader.exec_module(BUILD)
 
 
 class PackageTests(unittest.TestCase):
+    def test_release_rejects_different_variant_versions(self) -> None:
+        with patch.object(
+            BUILD, "manifest", side_effect=[{"version": "0.1.0"}, {"version": "0.2.0"}]
+        ):
+            with self.assertRaisesRegex(ValueError, "share one GitHub Release version"):
+                BUILD.release_version()
+
     def test_full_package_contains_runtime_and_guidance_omits_hooks(self) -> None:
         full, full_files = BUILD.full_package()
         guidance, guidance_files = BUILD.guidance_package()
         self.assertEqual(full["name"], "model-fit")
         self.assertEqual(guidance["name"], "model-fit-guidance")
+        self.assertEqual(full["version"], BUILD.release_version())
+        self.assertEqual(guidance["version"], BUILD.release_version())
         self.assertIn("skills/model-fit/scripts/hook.py", full_files)
         self.assertIn("LICENSE", full_files)
         self.assertIn("skills/model-fit/scripts/triage.py", full_files)

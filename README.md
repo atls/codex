@@ -18,15 +18,20 @@ The full package is distributed from this repository for manual Desktop
 installation. OpenAI's public Plugins Directory currently excludes plugins
 containing lifecycle hooks; the guidance-only ZIP is the candidate for that
 directory. The ZIPs are separate products with separate behavior and review.
-The [verification workflow](.github/workflows/verify.yml) builds both ZIPs on
-each PR and master push and uploads them as a GitHub Actions artifact. OpenAI's
-public directory still requires a separate package upload and review.
+The [release workflow](.github/workflows/verify.yml) tests and builds both ZIPs
+on each PR and master push. After a successful master build with a new shared
+manifest version, it creates a GitHub Release with both ZIPs attached. A merge
+that does not change the package verifies the existing release. The Actions
+artifact is only the transfer between the tested build job and the release job.
+The release's `model-fit-guidance` ZIP is the input for a separate OpenAI directory upload
+and review.
 Locally, `python3 tools/build.py` writes versioned `dist/model-fit-*.zip` and
 `dist/model-fit-guidance-*.zip`. The first copies the full plugin tree; the
 second copies the shared skill up to its hook-specific section, then adds its
 own manifest, README, icon and license. Tests inspect the exact ZIP members,
 manifest identity, privacy boundary and byte-for-byte reproducibility;
-`zipfile -t` checks archive integrity. CI uploads those same two files.
+`zipfile -t` checks archive integrity. Both manifests share one release version;
+the release job refuses changed package source at an existing version.
 
 ## Distribution and updates
 
@@ -48,8 +53,8 @@ There are two separate OpenAI routes:
   the ZIP is not pushed there. We do not auto-push to that repository. An
   update is a new upstream PR based on a new version of this source.
 - The [public Plugins Directory](https://developers.openai.com/plugins/deploy/submission)
-  accepts a plugin ZIP through the submission portal. Only the separate
-  `model-fit-guidance` archive is intended for that route. After publisher
+  accepts a plugin ZIP through the submission portal. Download the separate
+  `model-fit-guidance` asset from the exact GitHub Release for that route. After publisher
   verification, upload the archive, resolve the portal's automated findings,
   submit for review, and publish the approved version. An update bumps the
   version, uploads a new complete ZIP, and passes the portal checks again.
@@ -57,8 +62,9 @@ There are two separate OpenAI routes:
 The official [`openai/codex-action`](https://github.com/openai/codex-action)
 runs Codex in GitHub Actions using an API key; it does not package plugins.
 This repository's build script creates the two archives without an API key.
-For an update, change the source and the affected manifest version(s), run the same
-checks, publish the new Git marketplace revision, and then submit separate
+For an update, change the source and bump the version in both manifests, run the
+same checks, merge to master to produce a new GitHub Release, refresh the Git
+marketplace revision, and then submit separate
 upstream Community Plugins PR and Directory ZIP update as applicable. Neither
 OpenAI channel is updated merely because this repository's CI passed.
 

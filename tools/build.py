@@ -48,6 +48,14 @@ def manifest(package: Path) -> dict:
     return value
 
 
+def release_version() -> str:
+    full = manifest(PLUGINS / "model-fit")["version"]
+    guidance = manifest(PLUGINS / "model-fit-guidance")["version"]
+    if full != guidance:
+        raise ValueError("Plugin variants must share one GitHub Release version")
+    return full
+
+
 def source_files(package: Path) -> dict[str, bytes]:
     files = {}
     for path in sorted(package.rglob("*")):
@@ -126,7 +134,12 @@ def write_archive(identity: dict, files: dict[str, bytes], output: Path) -> Path
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=OUTPUT)
+    parser.add_argument("--version", action="store_true", help="print release version")
     args = parser.parse_args()
+    version = release_version()
+    if args.version:
+        print(version)
+        return 0
     destination = args.output.resolve()
     destination.mkdir(parents=True, exist_ok=True)
     validate_fixtures()
