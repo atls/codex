@@ -8,9 +8,11 @@ Installation alone never activates a lifecycle hook. The package deliberately
 uses project-local hook definitions with a selected thread ID so installing the
 plugin cannot intercept unrelated chats.
 
-This package is tested on Codex Desktop for macOS with an existing Codex
-subscription sign-in and `codex` CLI. It uses experimental app-server methods
-and the Desktop tool `mcp__codex_app__send_message_to_thread`. Verify those
+This package targets Codex Desktop for macOS with an existing Codex
+subscription sign-in and `codex` CLI. The original runtime was tested in live
+Desktop threads; a clean installation of this extracted package remains to be
+verified. It uses experimental app-server methods and the Desktop tool
+`mcp__codex_app__send_message_to_thread`. Verify those
 capabilities on the target installation before enabling a working thread.
 The package does not require an OpenAI API key.
 

@@ -9,8 +9,8 @@ The package is generated from the shared selection rules in the public
 [`atls/codex` repository](https://github.com/atls/codex).
 Run `python3 tools/build.py` from the repository root to create the isolated
 `dist/model-fit-guidance-<version>.zip` archive. Successful master releases
-attach this same ZIP to a versioned GitHub Release. The archive contains only its
-manifest, this README, the generated skill and its UI metadata.
+attach this same ZIP to a versioned GitHub Release. The archive contains its
+manifest, this README, the generated skill, UI metadata, icon and license.
 
 The full Codex Desktop implementation and opt-in setup live in the separate
 [`model-fit` package](https://github.com/atls/codex/tree/master/plugins/model-fit).
