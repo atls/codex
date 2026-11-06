@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "properties": {
+    "active_model": {"type": "string"},
+    "active_effort": {"type": "string"},
+    "active_speed": {"type": ["string", "null"]},
+    "decision": {
+      "type": "string",
+      "enum": ["keep", "recommend_lighter", "recommend_stronger", "recommend_faster", "unknown"]
+    },
+    "recommended_model": {"type": ["string", "null"]},
+    "recommended_effort": {"type": ["string", "null"]},
+    "recommended_speed": {"type": ["string", "null"]},
+    "official_source_url": {"type": ["string", "null"]},
+    "official_guidance": {"type": ["string", "null"]},
+    "task_inference": {"type": ["string", "null"]},
+    "reason": {"type": "string"}
+  },
+  "required": [
+    "active_model", "active_effort", "active_speed", "decision",
+    "recommended_model", "recommended_effort", "recommended_speed",
+    "official_source_url", "official_guidance", "task_inference", "reason"
+  ],
+  "additionalProperties": false
+}

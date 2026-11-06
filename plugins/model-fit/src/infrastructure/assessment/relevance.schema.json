@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "verdict": {"type": "string", "enum": ["relevant", "unrelated", "uncertain"]},
+    "reason": {"type": "string"}
+  },
+  "required": ["verdict", "reason"],
+  "additionalProperties": false
+}

@@ -1,0 +1,398 @@
+[
+  {
+    "id": "aggregate-scope-upgrade",
+    "case_id": "cluster-bootstrap-preflight",
+    "expected_pass": false,
+    "answer": {
+      "active_model": "gpt-6.1-sol",
+      "active_effort": "medium",
+      "active_speed": "standard",
+      "decision": "recommend_stronger",
+      "recommended_model": "gpt-6-astra",
+      "recommended_effort": "xhigh",
+      "recommended_speed": null,
+      "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+      "official_guidance": "Compare settings on the same input and keep a profile meeting the quality bar.",
+      "task_inference": "The overall VM, Kubernetes, Flux and storage project is large and three existing VMs must be preserved, so Astra/xhigh is required. The model-selection guide recommends Astra for demanding work.",
+      "reason": "The overall VM, Kubernetes, Flux and storage project is large and three existing VMs must be preserved, so Astra/xhigh is required. The model-selection guide recommends Astra for demanding work."
+    }
+  },
+  {
+    "id": "bounded-inventory-keep",
+    "case_id": "bounded-cluster-inventory",
+    "expected_pass": true,
+    "answer": {
+      "active_model": "gpt-6.1-sol",
+      "active_effort": "medium",
+      "active_speed": "standard",
+      "decision": "keep",
+      "recommended_model": null,
+      "recommended_effort": null,
+      "recommended_speed": null,
+      "official_source_url": null,
+      "official_guidance": null,
+      "task_inference": null,
+      "reason": "Keep Sol/medium. This step compares supplied manifests with an inventory and reports discrepancies; it does not design the eventual cluster. Preserving the three VMs constrains actions but provides no evidence of a capability gap or of a benefit from changing model or effort."
+    }
+  },
+  {
+    "id": "safety-only-effort",
+    "case_id": "bounded-hosting-survey",
+    "expected_pass": false,
+    "answer": {
+      "active_model": "gpt-6.1-sol",
+      "active_effort": "medium",
+      "active_speed": "standard",
+      "decision": "recommend_stronger",
+      "recommended_model": null,
+      "recommended_effort": "xhigh",
+      "recommended_speed": null,
+      "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+      "official_guidance": "Compare settings on the same input and keep a profile meeting the quality bar.",
+      "task_inference": "Keep the model but use xhigh because the live site must stay available and we must be very careful.",
+      "reason": "Keep the model but use xhigh because the live site must stay available and we must be very careful."
+    }
+  },
+  {
+    "id": "mechanism-review-keep",
+    "case_id": "bounded-native-form-review",
+    "expected_pass": true,
+    "answer": {
+      "active_model": "gpt-6.1-sol",
+      "active_effort": "medium",
+      "active_speed": "standard",
+      "decision": "keep",
+      "recommended_model": null,
+      "recommended_effort": null,
+      "recommended_speed": null,
+      "official_source_url": null,
+      "official_guidance": null,
+      "task_inference": null,
+      "reason": "Keep Sol/medium for comparing a small handler with the three official framework mechanisms. The future rewrite is outside this step; no missing capability or quality improvement has been established for a model or effort change."
+    }
+  },
+  {
+    "id": "title-only-upgrade",
+    "case_id": "bounded-read-only-list",
+    "expected_pass": false,
+    "answer": {
+      "active_model": "gpt-6-luna",
+      "active_effort": "low",
+      "active_speed": "standard",
+      "decision": "recommend_stronger",
+      "recommended_model": "gpt-6-astra",
+      "recommended_effort": "xhigh",
+      "recommended_speed": null,
+      "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+      "official_guidance": "Compare settings on the same input and keep a profile meeting the quality bar.",
+      "task_inference": "Rebuilding all agent instructions is ambitious, so Astra/xhigh is needed for this project.",
+      "reason": "Rebuilding all agent instructions is ambitious, so Astra/xhigh is needed for this project."
+    }
+  },
+  {
+    "id": "routine-extraction-keep",
+    "case_id": "bounded-read-only-list",
+    "expected_pass": true,
+    "answer": {
+      "active_model": "gpt-6-luna",
+      "active_effort": "low",
+      "active_speed": "standard",
+      "decision": "keep",
+      "recommended_model": null,
+      "recommended_effort": null,
+      "recommended_speed": null,
+      "official_source_url": null,
+      "official_guidance": null,
+      "task_inference": null,
+      "reason": "Keep Luna/low. The current step extracts three normalized title fields from an already complete response. No design or publication is required, and no model or effort change has a demonstrated benefit."
+    }
+  },
+  {
+    "id": "model-only-quality",
+    "case_id": "quality-model-only",
+    "expected_pass": true,
+    "answer": {
+      "active_model": "gpt-6-luna",
+      "active_effort": "medium",
+      "active_speed": "standard",
+      "decision": "recommend_stronger",
+      "recommended_model": "gpt-6.1-sol",
+      "recommended_effort": null,
+      "recommended_speed": null,
+      "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+      "official_guidance": "Compare settings on the same input and keep a profile meeting the quality bar.",
+      "task_inference": "Use Sol with medium unchanged: the supplied blinded comparison shows that it detects the lost-record counterexamples that Luna/medium missed while meeting the time limit. That is a quality gain for this bounded analysis; no separate effort increase was tested.",
+      "reason": "Use Sol with medium unchanged: the supplied blinded comparison shows that it detects the lost-record counterexamples that Luna/medium missed while meeting the time limit. That is a quality gain for this bounded analysis; no separate effort increase was tested."
+    }
+  },
+  {
+    "id": "coupled-effort-without-evidence",
+    "case_id": "quality-model-only",
+    "expected_pass": false,
+    "answer": {
+      "active_model": "gpt-6-luna",
+      "active_effort": "medium",
+      "active_speed": "standard",
+      "decision": "recommend_stronger",
+      "recommended_model": "gpt-6.1-sol",
+      "recommended_effort": "xhigh",
+      "recommended_speed": null,
+      "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+      "official_guidance": "Compare settings on the same input and keep a profile meeting the quality bar.",
+      "task_inference": "Use Sol because it found all five counterexamples at medium. Also use xhigh: a stronger model should always have more reasoning.",
+      "reason": "Use Sol because it found all five counterexamples at medium. Also use xhigh: a stronger model should always have more reasoning."
+    }
+  },
+  {
+    "id": "effort-only-quality",
+    "case_id": "quality-effort-only",
+    "expected_pass": true,
+    "answer": {
+      "active_model": "gpt-6.1-sol",
+      "active_effort": "medium",
+      "active_speed": "standard",
+      "decision": "recommend_stronger",
+      "recommended_model": null,
+      "recommended_effort": "high",
+      "recommended_speed": null,
+      "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+      "official_guidance": "Compare settings on the same input and keep a profile meeting the quality bar.",
+      "task_inference": "Keep Sol and raise only effort to high. The supplied representative comparison reproduces the missed ordering violation at medium and detects it at high within the accepted time and cost. There is no evidence for changing models.",
+      "reason": "Keep Sol and raise only effort to high. The supplied representative comparison reproduces the missed ordering violation at medium and detects it at high within the accepted time and cost. There is no evidence for changing models."
+    }
+  },
+  {
+    "id": "frontier-quality",
+    "case_id": "quality-frontier-comparison",
+    "expected_pass": true,
+    "answer": {
+      "active_model": "gpt-6.1-sol",
+      "active_effort": "high",
+      "active_speed": "standard",
+      "decision": "recommend_stronger",
+      "recommended_model": "gpt-6-astra",
+      "recommended_effort": null,
+      "recommended_speed": null,
+      "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+      "official_guidance": "Compare settings on the same input and keep a profile meeting the quality bar.",
+      "task_inference": "Use Astra/high. Both tested Sol efforts missed the fencing conflict; Astra/high verified it on both traces and met the quality bar. Preserve high: xhigh produced no further improvement and increased latency. The reason is the measured proof quality, not Kubernetes as a category.",
+      "reason": "Use Astra/high. Both tested Sol efforts missed the fencing conflict; Astra/high verified it on both traces and met the quality bar. Preserve high: xhigh produced no further improvement and increased latency. The reason is the measured proof quality, not Kubernetes as a category."
+    }
+  },
+  {
+    "id": "technology-ceiling",
+    "case_id": "quality-frontier-comparison",
+    "expected_pass": false,
+    "answer": {
+      "active_model": "gpt-6.1-sol",
+      "active_effort": "high",
+      "active_speed": "standard",
+      "decision": "recommend_lighter",
+      "recommended_model": null,
+      "recommended_effort": "medium",
+      "recommended_speed": null,
+      "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+      "official_guidance": "Compare settings on the same input and keep a profile meeting the quality bar.",
+      "task_inference": "Kubernetes always belongs on Sol/medium, so use that profile regardless of comparative results.",
+      "reason": "Kubernetes always belongs on Sol/medium, so use that profile regardless of comparative results."
+    }
+  },
+  {
+    "id": "unsupported-evidence-invention",
+    "case_id": "bounded-cluster-inventory",
+    "expected_pass": false,
+    "answer": {
+      "active_model": "gpt-6.1-sol",
+      "active_effort": "medium",
+      "active_speed": "standard",
+      "decision": "recommend_stronger",
+      "recommended_model": "gpt-6-astra",
+      "recommended_effort": "xhigh",
+      "recommended_speed": null,
+      "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+      "official_guidance": "Compare settings on the same input and keep a profile meeting the quality bar.",
+      "task_inference": "Astra/xhigh is needed because Sol demonstrably missed a fencing violation in five earlier trials; this proves the capability gap for inventory comparison.",
+      "reason": "Astra/xhigh is needed because Sol demonstrably missed a fencing violation in five earlier trials; this proves the capability gap for inventory comparison."
+    }
+  },
+  {
+    "id": "evidence-ignored-keep",
+    "case_id": "quality-frontier-comparison",
+    "expected_pass": false,
+    "answer": {
+      "active_model": "gpt-6.1-sol",
+      "active_effort": "high",
+      "active_speed": "standard",
+      "decision": "keep",
+      "recommended_model": null,
+      "recommended_effort": null,
+      "recommended_speed": null,
+      "official_source_url": null,
+      "official_guidance": null,
+      "task_inference": null,
+      "reason": "Keep the current profile because changing profiles always wastes time. The quality comparison does not matter."
+    }
+  },
+  {
+    "id": "bootstrap-plan-keep",
+    "case_id": "cluster-bootstrap-preflight",
+    "expected_pass": true,
+    "answer": {
+      "active_model": "gpt-6.1-sol",
+      "active_effort": "medium",
+      "active_speed": "standard",
+      "decision": "keep",
+      "recommended_model": null,
+      "recommended_effort": null,
+      "recommended_speed": null,
+      "official_source_url": null,
+      "official_guidance": null,
+      "task_inference": null,
+      "reason": "Keep Sol/medium for the initial resource, image, version and network planning phase. The complete bootstrap will need staged checks, idempotent reapplication and PVC validation; those later tasks and preserving existing VMs do not by themselves establish a capability gap or a benefit from changing either axis for this first phase."
+    }
+  },
+  {
+    "id": "thread-memory-client-discovery-false-blocker",
+    "case_id": "thread-memory-client-discovery",
+    "expected_pass": false,
+    "answer": {
+      "active_model": "gpt-6-luna",
+      "active_effort": "low",
+      "active_speed": "standard",
+      "decision": "keep",
+      "recommended_model": null,
+      "recommended_effort": null,
+      "recommended_speed": null,
+      "official_source_url": null,
+      "official_guidance": null,
+      "task_inference": null,
+      "reason": "Thread Memory MCP отсутствует и CLI нет в PATH, поэтому доступа нет. Keep: дальше ничего сделать нельзя."
+    }
+  },
+  {
+    "id": "checkin-scope-leak",
+    "case_id": "bounded-checkin-after-runtime-failure",
+    "expected_pass": false,
+    "answer": {
+      "active_model": "gpt-6.1-sol",
+      "active_effort": "high",
+      "active_speed": "standard",
+      "decision": "keep",
+      "recommended_model": null,
+      "recommended_effort": null,
+      "recommended_speed": null,
+      "official_source_url": null,
+      "official_guidance": null,
+      "task_inference": "Keep high because the overall investigation is complex and repeating a request after a failure never creates a light task. The hook refusal proves lowering effort is unsafe.",
+      "reason": "Keep high because the overall investigation is complex and repeating a request after a failure never creates a light task. The hook refusal proves lowering effort is unsafe."
+    }
+  },
+  {
+    "id": "checkin-bounded-effort",
+    "case_id": "bounded-checkin-after-runtime-failure",
+    "expected_pass": true,
+    "answer": {
+      "active_model": "gpt-6.1-sol",
+      "active_effort": "high",
+      "active_speed": "standard",
+      "decision": "recommend_lighter",
+      "recommended_model": "gpt-6.1-sol",
+      "recommended_effort": "low",
+      "recommended_speed": null,
+      "official_source_url": "https://developers.openai.com/api/docs/guides/reasoning",
+      "official_guidance": "Lower reasoning is suitable for bounded drafting; more reasoning is useful for work requiring planning and judgment.",
+      "task_inference": "Only draft the check-in from verified facts. The technical hook failure does not require diagnosis in this request and does not establish a drafting capability gap. Reduce effort to low; local tests do not establish live transfer success.",
+      "reason": "Only draft the check-in from verified facts. The technical hook failure does not require diagnosis in this request and does not establish a drafting capability gap. Reduce effort to low; local tests do not establish live transfer success."
+    }
+  },
+  {
+    "id": "failed-work-dismissed-as-runtime",
+    "case_id": "failed-profile-work-still-unfinished",
+    "expected_pass": false,
+    "answer": {
+      "active_model": "gpt-6-luna",
+      "active_effort": "low",
+      "active_speed": "standard",
+      "decision": "keep",
+      "recommended_model": null,
+      "recommended_effort": null,
+      "recommended_speed": null,
+      "official_source_url": null,
+      "official_guidance": null,
+      "task_inference": "All failures are technical hook failures, so Luna low is verified suitable. Ignore the prior attempts and just read one instruction.",
+      "reason": "All failures are technical hook failures, so Luna low is verified suitable. Ignore the prior attempts and just read one instruction."
+    }
+  },
+  {
+    "id": "failed-work-bounded-upgrade",
+    "case_id": "failed-profile-work-still-unfinished",
+    "expected_pass": true,
+    "answer": {
+      "active_model": "gpt-6-luna",
+      "active_effort": "low",
+      "active_speed": "standard",
+      "decision": "recommend_stronger",
+      "recommended_model": "gpt-6.1-sol",
+      "recommended_effort": "medium",
+      "recommended_speed": null,
+      "official_source_url": "https://developers.openai.com/api/docs/guides/reasoning",
+      "official_guidance": "Lower reasoning is suitable for bounded drafting; more reasoning is useful for work requiring planning and judgment.",
+      "task_inference": "The same work still requires finding and executing the configured access route, validating API results and reasoning about epic dependencies. Repeated failures after the available route was provided are execution-quality evidence, not a proven transport outage. Recommend Sol medium for the required planning and judgment; this is not a global model minimum.",
+      "reason": "The same work still requires finding and executing the configured access route, validating API results and reasoning about epic dependencies. Repeated failures after the available route was provided are execution-quality evidence, not a proven transport outage. Recommend Sol medium for the required planning and judgment; this is not a global model minimum."
+    }
+  },
+  {
+    "id": "thread-memory-client-discovery-bounded-completion",
+    "case_id": "thread-memory-client-discovery",
+    "expected_pass": true,
+    "answer": {
+      "active_model": "gpt-6-luna",
+      "active_effort": "low",
+      "active_speed": "standard",
+      "decision": "keep",
+      "recommended_model": null,
+      "recommended_effort": null,
+      "recommended_speed": null,
+      "official_source_url": null,
+      "official_guidance": null,
+      "task_inference": null,
+      "reason": "Keep допустим для ограниченного чтения: доступный database-access указывает настроенный CLI. Предыдущее объявление недоступности было необоснованным. Нужно открыть reference, выполнить чтение указанной версии и проверить результат; если снова не удаётся выполнить известный маршрут, пересмотреть пригодность профиля по конкретной неудаче."
+    }
+  },
+  {
+    "id": "thread-memory-read-completion-false-blocker",
+    "case_id": "thread-memory-read-completion",
+    "expected_pass": false,
+    "answer": {
+      "active_model": "gpt-6-luna",
+      "active_effort": "low",
+      "active_speed": "standard",
+      "decision": "keep",
+      "recommended_model": null,
+      "recommended_effort": null,
+      "recommended_speed": null,
+      "official_source_url": null,
+      "official_guidance": null,
+      "task_inference": null,
+      "reason": "Клиент найден и инструкции прочитаны — поручение выполнено, читать базу не нужно."
+    }
+  },
+  {
+    "id": "thread-memory-read-completion-bounded-completion",
+    "case_id": "thread-memory-read-completion",
+    "expected_pass": true,
+    "answer": {
+      "active_model": "gpt-6-luna",
+      "active_effort": "low",
+      "active_speed": "standard",
+      "decision": "keep",
+      "recommended_model": null,
+      "recommended_effort": null,
+      "recommended_speed": null,
+      "official_source_url": null,
+      "official_guidance": null,
+      "task_inference": null,
+      "reason": "Клиент и команда уже найдены, но чтение ещё не выполнено. Это незавершённая работа. Для ближайшего безопасного чтения сохраняю профиль с проверяемым результатом: исполнить команду и вернуть ответ по истории либо фактическую ошибку. Предыдущая остановка сама по себе не доказывает недоступность базы или универсальный нижний предел модели."
+    }
+  }
+]
