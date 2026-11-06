@@ -205,6 +205,49 @@ class SubmittedInputTests(unittest.TestCase):
         self.assertEqual(read_state(state_path("submitted-thread"))["phase"], "passed")
         self.assertEqual(self.received, [])
 
+    def test_reassessment_keeps_new_requirements_when_history_fills_context(self):
+        from model_fit.application.assessment.validation import validated_request
+
+        api.submit_prompt(self.event)
+        self.assess()
+        self.reader.__enter__.return_value.call.side_effect = (
+            lambda method, params, timeout: (
+                {"data": [{"id": "source-turn"}], "nextCursor": None}
+                if method == "thread/turns/list"
+                else self.rpc(method, params, timeout)
+            )
+        )
+        seen = []
+        requirements = "new requirement; " * 200
+
+        def evaluate(request):
+            validated_request(request)
+            seen.append(request)
+            return {"decision": "keep"}
+
+        api.reassess(
+            requirements,
+            context_reader=lambda _: {
+                "task": "Inspect both",
+                "active_profile": self.profile,
+                "context": "h" * 18000,
+            },
+            assessor=evaluate,
+            native_factory=lambda _: self.reader,
+        )
+        self.assertEqual(len(seen), 1)
+        self.assertIn(requirements, seen[0]["context"])
+        self.assertLessEqual(len(seen[0]["context"]), 20000)
+        self.assertEqual(seen[0]["input"], self.content)
+
+    def test_oversized_reassessment_requirements_leave_submission_unchanged(self):
+        api.submit_prompt(self.event)
+        self.assess()
+        before = state_path("submitted-thread").read_bytes()
+        with self.assertRaises(ValueError):
+            api.reassess("r" * 20000, native_factory=lambda _: self.reader)
+        self.assertEqual(state_path("submitted-thread").read_bytes(), before)
+
     def test_reassessment_rejects_foreign_turn_and_unresolved_state(self):
         api.submit_prompt(self.event)
         with self.assertRaises(SubmissionUnavailable):

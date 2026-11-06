@@ -399,6 +399,13 @@ def reassess(
 ) -> dict[str, Any]:
     if not isinstance(requirements, str) or not requirements.strip():
         raise ValueError("Changed requirements must be nonempty")
+    requirements_context = (
+        "Новые требования, обнаруженные исполнителем после чтения источников (не новое сообщение пользователя):\n"
+        + requirements
+        + "\n\n"
+    )
+    if len(requirements_context) > 20000:
+        raise ValueError("Changed requirements exceed the assessment context limit")
     thread_id = dependencies.caller_thread
     if not thread_id:
         raise SubmissionUnavailable(None, "native_thread_required")
@@ -452,10 +459,8 @@ def reassess(
             "effort": effort,
             "speed": request["active_profile"].get("speed"),
         },
-        "context": "Новые требования, обнаруженные исполнителем после чтения источников (не новое сообщение пользователя):\n"
-        + requirements
-        + "\n\n"
-        + (request.get("context") or ""),
+        "context": requirements_context
+        + (request.get("context") or "")[: 20000 - len(requirements_context)],
     }
     with dependencies.state.transaction(
         thread_id, operation="reassessment", turn_id=turn_id
