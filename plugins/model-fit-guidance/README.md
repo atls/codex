@@ -1,18 +1,19 @@
-# Model Fit guidance
+# Model Fit CLI
 
-This package supplies the Model Fit selection skill for Codex. It evaluates the
-next bounded task and explains a model or reasoning-effort recommendation using
-the current Codex model catalog and OpenAI guidance. It does not install hooks,
-change the active profile or replay a user request.
+Desktop-only profile assessment using the local Codex installation. Requires Python 3.11+, Git, uv, and an authenticated Codex CLI. The command reads one JSON request from stdin and prints one decision as JSON.
 
-The package is generated from the shared selection rules in the public
-[`atls/codex` repository](https://github.com/atls/codex).
-Run `python3 tools/build.py` from the repository root to create the isolated
-`dist/model-fit-guidance-<version>.zip` archive. Successful master releases
-attach this same ZIP to a versioned GitHub Release. The archive contains its
-manifest, this README, the generated skill, UI metadata, icon and license.
+```sh
+uv run --project <installed-plugin-root> model-fit < request.json
+```
 
-The full Codex Desktop implementation and opt-in setup live in the separate
-[`model-fit` package](https://github.com/atls/codex/tree/master/plugins/model-fit).
-Automatic switching is available only there; installing this guidance package
-does not activate it.
+```json
+{"task":"Summarize the supplied release notes","active_profile":{"model":"gpt-6.1-sol","effort":"medium","speed":null}}
+```
+
+Supply the active profile from authoritative session state or an explicit user selection. Optional `context` carries relevant preceding work. Optional `input` carries original native Codex input items, including attachments; do not substitute attachment descriptions for the original input.
+
+The evaluator is a separate local Codex process. The implementation temporarily copies local Codex authentication into an isolated home, never includes it in prompts or archives, and removes that temporary home on normal cleanup. It fetches official guidance and the local model catalog and consumes the signed-in account's model allowance.
+
+Exit codes: 0 for a validated decision, 1 for unavailable assessment (`unknown`), 2 for malformed input. The CLI does not change the active profile, create a handoff, install hooks, or require pending hook state.
+
+The archive includes its runtime and selection rules. Developer evals, benchmarks and the private corpus are not installed. Public Directory upload/review remains separate from a GitHub Release.

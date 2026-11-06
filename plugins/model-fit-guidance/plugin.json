@@ -2,21 +2,24 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "model-fit-guidance",
   "version": "0.1.0",
-  "description": "Task-aware Codex model recommendations without lifecycle hooks.",
+  "description": "Explicit task profile assessment through a local Codex CLI.",
   "repository": "https://github.com/atls/codex",
   "extensions": {
     "com.openai": {
       "interface": {
-        "displayName": "Model Fit Guidance",
+        "displayName": "Model Fit CLI",
         "shortDescription": "Model choice for Codex",
-        "longDescription": "Recommend an available Codex model and reasoning effort for the next bounded task. This guidance-only package does not change the active profile or install lifecycle hooks.",
+        "longDescription": "Evaluate an explicitly supplied task, context and active profile using the local Codex installation. Returns a model and reasoning recommendation without lifecycle hooks or automatic profile changes.",
         "category": "Developer Tools",
-        "defaultPrompt": ["Recommend a model for my next task"],
+        "defaultPrompt": [
+          "Recommend a model for my next task"
+        ],
         "websiteURL": "https://github.com/atls/codex",
         "supportURL": "https://github.com/atls/codex/issues",
         "logo": "./assets/icon.png",
         "composerIcon": "./assets/icon.png"
-      }
+      },
+      "requires_local_executor": true
     }
   }
 }

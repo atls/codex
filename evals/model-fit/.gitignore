@@ -1,0 +1,7 @@
+node_modules/
+.promptfoo/
+results/
+.yarn/
+.venv/
+*.egg-info/
+.ruff_cache/

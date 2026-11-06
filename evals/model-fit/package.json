@@ -1,0 +1,31 @@
+{
+  "name": "model-fit-evals",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "eval": "uv run python runtime/evaluate.py native",
+    "validate": "uv run python runtime/evaluate.py native --validate",
+    "test": "node --test corpus/tests/*.test.js && yarn test:corpus && yarn test:preflight && yarn test:controller && yarn test:ordinary && yarn test:execution && yarn test:runtime && yarn test:acceptance",
+    "calibrate": "uv run python runtime/evaluate.py calibration",
+    "eval:controller": "uv run python runtime/evaluate.py controller",
+    "eval:tasks": "uv run python runtime/evaluate.py tasks",
+    "eval:ordinary": "uv run python runtime/evaluate.py ordinary",
+    "test:preflight": "uv run python -m unittest discover -s preflight/tests",
+    "test:controller": "uv run python -m unittest discover -s controller/tests",
+    "test:runtime": "uv run python -m unittest discover -s runtime/tests",
+    "eval:corpus": "uv run python runtime/evaluate.py corpus",
+    "test:ordinary": "uv run python -m unittest discover -s ordinary/tests",
+    "test:execution": "uv run python -m unittest discover -s execution/tests",
+    "test:corpus": "uv run python -m unittest discover -s corpus/tests",
+    "test:environment": "uv run python -m unittest discover -s runtime/tests",
+    "regrade": "uv run python runtime/evaluate.py regrade",
+    "test:acceptance": "uv run python -m unittest discover -s acceptance/tests"
+  },
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "devDependencies": {
+    "promptfoo": "0.125.1"
+  },
+  "packageManager": "yarn@4.18.0"
+}

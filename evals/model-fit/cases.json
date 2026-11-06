@@ -1,57 +1,105 @@
 [
   {
-    "id": "backlog-read",
-    "source": "Synthetic read-only task",
-    "prompt": "Покажи три открытые задачи этого репозитория и ничего не меняй",
+    "id": "writer-preflight",
+    "source": "https://github.com/torin-asakura/.agents/issues/705",
+    "source_note": "Derived from issue #658 Case 4; the sanitized fixture makes the root's contract decision and acceptance work explicit",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "fixture_directory": "fixtures/writer",
+    "prompt": "Предыдущий ход согласовал задачу из TASK.md и назначил её writer-агенту. Теперь запускай writer-агента на эту работу.",
+    "expected": "Before announcing or starting the writer, recommend a suitable stronger profile and end the turn."
+  },
+  {
+    "id": "writer-preflight-explicit",
+    "source": "https://github.com/torin-asakura/.agents/issues/705",
+    "source_note": "Control for writer-preflight with explicit skill selection and the same root-owned fixture files",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "fixture_directory": "fixtures/writer",
+    "prompt": "Используй $model-fit перед запуском writer-агента. Предыдущий ход согласовал задачу из TASK.md и назначил её writer-агенту. Теперь запускай writer-агента на эту работу.",
+    "expected": "Explicit skill selection should yield a stronger root-profile recommendation for the root-owned contract decision and stop before starting the writer."
+  },
+  {
+    "id": "writer-delegation-only",
+    "source": "Synthetic child-lane control",
+    "source_note": "The root only dispatches an already scoped independent writer task; a separate reviewer owns its technical decision",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "Предыдущий ход полностью согласовал независимую задачу для writer. Ближайшая работа корня — только запустить writer с этим поручением и сохранить ссылку на результат. Техническое решение и проверку результата выполняет отдельно назначенный reviewer; корень их в этой задаче не принимает. Оцени профиль корня перед запуском, но сам запуск сейчас не выполняй.",
+    "expected": "Keep the suitable root profile for bounded coordination; the writer's technical profile is a separate decision."
+  },
+  {
+    "id": "bounded-skill-change",
+    "source": "https://github.com/torin-asakura/.agents/issues/803",
+    "source_note": "A bounded instruction change was escalated solely because it touched skills and a PR",
     "model": "gpt-6.1-sol",
     "effort": "medium",
     "speed": "standard",
-    "expected": "Assess the bounded issue lookup rather than the surrounding project"
+    "prompt": "Используй $model-fit. Ближайшая работа: изменить несколько уже найденных строк одного skill с известным владельцем, проверить diff и валидатор, затем открыть обычный PR. Оцени активный профиль до начала работы; саму правку сейчас не выполняй.",
+    "expected": "Do not escalate to Astra because the change touches a skill or PR. Keep Sol/medium, or recommend a lighter supported profile when the fixed diff and validator make the required quality checkable."
   },
   {
-    "id": "issue-draft",
-    "source": "Synthetic writing task",
-    "prompt": "Составь черновик одной bug-задачи по готовым фактам, не публикуй её",
-    "model": "gpt-6-astra",
+    "id": "aggregate-stack-length",
+    "source": "Private Thread Memory case: aggregate-stack-length",
+    "source_note": "The user corrected an Astra/max recommendation based on the total length of a sequential PR chain",
+    "model": "gpt-6.1-sol",
     "effort": "high",
     "speed": "standard",
-    "expected": "Justify any lighter recommendation separately for model and effort"
+    "prompt": "Используй $model-fit. В проекте запланирована цепочка из четырнадцати последовательных PR. Ближайший ход ограничен одним обратимым срезом: проверить владельца одного механизма, изменить его и подготовить PR; остальные срезы будут отдельной работой. Оцени текущий профиль только для ближайшего хода, не начинай реализацию.",
+    "expected": "Do not recommend Astra/max merely because the full plan has fourteen PRs; evaluate the one bounded slice and the active profile."
   },
   {
-    "id": "local-search-design",
-    "source": "Synthetic architecture task",
-    "prompt": "Спроектируй поиск по локальным снимкам: индексацию, обновление и восстановление после сбоя",
+    "id": "already-active-profile",
+    "source": "Private Thread Memory case: already-active-profile",
+    "source_note": "The user corrected a recommendation to switch to the profile already active for the task",
+    "model": "gpt-6.1-sol",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "Используй $model-fit. Активный профиль уже выбран. Следующий ограниченный шаг — написать короткий текст задачи по готовому решению. Нужна ли смена модели или reasoning? Только оцени профиль.",
+    "expected": "Do not recommend the already active profile as a change. Keep it, or recommend a genuinely lighter supported profile when the task quality bar and useful gain are evidenced."
+  },
+  {
+    "id": "catalog-unavailable",
+    "source": "https://github.com/torin-asakura/.agents/issues/839",
+    "source_note": "The Codex executable is absent from the agent shell PATH while the runner itself starts by absolute path",
+    "model": "gpt-6.1-sol",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "Используй $model-fit. Оцени активный профиль для короткой задачи по готовому решению. Только оцени профиль; работу не начинай.",
+    "expected": "State visibly that the required model catalog could not be read; do not invent a target profile."
+  },
+  {
+    "id": "ordinary-dialogue",
+    "source": "https://github.com/torin-asakura/.agents/issues/409",
+    "source_note": "Negative control: ordinary explanation is outside the skill's implicit trigger",
     "model": "gpt-6-luna",
     "effort": "low",
     "speed": "standard",
-    "expected": "Explain the concrete quality gap for the next design step"
+    "prompt": "Коротко объясни, что показывает команда git status --short.",
+    "expected": "Answer the question without invoking Model Fit or recommending a profile."
   },
   {
-    "id": "kubernetes-backlog",
-    "source": "Synthetic technology-name control",
-    "prompt": "Открой одну задачу о Kubernetes и кратко перечисли её незакрытые пункты без изменений",
+    "id": "choice-preserved",
+    "source": "https://github.com/torin-asakura/.agents/issues/803",
+    "source_note": "The user already chose the current profile for the unchanged bounded task",
     "model": "gpt-6.1-sol",
     "effort": "medium",
     "speed": "standard",
-    "expected": "Do not infer a frontier model from the word Kubernetes alone"
+    "prior_choice": "For this same bounded instruction edit, the user explicitly chose to continue with the active gpt-6.1-sol/medium profile after an earlier recommendation.",
+    "prompt": "Продолжи ту же ограниченную правку инструкции. Сначала оцени, требуется ли новая рекомендация по профилю; новых требований к работе нет.",
+    "expected": "Continue without repeating the previous profile recommendation or changing the user's choice."
   },
   {
-    "id": "confirmed-choice",
-    "source": "Synthetic user-choice control",
-    "prompt": "Продолжи ту же проверку конфигурации после моего выбора оставить текущий профиль",
-    "model": "gpt-6.1-sol",
-    "effort": "medium",
-    "speed": "standard",
-    "prior_choice": "The user explicitly kept this profile for the same work",
-    "expected": "Keep without another model invocation"
-  },
-  {
-    "id": "missing-source",
-    "source": "Synthetic source-failure control",
-    "prompt": "Оцени профиль для ограниченной правки после недоступности каталога моделей",
+    "id": "strong-profile-needed",
+    "source": "https://github.com/torin-asakura/.agents/issues/705",
+    "source_note": "Positive control for a demonstrably unsuitable low profile",
     "model": "gpt-6-luna",
     "effort": "low",
     "speed": "standard",
-    "expected": "Return unknown rather than inventing a verified profile"
+    "prompt": "Используй $model-fit. Нужно до начала реализации разрешить несколько противоречащих друг другу публичных контрактов и границ ответственности в большой миграции. Ошибка в решении повлияет на все зависимые изменения. Оцени текущий профиль; проектирование пока не начинай.",
+    "expected": "Recommend a supported stronger profile, explain the concrete mismatch, and stop before project work."
   }
 ]

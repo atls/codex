@@ -1,56 +1,64 @@
-# Model Fit evaluations
+# Эвалы Model Fit
 
-These cases exercise the public Model Fit skill and the hook code without
-publishing user conversations. The scenario inputs and answer examples are
-synthetic. Run results, current source snapshots, model traces and token usage
-are written under ignored `.tmp/model-fit-evals/`.
+## Подготовка
 
-## Cases
+Production runtime и hooks находятся в `plugins/model-fit`; skill содержит
+инструкции в `plugins/model-fit/skills/model-fit`.
 
-| Case | Property checked |
+Требуются Node и Yarn из mise, UV, Codex CLI и существующий ChatGPT login.
+`CODEX_EVAL_HOME` задаёт исходный login. При запуске eval auth копируется во
+временный home с mode 0600; API-key providers отключены.
+
+```sh
+mise exec -- yarn install --immutable
+uv sync --locked
+```
+
+## Запуск
+
+Запускай команды из `evals/model-fit`:
+
+```sh
+mise exec -- yarn test
+CODEX_EVAL_HOME="$HOME/.codex" mise exec -- yarn validate
+CODEX_EVAL_HOME="$HOME/.codex" mise exec -- yarn eval --no-table --output results/native.json
+```
+
+| Команда | Назначение |
 | --- | --- |
-| `backlog-read` | Judge the next read-only issue lookup, not the whole project |
-| `issue-draft` | Explain any lighter model and effort choices independently |
-| `local-search-design` | Ground an upgrade in the specific design work |
-| `kubernetes-backlog` | Avoid a profile rule inferred from a technology name |
-| `confirmed-choice` | Keep a profile explicitly chosen for the same work without a model call |
-| `missing-source` | Return `unknown` when an obligatory source is unavailable |
+| `yarn eval` | Native preflight по сценариям |
+| `yarn eval:controller` | Production controller |
+| `yarn eval:ordinary` | Обычный диалог без автоматической оценки |
+| `yarn calibrate` | Оценка зафиксированных calibration-примеров |
+| `yarn eval:tasks` | Выполнение фиксированных задач |
+| `yarn regrade` | Повторная оценка сохранённого controller result |
+| `yarn eval:corpus` | Сравнение Model Fit и stock на выбранных snapshots |
 
-The four first cases use a semantic grader with four criteria: nearest bounded
-work, grounded profile change, separate model and effort reasoning, and no
-universal technology rule. `behavior-calibration.json` contains synthetic
-positive and negative examples for that grader. `answer-cases.json` checks a
-separate text-only replay relevance classifier. The unit tests cover complete
-queued input, images, state locks, error audit, project hook setup and privacy.
+`MODEL_FIT_REGRADE_FILE` задаёт файл для `regrade`. Для `eval:corpus` укажи
+`MODEL_FIT_CORPUS_MANIFEST`; `MODEL_FIT_CORPUS_MANIFEST_SHA256` закрепляет его
+ревизию. Запросы и snapshots корпуса не входят в репозиторий.
 
-## Deterministic checks
+`yarn test` запускает Python и Node проверки без model inference. Чтобы выполнить
+source-backed guard-тест, укажи `MODEL_FIT_CORPUS_ROOT`; без корпуса этот один
+tест пропускается.
 
-From the repository root:
+## Приёмка native media
 
-```sh
-python3 -m unittest discover -s evals/model-fit -p 'test_*.py'
-python3 tools/build.py
-```
-
-These commands do not require an OpenAI API key or a model inference request.
-The test that inspects installed Codex hook definitions skips itself when the
-CLI is unavailable. The build creates two ignored ZIP files under `dist/` and
-verifies their contents.
-
-## Live behavior evaluation
-
-The following commands use the current Codex sign-in and consume model usage:
+`yarn test:acceptance` проверяет grader и Promptfoo bridge через echo-provider,
+без model inference. Для отдельного запуска native-host сценария выполни:
 
 ```sh
-python3 evals/model-fit/run.py --controller --case backlog-read
-python3 evals/model-fit/run.py --calibrate-behavior
-python3 evals/model-fit/run-answer.py
+MODEL_FIT_ACCEPTANCE_OUTPUT=<private-output-directory> \
+MODEL_FIT_IMAGE_PYTHON=<python-with-pillow> \
+CODEX_EVAL_HOME=<existing-chatgpt-login> \
+uv run acceptance/verify.py
 ```
 
-`run.py` fetches current official OpenAI guidance and the local Codex model
-catalog, runs each selected case in an isolated read-only app-server session,
-and records exact source hashes and observed results. The grader checks the
-meaning of the answer rather than requiring one model for every Kubernetes or
-writing task. Evaluate a changed skill from that change's checkout; the
-runner does not mutate working projects or publish results. Model failures
-remain failures in the local manifest.
+Runner использует временный candidate home и scratch worktree.
+
+
+Сквозные сценарии переноса находятся в
+`evals/model-fit/runtime/tests/test_transfer_journey.py`: публичные команды
+проходят оценку, реальное файловое состояние, очередь и replay. Подменяются
+только context/assessment и native RPC; это не проверка исполнения моделей.
+Отдельно проверяется, что неизвестный исход очереди запрещает повтор.

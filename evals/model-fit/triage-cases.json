@@ -1,37 +1,383 @@
 [
   {
-    "id": "backlog-read",
-    "base_case_id": "backlog-read",
-    "expected_decisions": ["keep", "recommend_lighter"],
+    "id": "writer-preflight",
+    "base_case_id": "writer-preflight",
+    "expected_decision": "recommend_stronger",
+    "allowed_recommendations": [
+      "gpt-6.1-sol/medium",
+      "gpt-6.1-sol/high",
+      "gpt-6-sol/medium",
+      "gpt-6-sol/high",
+      "gpt-6-astra/medium"
+    ]
+  },
+  {
+    "id": "writer-preflight-explicit",
+    "base_case_id": "writer-preflight-explicit",
+    "expected_decision": "recommend_stronger",
+    "allowed_recommendations": [
+      "gpt-6.1-sol/medium",
+      "gpt-6.1-sol/high",
+      "gpt-6-sol/medium",
+      "gpt-6-sol/high",
+      "gpt-6-astra/medium"
+    ]
+  },
+  {
+    "id": "writer-delegation-only",
+    "base_case_id": "writer-delegation-only",
+    "expected_decision": "keep"
+  },
+  {
+    "id": "bounded-skill-change",
+    "base_case_id": "bounded-skill-change",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter"
+    ],
+    "allowed_recommendations": [
+      "gpt-6-luna/low",
+      "gpt-6-luna/medium",
+      "gpt-5.6-terra/medium",
+      "gpt-6.1-sol/low"
+    ]
+  },
+  {
+    "id": "bounded-stack-step",
+    "base_case_id": "aggregate-stack-length",
+    "expected_decision": "keep"
+  },
+  {
+    "id": "already-active-web",
+    "base_case_id": "already-active-profile",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter"
+    ],
+    "allowed_recommendations": [
+      "gpt-6-luna/low",
+      "gpt-6-luna/medium",
+      "gpt-5.6-terra/medium"
+    ]
+  },
+  {
+    "id": "complex-contract-design",
+    "base_case_id": "strong-profile-needed",
+    "expected_decision": "recommend_stronger",
+    "allowed_recommendations": [
+      "gpt-6.1-sol/medium",
+      "gpt-6.1-sol/high",
+      "gpt-6.1-sol/xhigh",
+      "gpt-6-astra/medium",
+      "gpt-6-astra/high",
+      "gpt-6-astra/xhigh"
+    ]
+  },
+  {
+    "id": "user-choice-preserved",
+    "base_case_id": "choice-preserved",
+    "expected_decision": "keep"
+  },
+  {
+    "id": "catalog-unavailable",
+    "base_case_id": "catalog-unavailable",
+    "source_failure": "Codex model catalog",
+    "expected_decision": "unknown"
+  },
+  {
+    "id": "ordinary-dialogue",
+    "base_case_id": "ordinary-dialogue",
+    "implicit_selection_control": true
+  },
+  {
+    "id": "caily-admin-review",
+    "source": "Private Thread Memory case: admin-review",
+    "source_note": "Sanitized historical case: review an admin-panel PR against user scenarios and requirements",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "Новый этап: провести ревью PR с админкой, где требования и код могут расходиться. Нужно проверить пользовательские сценарии, сопоставить реализацию с требованиями, найти пропуски и лишние механизмы, затем дать конкретные замечания. Само ревью пока не начинай; сначала оцени профиль.",
+    "expected": "Recommend a supported stronger technical-review profile before inspecting the PR.",
+    "expected_decision": "recommend_stronger",
+    "allowed_recommendations": [
+      "gpt-6.1-sol/medium",
+      "gpt-6.1-sol/high",
+      "gpt-6.1-sol/xhigh",
+      "gpt-6-sol/medium",
+      "gpt-6-sol/high",
+      "gpt-6-astra/medium"
+    ]
+  },
+  {
+    "id": "mail-collection",
+    "source": "https://github.com/torin-asakura/.agents/issues/846",
+    "source_note": "Synthetic bounded phase from the user's 2026-10-16 cross-project workflow clarification",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "Новый ограниченный этап работы: собери из уже подключённой почты письма по одному проекту за заданный период и выпиши дату, отправителя и тему. Не анализируй архитектуру и не принимай решений по продукту. В этом тесте только оцени профиль, письма не читай.",
+    "expected": "Keep Luna/low for bounded extraction and proceed without a profile recommendation.",
+    "expected_decision": "keep"
+  },
+  {
+    "id": "speed-only-fast",
+    "source": "https://github.com/torin-asakura/.agents/issues/846",
+    "source_note": "Synthetic speed-only phase; the supplied catalog supports fast for the current model",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": "standard",
+    "prompt": "Новый срочный этап: подготовь краткий технический ответ по уже согласованным фактам. Текущие модель и reasoning выбраны для требуемого качества и должны сохраниться; теперь время важнее расхода, дополнительный расход допустим. Оцени профиль до работы и проверь, можно ли ускорить именно текущую модель через поддерживаемый speed tier. Сам ответ пока не составляй.",
+    "expected": "Recommend fast speed on the current model and effort when supported, without changing the quality profile or starting the task.",
+    "expected_decision": "recommend_faster",
+    "allowed_recommendations": [
+      "gpt-6.1-sol/medium/fast"
+    ],
+    "require_speed_only": true
+  },
+  {
+    "id": "mail-to-search-design",
+    "source": "https://github.com/torin-asakura/.agents/issues/846",
+    "source_note": "Synthetic task transition from the user's 2026-10-16 cross-project workflow clarification",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "Предыдущий этап сбора писем закончен. Теперь новый этап: спроектируй локальный поисковик-генератор по снимкам нескольких источников. Нужно определить владельцев индекса и генерации, обновление снимков, границы поиска, согласованность и способ проверки решений. Сначала оцени профиль; проектирование пока не начинай.",
+    "expected": "Recommend a supported stronger profile before starting the new architecture phase.",
+    "expected_decision": "recommend_stronger",
+    "allowed_recommendations": [
+      "gpt-6.1-sol/medium",
+      "gpt-6.1-sol/high",
+      "gpt-6.1-sol/xhigh",
+      "gpt-6-astra/medium"
+    ]
+  },
+  {
+    "id": "design-to-issue-draft",
+    "source": "https://github.com/torin-asakura/.agents/issues/846",
+    "source_note": "Synthetic bounded phase from the user's 2026-10-16 cross-project workflow clarification",
+    "model": "gpt-6.1-sol",
+    "effort": "xhigh",
+    "speed": "standard",
+    "prompt": "Проектное решение уже принято и зафиксировано. Новый этап — составить короткий черновик одной задачи по готовым требованиям и критериям приёмки. Ничего не проектируй, не публикуй и не меняй код. Это черновик для моего чтения: скорость и расход важнее полировки. Сначала оцени, нужен ли прежний усиленный профиль для этого ограниченного этапа.",
+    "expected": "Recommend a lighter supported profile for a private issue draft with fixed requirements.",
+    "expected_decision": "recommend_lighter",
+    "allowed_recommendations": [
+      "gpt-6-luna/low",
+      "gpt-6-luna/medium",
+      "gpt-5.6-terra/medium",
+      "gpt-6.1-sol/low",
+      "gpt-6.1-sol/medium"
+    ]
+  },
+  {
+    "id": "bounded-cluster-inventory",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": "standard",
+    "prompt": "Долгосрочная цель — Kubernetes, Flux и хранилище для нескольких сервисов. Ближайший этап: прочитать готовые manifests и инвентарь, сверить выделенные ресурсы, вернуть таблицу расхождений. Не проектируй кластер и не меняй инфраструктуру. Три действующие VM нужно сохранить. Сравнений качества профилей пока нет.",
+    "expected": "Accept any supported profile grounded in the nearest bounded work and evidence; evaluate model and effort independently.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
     "behavioral_review": true
   },
   {
-    "id": "issue-draft",
-    "base_case_id": "issue-draft",
-    "expected_decisions": ["keep", "recommend_lighter"],
+    "id": "bounded-hosting-survey",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": "standard",
+    "prompt": "Большой проект постепенно заменяет старый сайт и добавляет backend. Сейчас только прочитай предоставленный список каталогов и настройки document root, укажи возможные места размещения и какие данные ещё нужны. Сайт должен остаться доступным; запись и deployment запрещены. Новый дизайн и миграция сейчас не поручены.",
+    "expected": "Accept any supported profile grounded in the nearest bounded work and evidence; evaluate model and effort independently.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
     "behavioral_review": true
   },
   {
-    "id": "local-search-design",
-    "base_case_id": "local-search-design",
-    "expected_decisions": ["recommend_stronger"],
+    "id": "bounded-native-form-review",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": "standard",
+    "prompt": "Пользователь оспорил ручной парсинг формы и отправку почты. Ближайшая работа — сравнить имеющийся небольшой обработчик с официальными Symfony Form, Validator и Mailer и дать короткий список отклонений. Ничего не переписывай и не проектируй заново. Дальнейшая переделка слоёв не входит в этот этап.",
+    "expected": "Accept any supported profile grounded in the nearest bounded work and evidence; evaluate model and effort independently.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
     "behavioral_review": true
   },
   {
-    "id": "kubernetes-backlog",
-    "base_case_id": "kubernetes-backlog",
-    "expected_decisions": ["keep", "recommend_lighter"],
+    "id": "bounded-read-only-list",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "Верни названия трёх открытых задач из готового JSON-ответа провайдера. Поля уже нормализованы, пагинация закончена. Долгосрочная цель проекта — переделать весь набор агентских инструкций. Сейчас только извлеки три названия; никаких публикаций и изменений.",
+    "expected": "Accept any supported profile grounded in the nearest bounded work and evidence; evaluate model and effort independently.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
     "behavioral_review": true
   },
   {
-    "id": "confirmed-choice",
-    "base_case_id": "confirmed-choice",
-    "expected_decisions": ["keep"]
+    "id": "quality-model-only",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6-luna",
+    "effort": "medium",
+    "speed": "standard",
+    "prompt": "Ближайшая работа — найти противоречия в двух спецификациях порядка восстановления. В слепом сравнении на пяти примерах текущая Luna/medium пропустила потерю подтверждённой записи в четырёх; Sol/medium нашла все пять, дала проверяемые контрпримеры, уложилась в лимит времени. Повышение effort отдельно не проверялось. Выбери профиль для такого же ограниченного анализа, не анализируй документы сейчас.",
+    "expected": "Accept any supported profile grounded in the nearest bounded work and evidence; evaluate model and effort independently.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true
   },
   {
-    "id": "missing-source",
-    "base_case_id": "missing-source",
-    "expected_decisions": ["unknown"],
-    "source_failure": "Codex model catalog"
+    "id": "quality-effort-only",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": "standard",
+    "prompt": "Ближайшая работа — проверить доказательство порядка восстановления по трём конфликтующим трассам. На репрезентативных примерах Sol/medium пропускает нарушение порядка, Sol/high воспроизводимо находит его и проверяет контрпример в допустимое время. Новая модель не сравнивалась; дополнительный расход high принят. Оцени профиль, сам анализ пока не начинай.",
+    "expected": "Accept any supported profile grounded in the nearest bounded work and evidence; evaluate model and effort independently.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true
+  },
+  {
+    "id": "quality-frontier-comparison",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "speed": "standard",
+    "prompt": "Ближайшая работа — построить доказательство сохранности Kubernetes storage при двух одновременных отказах и опровергнуть неверные варианты. В слепом сравнении Sol/high и Sol/xhigh пропустили один и тот же конфликт fencing; Astra/high нашла его, проверила на обеих трассах и прошла весь порог качества. На Astra/xhigh дальнейшего улучшения не было, задержка выше. Расход Astra/high принят. Оцени профиль для этой работы, доказательство пока не строй.",
+    "expected": "Accept any supported profile grounded in the nearest bounded work and evidence; evaluate model and effort independently.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true
+  },
+  {
+    "id": "cluster-bootstrap-preflight",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": "standard",
+    "prompt": "Следующая задача — создать отдельную Linux VM и развернуть Kubernetes, Flux, ingress и постоянное хранилище. Runner уже готов. Сначала нужно зафиксировать ресурсы, образ, версии и сеть; затем работа пойдёт проверяемыми этапами с повторным применением и проверкой PVC. Три действующие VM должны продолжать работать, изменять их нельзя. Для ближайшего этапа планирования сравнений качества моделей или доказанного capability gap пока нет. Оцени профиль перед этим этапом, сам план не составляй.",
+    "expected": "Accept a profile justified by the initial resource/image/version/network planning phase and preservation constraints, without treating the whole bootstrap as an automatic frontier/xhigh requirement.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true
+  },
+  {
+    "id": "thread-memory-client-discovery",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "Запрошен handoff проекта sample/service, dataset service-history, version 0.2.0. В доступных skills есть database-access: Read Thread Memory handoffs and history through its configured CLI and remote PostgreSQL. В его reference указан установленный CLI с готовым подключением. MCP Thread Memory нет, команда в PATH не найдена. Предыдущее выполнение на текущем профиле после этих двух проверок объявило доступ невозможным, не прочитав reference. Теперь нужно довести получение handoff до результата. Оцени профиль для этой работы.",
+    "expected": "Оценивать весь ближайший результат: найти настроенный CLI через доступные skill metadata/карту подключений, выполнить разрешённое чтение и вернуть результат либо фактическую ошибку. Отсутствие одноимённого MCP/PATH не доказывает недоступность. Найденный клиент и чтение инструкции не являются завершением. Учитывать наблюдавшиеся ошибки прежнего выполнения; не выводить универсальный минимальный профиль из имени Thread Memory. Не выполнять исходную задачу в этом preflight.",
+    "quality_requirements": "Оценивать весь ближайший результат: найти настроенный CLI через доступные skill metadata/карту подключений, выполнить разрешённое чтение и вернуть результат либо фактическую ошибку. Отсутствие одноимённого MCP/PATH не доказывает недоступность. Найденный клиент и чтение инструкции не являются завершением. Учитывать наблюдавшиеся ошибки прежнего выполнения; не выводить универсальный минимальный профиль из имени Thread Memory. Не выполнять исходную задачу в этом preflight.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true
+  },
+  {
+    "id": "thread-memory-read-completion",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "Пользователь поручил изучить историю прошлого чата в Thread Memory. Клиент найден, help и карта подключения прочитаны, безопасная команда чтения доступна. Предыдущее выполнение на текущем профиле завершилось словами «нашёл подключение, саму базу ещё не исследовал», хотя разрешение читать уже дано. Нужно выполнить чтение и ответить по исходному вопросу, а при реальной ошибке показать её. Оцени профиль для этой работы.",
+    "expected": "Оценивать весь ближайший результат: найти настроенный CLI через доступные skill metadata/карту подключений, выполнить разрешённое чтение и вернуть результат либо фактическую ошибку. Отсутствие одноимённого MCP/PATH не доказывает недоступность. Найденный клиент и чтение инструкции не являются завершением. Учитывать наблюдавшиеся ошибки прежнего выполнения; не выводить универсальный минимальный профиль из имени Thread Memory. Не выполнять исходную задачу в этом preflight.",
+    "quality_requirements": "Оценивать весь ближайший результат: найти настроенный CLI через доступные skill metadata/карту подключений, выполнить разрешённое чтение и вернуть результат либо фактическую ошибку. Отсутствие одноимённого MCP/PATH не доказывает недоступность. Найденный клиент и чтение инструкции не являются завершением. Учитывать наблюдавшиеся ошибки прежнего выполнения; не выводить универсальный минимальный профиль из имени Thread Memory. Не выполнять исходную задачу в этом preflight.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true
+  },
+  {
+    "id": "explicit-profile-after-failure",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "speed": "standard",
+    "prompt": "Пользователь: публикация согласованной задачи на Luna low уже дважды не выполнена. Я выбрал текущий профиль Sol high для этой работы; не меняй его до моего разрешения. Ассистент: задачу ещё не создал. Следующее сообщение пользователя: «пабли». Новых требований и отмены выбора нет. Оцени профиль именно для продолжающейся публикации.",
+    "expected_decisions": [
+      "keep"
+    ],
+    "behavioral_review": true,
+    "quality_requirements": "Оценивать незавершённую публикацию целиком. Учитывать предыдущую неудачную попытку и явный выбор пользователя; не трактовать слово «пабли» как отдельную новую лёгкую задачу. Не назначать универсальный минимальный профиль и не выдумывать измерения.",
+    "expected": "Preserve an explicit active profile for unchanged work; account for failed execution without universal family rules."
+  },
+  {
+    "id": "retry-after-unsuccessful-downgrade",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "speed": "standard",
+    "prompt": "Пользователь просит опубликовать согласованный текст задачи через организационную форму. Предыдущая попытка после автопонижения на Luna low не опубликовала задачу и повторно запросила уже данное разрешение. Сейчас пользователь поднял активный профиль до Sol high и повторил «пабли». Требуется закончить ту же работу; сравнительных замеров нет, но успешность прежнего профиля опровергнута фактическим незавершением. Оцени профиль.",
+    "expected_decisions": [
+      "keep",
+      "unknown",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true,
+    "quality_requirements": "Оценивать незавершённую публикацию целиком. Учитывать предыдущую неудачную попытку и явный выбор пользователя; не трактовать слово «пабли» как отдельную новую лёгкую задачу. Не назначать универсальный минимальный профиль и не выдумывать измерения.",
+    "expected": "Preserve an explicit active profile for unchanged work; account for failed execution without universal family rules."
+  },
+  {
+    "id": "bounded-checkin-after-runtime-failure",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "speed": "standard",
+    "prompt": "Ассистент уже проверил факты диагностики: guard отклонил штатную оценку; причина не устранена; локальные тесты пройдены, живой перенос не подтверждён. Пользователь повторяет: «Чекины готовь говорю, включая очередной самоблок». Нужен только черновик в текущем чате по этим фактам. Исследование и исправление сейчас не поручены. Явного выбора модели пользователем не было. Оцени профиль для ближайшей работы.",
+    "expected_decisions": [
+      "recommend_lighter"
+    ],
+    "quality_requirements": "Оцени подготовку черновика по готовым фактам. Повторное поручение и технический отказ не добавляют расследование и не доказывают недостаточность модели. Обоснуй снижение model и/или effort по ограниченной работе без универсального минимального профиля и без выдуманных замеров. Сохрани различие локальных тестов и живого переноса. Не выполняй саму задачу.",
+    "behavioral_review": true,
+    "expected": "Оцени подготовку черновика по готовым фактам. Повторное поручение и технический отказ не добавляют расследование и не доказывают недостаточность модели. Обоснуй снижение model и/или effort по ограниченной работе без универсального минимального профиля и без выдуманных замеров. Сохрани различие локальных тестов и живого переноса. Не выполняй саму задачу."
+  },
+  {
+    "id": "failed-profile-work-still-unfinished",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "Нужно продолжить ту же незавершённую работу: восстановить рабочий маршрут чтения истории через настроенный CLI, проверить доступ к GitHub API, спроектировать зависимости эпика и сверить их с текущим состоянием. На текущем профиле уже трижды объявляли доступ отсутствующим и прекращали работу до чтения инструкции, хотя проверенный клиент доступен. Технический отказ hook или транспорта не наблюдался. Рабочий маршрут был предоставлен до каждой неудачной попытки. Оцени профиль для доведения всего результата.",
+    "expected_decisions": [
+      "recommend_stronger",
+      "unknown"
+    ],
+    "quality_requirements": "Учитывай конкретные наблюдавшиеся нарушения требуемого поведения на той же незавершённой работе. Не переименовывай их в сбой hook или транспорта без evidence и не объявляй текущий профиль проверенно пригодным. Для рекомендации объясни требуемое улучшение; при недостаточности данных верни unknown, чтобы цикл не выдавался за успешный. Не устанавливай глобальный запрет семейства или минимальную модель. Не выполняй задачу.",
+    "behavioral_review": true,
+    "expected": "Учитывай конкретные наблюдавшиеся нарушения требуемого поведения на той же незавершённой работе. Не переименовывай их в сбой hook или транспорта без evidence и не объявляй текущий профиль проверенно пригодным. Для рекомендации объясни требуемое улучшение; при недостаточности данных верни unknown, чтобы цикл не выдавался за успешный. Не устанавливай глобальный запрет семейства или минимальную модель. Не выполняй задачу."
   }
 ]

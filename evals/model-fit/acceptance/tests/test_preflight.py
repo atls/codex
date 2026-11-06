@@ -1,0 +1,168 @@
+import importlib.util
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import patch
+
+PATH = Path(__file__).resolve().parents[1] / "verify.py"
+SPEC = importlib.util.spec_from_file_location("media_acceptance_run", PATH)
+RUN = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(RUN)
+
+
+class NativeTrustTests(unittest.TestCase):
+    def hooks(self, home, command, trusted=False):
+        return [
+            {
+                "key": str(home / "hooks.json") + f"#opaque.key[{index}]",
+                "eventName": event,
+                "handlerType": "command",
+                "command": command,
+                "sourcePath": str(home / "hooks.json"),
+                "source": "user",
+                "currentHash": f"native-hash-{index}",
+                "enabled": True,
+                "trustStatus": "trusted" if trusted else "untrusted",
+            }
+            for index, event in enumerate(sorted(RUN.EVENTS))
+        ]
+
+    def test_trust_writes_one_exact_temporary_file_and_uses_native_opaque_keys_hashes(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as name:
+            home = Path(name)
+            cwd = home / "work"
+            cwd.mkdir()
+            command = "candidate command"
+            calls = []
+
+            class App:
+                trusted = False
+
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *_):
+                    pass
+
+                def call(app, method, params, timeout):
+                    calls.append((method, params))
+                    if method == "config/batchWrite":
+                        app.trusted = True
+                        return {}
+                    return {
+                        "data": [
+                            {
+                                "hooks": self.hooks(home, command, app.trusted),
+                                "errors": [],
+                                "warnings": [],
+                            }
+                        ]
+                    }
+
+            first = App()
+            second = App()
+            second.trusted = True
+            with patch.object(RUN, "connect", side_effect=[first, second]):
+                result = RUN.trust(home, cwd, "/fixture/codex", command)
+            writes = [
+                params for method, params in calls if method == "config/batchWrite"
+            ]
+            self.assertEqual(len(writes), 1)
+            self.assertEqual(writes[0]["filePath"], str(home / "config.toml"))
+            self.assertEqual(writes[0]["edits"][0]["keyPath"], "hooks.state")
+            self.assertEqual(
+                writes[0]["edits"][0]["value"],
+                {
+                    hook["key"]: {"trusted_hash": hook["currentHash"], "enabled": True}
+                    for hook in self.hooks(home, command)
+                },
+            )
+            self.assertEqual(len(result), 3)
+
+    def test_unexpected_commands_or_sources_are_not_trusted(self):
+        with tempfile.TemporaryDirectory() as name:
+            home = Path(name)
+            for changed in [
+                {"command": "other"},
+                {"source": "project"},
+                {"sourcePath": "/fixture/other"},
+            ]:
+                hooks = self.hooks(home, "candidate")
+                hooks[0].update(changed)
+
+                class App:
+                    def call(self, *args):
+                        return {
+                            "data": [{"hooks": hooks, "errors": [], "warnings": []}]
+                        }
+
+                with self.subTest(changed=changed), self.assertRaises(RuntimeError):
+                    RUN.candidate_hooks(App(), home, home, "candidate")
+
+    def test_official_echo_wire_resolves_config_relative_python_grade_without_inference(
+        self,
+    ):
+        import json
+        import os
+        import subprocess
+        import sys
+
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            manifest = {
+                "id": "echo-wire",
+                "trustReadbackPassed": True,
+                "codex": "codex",
+                "home": str(root),
+                "workspace": str(root),
+                "path": os.environ["PATH"],
+                "evidence": str(root),
+                "prompt": "fixture",
+                "input": [{"type": "text", "text": "fixture"}],
+            }
+            path = root / "manifest.json"
+            path.write_text(json.dumps(manifest))
+            config_path = root / "config.json"
+            config_path.write_text(json.dumps(RUN.build_config(manifest)))
+            result = subprocess.run(
+                [
+                    "yarn",
+                    "exec",
+                    "promptfoo",
+                    "eval",
+                    "--config",
+                    str(config_path),
+                    "--providers",
+                    "echo",
+                    "--no-cache",
+                    "--max-concurrency",
+                    "1",
+                    "--output",
+                    str(root / "result.json"),
+                ],
+                cwd=RUN.SUITE,
+                env=os.environ
+                | {
+                    "MODEL_FIT_ACCEPTANCE_MANIFEST": str(path),
+                    "PROMPTFOO_PYTHON": sys.executable,
+                    "PROMPTFOO_CONFIG_DIR": str(root / "promptfoo"),
+                    "PROMPTFOO_DISABLE_TELEMETRY": "1",
+                    "LOG_LEVEL": "warn",
+                },
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 100, result.stderr)
+            grade = json.loads((root / "grade.json").read_text())
+            self.assertFalse(grade["pass"])
+            self.assertIn(grade["errorType"], {"KeyError", "TypeError"})
+            saved = json.loads((root / "result.json").read_text())
+            rows = (
+                saved["results"]
+                if isinstance(saved["results"], list)
+                else saved["results"]["results"]
+            )
+            self.assertEqual(rows[0]["provider"]["id"], "echo")
+            self.assertNotIn("error", rows[0]["response"])
