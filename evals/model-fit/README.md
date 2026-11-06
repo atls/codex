@@ -44,7 +44,7 @@ tест пропускается.
 
 ## Приёмка native media
 
-`yarn test:acceptance` проверяет grader и Promptfoo bridge через echo-provider,
+`yarn test:acceptance` проверяет native установку и допуск тестового plugin, grader и Promptfoo bridge через echo-provider,
 без model inference. Для отдельного запуска native-host сценария выполни:
 
 ```sh

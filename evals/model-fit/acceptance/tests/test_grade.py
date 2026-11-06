@@ -25,7 +25,14 @@ class NativeMediaGradeTests(unittest.TestCase):
             {"type": "localImage", "path": str(root / "first.png")},
             {"type": "localImage", "path": str(root / "second.png")},
         ]
-        warning = json.dumps({"systemMessage": GRADE.WARNING})
+        warning = json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "UserPromptSubmit",
+                    "additionalContext": "assess",
+                }
+            }
+        )
         (home / "acceptance-hook-events.jsonl").write_text(
             json.dumps(
                 {
@@ -34,6 +41,10 @@ class NativeMediaGradeTests(unittest.TestCase):
                         "session_id": "thread",
                         "turn_id": "turn",
                         "prompt": prompt,
+                    },
+                    "state_snapshot": {
+                        "phase": "submitted",
+                        "pending_assessment": {"generation": "fixture"},
                     },
                     "returncode": 0,
                     "stdout": warning,
@@ -64,7 +75,7 @@ class NativeMediaGradeTests(unittest.TestCase):
                         "run": {
                             "eventName": "userPromptSubmit",
                             "status": "completed",
-                            "sourcePath": str(home / "hooks.json"),
+                            "sourcePath": str(home / "hooks/hooks.json"),
                             "entries": ["[...]"],
                         },
                     },
@@ -82,7 +93,12 @@ class NativeMediaGradeTests(unittest.TestCase):
             ],
         }
         context = {
-            "vars": {"home": str(home), "evidence": str(evidence), "prompt": prompt},
+            "vars": {
+                "home": str(home),
+                "evidence": str(evidence),
+                "prompt": prompt,
+                "plugin": str(home),
+            },
             "providerResponse": {
                 "raw": raw,
                 "metadata": {
@@ -106,6 +122,27 @@ class NativeMediaGradeTests(unittest.TestCase):
                         context["providerResponse"]["raw"]["items"][0]["content"][1:]
                     )
                 )
+                self.assertFalse(
+                    GRADE.get_assert(
+                        '{"colors":["red","blue"],"imageCount":2}', context
+                    )["pass"]
+                )
+
+    def test_inactive_or_unassessed_hook_cannot_pass_media_acceptance(self):
+        for defect in ("inactive", "no-assessment"):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as name:
+                root = Path(name)
+                context = self.fixture(root)
+                if defect == "inactive":
+                    path = root / "home/acceptance-hook-events.jsonl"
+                    row = json.loads(path.read_text())
+                    row["state_snapshot"] = None
+                    path.write_text(json.dumps(row) + "\n")
+                else:
+                    (root / "home/.tmp/model-fit-hook-audit/thread.jsonl").write_text(
+                        json.dumps({"turn_id": "turn", "outcome": "auto_deferred"})
+                        + "\n"
+                    )
                 self.assertFalse(
                     GRADE.get_assert(
                         '{"colors":["red","blue"],"imageCount":2}', context

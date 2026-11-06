@@ -5,7 +5,6 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import shlex
 import shutil
 import subprocess
 import sys
@@ -40,7 +39,7 @@ def connect(home, cwd, codex):
             "-c",
             "features.hooks=true",
             "-c",
-            "features.plugins=false",
+            "features.plugins=true",
             "-c",
             "features.apps=false",
             "-c",
@@ -63,7 +62,7 @@ def connect(home, cwd, codex):
     )
 
 
-def candidate_hooks(app, home, cwd, command):
+def candidate_hooks(app, plugin, cwd, command):
     groups = app.call("hooks/list", {"cwds": [str(cwd)]}, 15)["data"]
     if len(groups) != 1 or groups[0].get("errors") or groups[0].get("warnings"):
         raise RuntimeError("Native hook inventory is not clean")
@@ -77,23 +76,23 @@ def candidate_hooks(app, home, cwd, command):
     for hook in hooks:
         if (
             hook.get("isManaged", False)
-            or hook.get("pluginId") is not None
+            or hook.get("pluginId") != "model-fit@media-acceptance"
             or hook.get("async", False)
-            or hook["source"] != "user"
-            or Path(hook["sourcePath"]).resolve() != (home / "hooks.json").resolve()
+            or hook["source"] != "plugin"
+            or Path(hook["sourcePath"]).resolve()
+            != (plugin / "hooks/hooks.json").resolve()
             or hook["handlerType"] != "command"
             or hook["command"] != command
             or not isinstance(hook["currentHash"], str)
             or not hook["currentHash"]
-            or not hook["key"].startswith(str(home / "hooks.json"))
         ):
             raise RuntimeError("Hook is not the exact candidate command/source")
     return hooks
 
 
-def trust(home, workspace, codex, command):
+def trust(home, workspace, codex, command, plugin):
     with connect(home, workspace, codex) as app:
-        hooks = candidate_hooks(app, home, workspace, command)
+        hooks = candidate_hooks(app, plugin, workspace, command)
         app.call(
             "config/batchWrite",
             {
@@ -115,9 +114,9 @@ def trust(home, workspace, codex, command):
             },
             15,
         )
-        first = candidate_hooks(app, home, workspace, command)
+        first = candidate_hooks(app, plugin, workspace, command)
     with connect(home, workspace, codex) as app:
-        fresh = candidate_hooks(app, home, workspace, command)
+        fresh = candidate_hooks(app, plugin, workspace, command)
     expected = {(h["key"], h["currentHash"]) for h in hooks}
     if any(
         {(h["key"], h["currentHash"]) for h in result} != expected
@@ -135,6 +134,77 @@ def trust(home, workspace, codex, command):
         }
         for h in fresh
     ]
+
+
+def install_candidate(home, codex):
+    market = home / "candidate-marketplace"
+    source = market / "plugins/model-fit"
+    shutil.copytree(
+        ROOT / "plugins/model-fit",
+        source,
+        ignore=shutil.ignore_patterns(
+            "__pycache__", "*.pyc", ".venv", "build", "dist", "*.egg-info"
+        ),
+    )
+    shutil.copyfile(
+        Path(__file__).with_name("capture_hook.py"), source / "scripts/capture_hook.py"
+    )
+    definition = source / "hooks/hooks.json"
+    hooks = json.loads(definition.read_text())
+    for entries in hooks["hooks"].values():
+        for entry in entries:
+            for hook in entry["hooks"]:
+                hook["command"] = hook["command"].replace(
+                    "scripts/desktop.py", "scripts/capture_hook.py"
+                )
+    definition.write_text(json.dumps(hooks))
+    index = market / ".agents/plugins/marketplace.json"
+    index.parent.mkdir(parents=True)
+    index.write_text(
+        json.dumps(
+            {
+                "name": "media-acceptance",
+                "plugins": [
+                    {
+                        "name": "model-fit",
+                        "source": {"source": "local", "path": "./plugins/model-fit"},
+                        "policy": {
+                            "installation": "AVAILABLE",
+                            "authentication": "ON_INSTALL",
+                        },
+                        "category": "Developer Tools",
+                    }
+                ],
+            }
+        )
+    )
+    (home / "config.toml").write_text(
+        "[features]\nhooks=true\nplugins=true\napps=false\nshell_snapshot=false\n"
+    )
+    for command in (
+        [codex, "plugin", "marketplace", "add", str(market), "--json"],
+        [codex, "plugin", "add", "model-fit@media-acceptance", "--json"],
+    ):
+        subprocess.run(
+            command,
+            env=os.environ | {"CODEX_HOME": str(home)},
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=30,
+        )
+    version = json.loads((source / ".codex-plugin/plugin.json").read_text())["version"]
+    plugin = (home / "plugins/cache/media-acceptance/model-fit" / version).resolve()
+    subprocess.run(
+        ["uv", "sync", "--locked", "--project", str(plugin)],
+        capture_output=True,
+        check=True,
+        timeout=60,
+    )
+    command = hooks["hooks"]["UserPromptSubmit"][0]["hooks"][0]["command"].replace(
+        "${PLUGIN_ROOT}", str(plugin)
+    )
+    return plugin, command
 
 
 def capability_preflight(home, workspace, codex):
@@ -220,45 +290,7 @@ def main():
                     )
                 ).resolve()
                 subprocess.run(["git", "init", "-q", str(workspace)], check=True)
-                shutil.copytree(
-                    ROOT / "plugins/model-fit",
-                    home / "plugins/model-fit",
-                    ignore=shutil.ignore_patterns(
-                        "__pycache__", "*.pyc", ".venv", "build", "dist", "*.egg-info"
-                    ),
-                )
-                shutil.copyfile(
-                    Path(__file__).with_name("capture_hook.py"),
-                    home / "capture_hook.py",
-                )
-                command = shlex.join([sys.executable, str(home / "capture_hook.py")])
-                (home / "hooks.json").write_text(
-                    json.dumps(
-                        {
-                            "hooks": {
-                                event: [
-                                    {
-                                        "hooks": [
-                                            {
-                                                "type": "command",
-                                                "command": command,
-                                                "timeout": timeout,
-                                            }
-                                        ]
-                                    }
-                                ]
-                                for event, timeout in [
-                                    ("UserPromptSubmit", 360),
-                                    ("PreToolUse", 10),
-                                    ("Stop", 45),
-                                ]
-                            }
-                        }
-                    )
-                )
-                (home / "config.toml").write_text(
-                    "[features]\nhooks = true\nplugins = false\napps = false\nshell_snapshot = false\n"
-                )
+                plugin, command = install_candidate(home, codex)
                 subprocess.run(
                     [
                         image_python,
@@ -278,7 +310,7 @@ def main():
                     == (source_auth.stat().st_dev, source_auth.stat().st_ino)
                 ):
                     raise RuntimeError("Private auth copy invariant failed")
-                readback = trust(home, workspace, codex, command)
+                readback = trust(home, workspace, codex, command, plugin)
                 capability = capability_preflight(home, workspace, codex)
                 output = evidence / identifier
                 output.mkdir(mode=0o700)
@@ -304,6 +336,7 @@ def main():
                     "trustReadbackPassed": True,
                     "retainedImages": retained_images,
                     "trust": readback,
+                    "plugin": str(plugin),
                     "capability": capability,
                     "input": [
                         {"type": "text", "text": prompt},

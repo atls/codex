@@ -7,8 +7,6 @@ import json
 from pathlib import Path
 from PIL import Image, ImageStat
 
-WARNING = "Model Fit: контекст этого чата недоступен для проверки; пригодность профиля не установлена, текущий профиль сохранён."
-
 
 def image_color(item, retained_images=()):
     if item["type"] == "localImage":
@@ -96,8 +94,12 @@ def get_assert(output, context):
             "Candidate hook submit execution is absent"
         )
         hook_output = json.loads(submits[0]["stdout"])
-        assert hook_output == {"systemMessage": WARNING}, (
-            "Candidate hook did not return warning-only output"
+        assert (
+            hook_output.get("hookSpecificOutput", {}).get("hookEventName")
+            == "UserPromptSubmit"
+        ), "Deferred assessment instruction is absent"
+        assert (submits[0].get("state_snapshot") or {}).get("pending_assessment"), (
+            "Pending assessment was not registered"
         )
         assert submits[0]["event"]["prompt"] == context["vars"]["prompt"], (
             "Hook text projection changed"
@@ -113,10 +115,11 @@ def get_assert(output, context):
             and event["params"].get("turnId") == turn_id
             and event["params"].get("run", {}).get("eventName") == "userPromptSubmit"
             and event["params"]["run"].get("status") == "completed"
-            and Path(event["params"]["run"]["sourcePath"]) == home / "hooks.json"
+            and Path(event["params"]["run"]["sourcePath"])
+            == Path(context["vars"]["plugin"]) / "hooks/hooks.json"
             for event in native_hooks
         ), "Exact native candidate hook completion is absent"
-        result["checks"]["exactCandidateHookWarning"] = True
+        result["checks"]["exactCandidateDeferredHook"] = True
         audit = [
             json.loads(line)
             for line in (
@@ -140,14 +143,21 @@ def get_assert(output, context):
             if home.exists()
             else evidence / "state" / (thread_id + ".json")
         )
-        state = (
-            json.loads(state_path.read_text())
-            if state_path.is_file()
-            else submits[0].get("state_snapshot")
-        )
-        assert state == {"phase": "passed", "source_turn_id": turn_id}, (
-            "Original turn admission state differs"
-        )
+        snapshots = [
+            row.get("state_snapshot")
+            for row in captures
+            if row["event"].get("session_id") == thread_id
+            and row["event"].get("turn_id") == turn_id
+        ]
+        if state_path.is_file():
+            snapshots.append(json.loads(state_path.read_text()))
+        assert any(
+            state
+            and state.get("phase") == "passed"
+            and state.get("source_turn_id") == turn_id
+            and not state.get("pending_assessment")
+            for state in snapshots
+        ), "Unknown assessment did not release original turn"
         result["checks"]["noQueueOrReconstruction"] = True
         assert raw["turn"]["id"] == turn_id and raw["turn"]["status"] == "completed", (
             "Original turn did not complete"
@@ -156,19 +166,6 @@ def get_assert(output, context):
         assert (
             answer.get("colors") == ["red", "blue"] and answer.get("imageCount") == 2
         ), "Image answer is incorrect"
-        tools = [
-            item
-            for item in raw["items"]
-            if item["type"]
-            not in {
-                "user_message",
-                "userMessage",
-                "agent_message",
-                "agentMessage",
-                "reasoning",
-            }
-        ]
-        assert not tools, "Unexpected task tools"
         settings = [
             event["params"]["threadSettings"]
             for event in notifications

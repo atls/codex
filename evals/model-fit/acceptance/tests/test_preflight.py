@@ -1,6 +1,10 @@
 import importlib.util
 from pathlib import Path
 import tempfile
+import shutil
+import subprocess
+import json
+import os
 import unittest
 from unittest.mock import patch
 
@@ -14,18 +18,65 @@ class NativeTrustTests(unittest.TestCase):
     def hooks(self, home, command, trusted=False):
         return [
             {
-                "key": str(home / "hooks.json") + f"#opaque.key[{index}]",
+                "key": str(home / "hooks/hooks.json") + f"#opaque.key[{index}]",
                 "eventName": event,
                 "handlerType": "command",
                 "command": command,
-                "sourcePath": str(home / "hooks.json"),
-                "source": "user",
+                "sourcePath": str(home / "hooks/hooks.json"),
+                "source": "plugin",
+                "pluginId": "model-fit@media-acceptance",
                 "currentHash": f"native-hash-{index}",
                 "enabled": True,
                 "trustStatus": "trusted" if trusted else "untrusted",
             }
             for index, event in enumerate(sorted(RUN.EVENTS))
         ]
+
+    @unittest.skipUnless(shutil.which("codex"), "Codex CLI required")
+    def test_installed_capture_hooks_admit_real_dispatcher_without_inference(self):
+        with tempfile.TemporaryDirectory() as name:
+            home = (Path(name) / "home").resolve()
+            home.mkdir()
+            workspace = (Path(name) / "work").resolve()
+            workspace.mkdir()
+            plugin, command = RUN.install_candidate(home, shutil.which("codex"))
+            self.assertEqual(
+                len(RUN.trust(home, workspace, shutil.which("codex"), command, plugin)),
+                3,
+            )
+            event = {
+                "session_id": "fixture-thread",
+                "turn_id": "fixture-turn",
+                "hook_event_name": "UserPromptSubmit",
+                "cwd": str(workspace),
+                "model": "gpt-6-luna",
+                "prompt": "fixture",
+            }
+            result = subprocess.run(
+                [
+                    "uv",
+                    "run",
+                    "--quiet",
+                    "--project",
+                    str(plugin),
+                    "python",
+                    str(plugin / "scripts/capture_hook.py"),
+                    "hook",
+                ],
+                input=json.dumps(event),
+                env=os.environ
+                | {"CODEX_HOME": str(home), "CODEX_PLUGIN_ROOT": str(plugin)},
+                cwd=workspace,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("hookSpecificOutput", json.loads(result.stdout))
+            state = json.loads(
+                (home / ".tmp/model-fit-auto-switch/fixture-thread.json").read_text()
+            )
+            self.assertTrue(state["pending_assessment"])
 
     def test_trust_writes_one_exact_temporary_file_and_uses_native_opaque_keys_hashes(
         self,
@@ -65,7 +116,7 @@ class NativeTrustTests(unittest.TestCase):
             second = App()
             second.trusted = True
             with patch.object(RUN, "connect", side_effect=[first, second]):
-                result = RUN.trust(home, cwd, "/fixture/codex", command)
+                result = RUN.trust(home, cwd, "/fixture/codex", command, home)
             writes = [
                 params for method, params in calls if method == "config/batchWrite"
             ]
