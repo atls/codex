@@ -1,8 +1,9 @@
 import importlib.util
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
+
 from PIL import Image
 
 PATH = Path(__file__).resolve().parents[1] / "grade.py"

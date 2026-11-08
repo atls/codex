@@ -35,11 +35,11 @@ jobs:
         working-directory: evals/model-fit
       - run: yarn run test
         working-directory: evals/model-fit
-      - run: uv run --project evals/model-fit --locked python tools/build.py
-      - run: uv run --project evals/model-fit --locked python -m unittest discover -s tools -p 'test_*.py'
+      - run: uv run --project plugins/model-fit --locked python tools/build.py
+      - run: uv run --project plugins/model-fit --locked python -m unittest discover -s tools -p 'test_*.py'
       - name: Read release version
         id: version
-        run: echo "value=$(uv run --project evals/model-fit --locked python tools/build.py --version)" >> "$GITHUB_OUTPUT"
+        run: echo "value=$(uv run --project plugins/model-fit --locked python tools/build.py --version)" >> "$GITHUB_OUTPUT"
       - name: Publish GitHub Release
         uses: ncipollo/release-action@v1
         with:

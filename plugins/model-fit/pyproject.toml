@@ -10,12 +10,12 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
-model-fit = "model_fit.entrypoints.assessment.cli:main"
+model-fit = "model_fit.entrypoints.cli.assess:main"
 
 [tool.setuptools]
-packages = ["model_fit", "model_fit.application", "model_fit.application.assessment", "model_fit.application.assessment.contracts", "model_fit.application.assessment.failures", "model_fit.application.assessment.ports", "model_fit.application.assessment.validation", "model_fit.application.conversation", "model_fit.application.handoff", "model_fit.application.handoff.contracts", "model_fit.application.handoff.failures", "model_fit.application.handoff.ports", "model_fit.application.handoff.requests", "model_fit.entrypoints", "model_fit.entrypoints.assessment", "model_fit.entrypoints.desktop", "model_fit.infrastructure", "model_fit.infrastructure.assessment", "model_fit.infrastructure.assessment.preflight", "model_fit.infrastructure.assessment.sources", "model_fit.infrastructure.audit", "model_fit.infrastructure.codex", "model_fit.infrastructure.codex.conversation", "model_fit.infrastructure.codex.input", "model_fit.infrastructure.codex.transport", "model_fit.infrastructure.handoff", "model_fit.infrastructure.handoff.recommendations", "model_fit.infrastructure.handoff.state"]
+packages = ["model_fit", "model_fit.answer", "model_fit.assessment", "model_fit.assessment.contracts", "model_fit.assessment.failures", "model_fit.assessment.ports", "model_fit.autoswitch", "model_fit.autoswitch.contracts", "model_fit.autoswitch.failures", "model_fit.autoswitch.ports", "model_fit.autoswitch.requests", "model_fit.entrypoints", "model_fit.entrypoints.cli", "model_fit.entrypoints.hooks", "model_fit.infrastructure", "model_fit.infrastructure.adapters", "model_fit.infrastructure.adapters.codex", "model_fit.infrastructure.adapters.codex.transport", "model_fit.infrastructure.adapters.codex.transport.assessment", "model_fit.infrastructure.adapters.filesystem", "model_fit.submission"]
 package-dir = { model_fit = "src" }
 
 [tool.setuptools.package-data]
-"model_fit.application.assessment" = ["*.json"]
-"model_fit.infrastructure.assessment" = ["*.json"]
+"model_fit.assessment" = ["*.json"]
+"model_fit.answer" = ["*.json"]

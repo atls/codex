@@ -20,10 +20,18 @@ Development evals and synthetic fixtures live under `evals/model-fit`. They are 
 ## Build and verify
 
 ```sh
-cd evals/model-fit && yarn install --immutable && yarn test
+cd evals/model-fit && yarn install --immutable && yarn run test
 cd ../..
-python tools/build.py
-python -m unittest discover -s tools -p 'test_*.py'
+uv run --project plugins/model-fit --locked python tools/build.py
+uv run --project plugins/model-fit --locked python -m unittest discover -s tools -p 'test_*.py'
 ```
 
 GitHub Release attaches both archives at the declared version. Reusing an existing release version fails. See LICENSE for the existing BSD-3-Clause terms.
+
+## Source layout
+
+Production scenarios live in `plugins/model-fit/src/assessment`, `submission`, `autoswitch` and `answer`. State transitions have one owner in `autoswitch/transitions.py`. Native Codex and filesystem implementations live under `infrastructure/adapters`; `entrypoints/cli` and `entrypoints/hooks` decode and compose their calls. Both distributions use the same assessment scenario.
+
+`tools/build.py` reads plugin sources, manifests and LICENSE only. It builds without an `evals` directory. Evaluation fixture validation runs separately in the development suite. Public synthetic evaluations are grouped by scenario; their Promptfoo provider adapter lives under `evals/model-fit/infrastructure/adapters/promptfoo`. Private-corpus import, snapshot and trace-analysis tools are not part of this repository.
+
+The Yarn runtime is the verified package/runtime pair installed by Raijin's public updater. Follow the [Raijin setup guide](https://github.com/atls/raijin/blob/master/docs/raijin/setup.md) for `yarn dlx @atls/raijin update`; commit its package, lockfile, configuration and runtime together.

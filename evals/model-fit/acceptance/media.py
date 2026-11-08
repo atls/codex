@@ -1,7 +1,8 @@
 """Synthetic two-color media fixtures through the bundled Pillow runtime."""
 
-from pathlib import Path
 import sys
+from pathlib import Path
+
 from PIL import Image
 
 if __name__ == "__main__":

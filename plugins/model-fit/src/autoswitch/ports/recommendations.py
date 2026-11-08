@@ -1,0 +1,13 @@
+from typing import Any, Protocol
+
+
+class Recommendations(Protocol):
+    def load(self, thread_id: str) -> dict[str, Any] | None: ...
+
+    def save(
+        self, thread_id: str, request: dict[str, Any], decision: dict[str, Any]
+    ) -> None: ...
+
+    def clear(self, thread_id: str) -> None: ...
+
+    def unsafe(self, thread_id: str) -> bool: ...

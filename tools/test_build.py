@@ -1,12 +1,13 @@
 import importlib.util
 import json
 import os
-from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 import zipfile
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("package_build", ROOT / "tools/build.py")
@@ -23,7 +24,20 @@ class DistributionTests(unittest.TestCase):
                 self.assertEqual(content, full[name], name)
         self.assertIn("hooks/hooks.json", full)
         self.assertNotIn("hooks/hooks.json", cli)
-        self.assertNotIn("src/api.py", cli)
+        self.assertIn("src/assessment/assess.py", cli)
+        self.assertFalse(
+            any(
+                name.startswith(
+                    (
+                        "src/submission/",
+                        "src/autoswitch/",
+                        "src/answer/",
+                        "src/entrypoints/hooks/",
+                    )
+                )
+                for name in cli
+            )
+        )
         metadata = json.loads(cli["plugin.json"])
         extension = metadata["extensions"]["com.openai"]
         self.assertTrue(extension["requires_local_executor"])
@@ -36,6 +50,28 @@ class DistributionTests(unittest.TestCase):
             self.assertFalse(
                 any("tests/" in name or name.startswith("evals/") for name in files)
             )
+
+    def test_both_archives_build_without_evaluation_sources(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(
+                ROOT / "plugins",
+                root / "plugins",
+                ignore=shutil.ignore_patterns(".venv", "__pycache__", "*.egg-info"),
+            )
+            shutil.copy(ROOT / "LICENSE", root / "LICENSE")
+            (root / "tools").mkdir()
+            shutil.copy(ROOT / "tools/build.py", root / "tools/build.py")
+            self.assertFalse((root / "evals").exists())
+            result = subprocess.run(
+                [sys.executable, str(root / "tools/build.py")],
+                cwd=root,
+                text=True,
+                capture_output=True,
+                timeout=30,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(len(list((root / "dist").glob("*.zip"))), 2)
 
     def test_clean_cli_install_without_hooks_or_submission_state(self):
         identity, files = build.guidance_package()

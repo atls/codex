@@ -2,9 +2,9 @@
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 home = Path(os.environ["CODEX_HOME"])
 raw = sys.stdin.read()

@@ -26,5 +26,5 @@ jobs:
         working-directory: evals/model-fit
       - run: yarn run test
         working-directory: evals/model-fit
-      - run: uv run --project evals/model-fit --locked python tools/build.py
-      - run: uv run --project evals/model-fit --locked python -m unittest discover -s tools -p 'test_*.py'
+      - run: uv run --project plugins/model-fit --locked python tools/build.py
+      - run: uv run --project plugins/model-fit --locked python -m unittest discover -s tools -p 'test_*.py'

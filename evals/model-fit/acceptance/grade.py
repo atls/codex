@@ -1,10 +1,11 @@
 """Deterministic private native media acceptance; no grader inference."""
 
 import base64
-import io
 import hashlib
+import io
 import json
 from pathlib import Path
+
 from PIL import Image, ImageStat
 
 

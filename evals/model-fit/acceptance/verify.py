@@ -1,30 +1,31 @@
 """Trust candidate-only temporary hooks, then run exactly two native media rows."""
 
-from contextlib import ExitStack
 import hashlib
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
+from contextlib import ExitStack
+from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[3]
 SUITE = ROOT / "evals/model-fit"
 sys.path.insert(0, str(ROOT / "plugins/model-fit/src"))
 sys.path.insert(0, str(SUITE))
-from acceptance.configuration import build_config
-from model_fit.infrastructure.codex.transport.connection import (
+from model_fit.infrastructure.adapters.codex.authentication import authenticated_home
+from model_fit.infrastructure.adapters.codex.history import (
+    unavailable_session_input,
+)
+from model_fit.infrastructure.adapters.codex.transport.connection import (
     AppServerConnection,
     AppServerRPCError,
 )
-from model_fit.infrastructure.codex.conversation.queries import (
-    unavailable_session_input,
-)
-from model_fit.infrastructure.codex.authentication import authenticated_home
+
+from acceptance.configuration import build_config
 
 EVENTS = {"userPromptSubmit", "preToolUse", "stop"}
 

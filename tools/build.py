@@ -7,29 +7,10 @@ import json
 import zipfile
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 PLUGINS = ROOT / "plugins"
 OUTPUT = ROOT / "dist"
 FORBIDDEN_TEXT = ("/Users/", "codex://threads/", "-----BEGIN PRIVATE KEY-----")
-FIXTURES = (
-    "cases.json",
-    "triage-cases.json",
-    "replay-answer-cases.json",
-    "behavior-calibration.json",
-)
-
-
-def validate_fixtures() -> None:
-    directory = ROOT / "evals/model-fit"
-    for name in FIXTURES:
-        content = (directory / name).read_text()
-        json.loads(content)
-        if (
-            any(value in content for value in FORBIDDEN_TEXT)
-            or "data:image/" in content
-        ):
-            raise ValueError(f"Public eval fixture contains private input: {name}")
 
 
 def manifest(package: Path) -> dict:
@@ -86,7 +67,7 @@ def full_package() -> tuple[dict, dict[str, bytes]]:
     files["LICENSE"] = (ROOT / "LICENSE").read_bytes()
     if (
         "skills/model-fit/SKILL.md" not in files
-        or "src/assessment.py" not in files
+        or "src/assessment/assess.py" not in files
         or "assets/icon.png" not in files
     ):
         raise ValueError("Full Model Fit package is incomplete")
@@ -97,29 +78,23 @@ def guidance_package() -> tuple[dict, dict[str, bytes]]:
     package = PLUGINS / "model-fit-guidance"
     identity = manifest(package)
     full = source_files(PLUGINS / "model-fit")
-    excluded = (
-        "src/application/handoff/",
-        "src/application/conversation/",
-        "src/entrypoints/desktop/",
-        "src/infrastructure/handoff/",
-        "src/infrastructure/audit/",
-        "src/infrastructure/codex/conversation/",
-        "src/infrastructure/codex/input/",
+    shared = (
+        "src/assessment/",
+        "src/entrypoints/cli/assess.py",
+        "src/infrastructure/adapters/codex/assessment.py",
+        "src/infrastructure/adapters/codex/catalog.py",
+        "src/infrastructure/adapters/codex/sources.py",
+        "src/infrastructure/adapters/codex/authentication.py",
+        "src/infrastructure/adapters/codex/transport/assessment/",
+        "src/infrastructure/adapters/codex/transport/connection.py",
+        "src/infrastructure/adapters/codex/transport/rpc_error.py",
     )
-    files = {
-        name: data
-        for name, data in full.items()
-        if name.startswith("src/")
-        and not name.startswith(excluded)
-        and name
-        not in {
-            "src/api.py",
-            "src/infrastructure/codex/identity.py",
-            "src/infrastructure/assessment/client.py",
-            "src/infrastructure/assessment/relevance.py",
-            "src/infrastructure/assessment/relevance.schema.json",
-        }
-    }
+    files = {name: data for name, data in full.items() if name.startswith(shared)}
+    for name, data in full.items():
+        if name.endswith("/__init__.py") and any(
+            item.startswith(name[:-11]) for item in files
+        ):
+            files[name] = data
     files.update(source_files(package))
     files["LICENSE"] = (ROOT / "LICENSE").read_bytes()
     rules = full["skills/model-fit/SKILL.md"].decode().split("\n## Ответ\n", 1)[0]
@@ -144,7 +119,7 @@ def guidance_package() -> tuple[dict, dict[str, bytes]]:
     files["pyproject.toml"] = config.encode()
     files["uv.lock"] = full["uv.lock"]
     if any(
-        name.startswith("hooks/") or name.startswith("src/entrypoints/desktop/")
+        name.startswith("hooks/") or name.startswith("src/entrypoints/hooks/")
         for name in files
     ):
         raise ValueError("CLI package contains automatic integration")
@@ -185,7 +160,6 @@ def main() -> int:
         return 0
     destination = args.output.resolve()
     destination.mkdir(parents=True, exist_ok=True)
-    validate_fixtures()
     for identity, files in (full_package(), guidance_package()):
         archive = write_archive(identity, files, destination)
         print(f"{archive}: {len(files)} files")

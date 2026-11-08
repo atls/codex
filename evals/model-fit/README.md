@@ -5,12 +5,12 @@
 Production runtime и hooks находятся в `plugins/model-fit`; skill содержит
 инструкции в `plugins/model-fit/skills/model-fit`.
 
-Требуются Node и Yarn из mise, UV, Codex CLI и существующий ChatGPT login.
+Требуются Node из диапазона engines.node, проверенная пара Raijin/Yarn, uv и существующий ChatGPT login. Codex CLI закреплён в devDependencies и устанавливается вместе с зависимостями.
 `CODEX_EVAL_HOME` задаёт исходный login. При запуске eval auth копируется во
 временный home с mode 0600; API-key providers отключены.
 
 ```sh
-mise exec -- yarn install --immutable
+yarn install --immutable
 uv sync --locked
 ```
 
@@ -19,28 +19,23 @@ uv sync --locked
 Запускай команды из `evals/model-fit`:
 
 ```sh
-mise exec -- yarn test
-CODEX_EVAL_HOME="$HOME/.codex" mise exec -- yarn validate
-CODEX_EVAL_HOME="$HOME/.codex" mise exec -- yarn eval --no-table --output results/native.json
+yarn run test
+CODEX_EVAL_HOME="$HOME/.codex" yarn validate
+CODEX_EVAL_HOME="$HOME/.codex" yarn eval --no-table --output results/native.json
 ```
 
 | Команда | Назначение |
 | --- | --- |
 | `yarn eval` | Native preflight по сценариям |
-| `yarn eval:controller` | Production controller |
+| `yarn eval:assessment` | Оценка профиля через production-сценарий |
 | `yarn eval:ordinary` | Обычный диалог без автоматической оценки |
 | `yarn calibrate` | Оценка зафиксированных calibration-примеров |
 | `yarn eval:tasks` | Выполнение фиксированных задач |
-| `yarn regrade` | Повторная оценка сохранённого controller result |
-| `yarn eval:corpus` | Сравнение Model Fit и stock на выбранных snapshots |
+| `yarn regrade` | Повторная оценка сохранённого результата оценки |
 
-`MODEL_FIT_REGRADE_FILE` задаёт файл для `regrade`. Для `eval:corpus` укажи
-`MODEL_FIT_CORPUS_MANIFEST`; `MODEL_FIT_CORPUS_MANIFEST_SHA256` закрепляет его
-ревизию. Запросы и snapshots корпуса не входят в репозиторий.
+`MODEL_FIT_REGRADE_FILE` задаёт файл для повторной оценки сохранённого результата.
 
-`yarn test` запускает Python и Node проверки без model inference. Чтобы выполнить
-source-backed guard-тест, укажи `MODEL_FIT_CORPUS_ROOT`; без корпуса этот один
-tест пропускается.
+`yarn run test` запускает публичные проверки без model inference и без приватного корпуса. Fixtures проверяются отдельно от сборки пакетов. Инструменты импорта корпуса, snapshots и анализа SQLite-трасс в публичный репозиторий не входят.
 
 ## Приёмка native media
 
@@ -58,7 +53,7 @@ Runner использует временный candidate home и scratch worktre
 
 
 Сквозные сценарии переноса находятся в
-`evals/model-fit/runtime/tests/test_transfer_journey.py`: публичные команды
+`evals/model-fit/autoswitch/tests/test_transfer_journey.py`: публичные команды
 проходят оценку, реальное файловое состояние, очередь и replay. Подменяются
 только context/assessment и native RPC; это не проверка исполнения моделей.
 Отдельно проверяется, что неизвестный исход очереди запрещает повтор.
