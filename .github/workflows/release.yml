@@ -28,24 +28,24 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - run: corepack enable
       - run: npm install --global @openai/codex@0.167.0-alpha.3.2
-      - run: yarn install --immutable
+      - run: corepack yarn install --immutable
         working-directory: evals/model-fit
-      - run: yarn test
+      - run: corepack yarn test
         working-directory: evals/model-fit
       - run: python tools/build.py
       - run: python -m unittest discover -s tools -p 'test_*.py'
+      - name: Read release version
+        id: version
+        run: echo "value=$(python tools/build.py --version)" >> "$GITHUB_OUTPUT"
       - name: Publish GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          version="$(python tools/build.py --version)"
-          if git ls-remote --exit-code --tags origin "refs/tags/v${version}" >/dev/null; then
-            echo "Release version v${version} already has a tag" >&2
-            exit 1
-          else
-            lookup_status=$?
-            if [ "$lookup_status" -ne 2 ]; then exit "$lookup_status"; fi
-          fi
-          gh release create "v${version}" dist/*.zip --target "$GITHUB_SHA" --title "Model Fit v${version}" --generate-notes
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ steps.version.outputs.value }}
+          commit: ${{ github.sha }}
+          name: Model Fit v${{ steps.version.outputs.value }}
+          artifacts: dist/*.zip
+          artifactErrorsFailBuild: true
+          allowUpdates: false
+          generateReleaseNotes: true
+          immutableCreate: true
