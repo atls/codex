@@ -21,10 +21,10 @@ jobs:
           python-version: '3.13'
       - uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version-file: evals/model-fit/package.json
       - run: yarn install --immutable
         working-directory: evals/model-fit
-      - run: yarn test
+      - run: yarn run test
         working-directory: evals/model-fit
       - run: uv run --project evals/model-fit --locked python tools/build.py
       - run: uv run --project evals/model-fit --locked python -m unittest discover -s tools -p 'test_*.py'

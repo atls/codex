@@ -22,9 +22,10 @@
     "test:acceptance": "uv run python -m unittest discover -s acceptance/tests"
   },
   "engines": {
-    "node": ">=22.22.0"
+    "node": ">=24.15.0 <25"
   },
   "devDependencies": {
+    "@atls/raijin": "2.1.1",
     "@openai/codex": "0.167.0-alpha.3.2",
     "promptfoo": "0.125.1"
   },
