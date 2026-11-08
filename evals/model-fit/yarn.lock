@@ -1902,6 +1902,77 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@openai/codex-darwin-arm64@npm:@openai/codex@0.167.0-alpha.3.2-darwin-arm64":
+  version: 0.167.0-alpha.3.2-darwin-arm64
+  resolution: "@openai/codex@npm:0.167.0-alpha.3.2-darwin-arm64"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@openai/codex-darwin-x64@npm:@openai/codex@0.167.0-alpha.3.2-darwin-x64":
+  version: 0.167.0-alpha.3.2-darwin-x64
+  resolution: "@openai/codex@npm:0.167.0-alpha.3.2-darwin-x64"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@openai/codex-linux-arm64@npm:@openai/codex@0.167.0-alpha.3.2-linux-arm64":
+  version: 0.167.0-alpha.3.2-linux-arm64
+  resolution: "@openai/codex@npm:0.167.0-alpha.3.2-linux-arm64"
+  conditions: os=linux & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@openai/codex-linux-x64@npm:@openai/codex@0.167.0-alpha.3.2-linux-x64":
+  version: 0.167.0-alpha.3.2-linux-x64
+  resolution: "@openai/codex@npm:0.167.0-alpha.3.2-linux-x64"
+  conditions: os=linux & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@openai/codex-win32-arm64@npm:@openai/codex@0.167.0-alpha.3.2-win32-arm64":
+  version: 0.167.0-alpha.3.2-win32-arm64
+  resolution: "@openai/codex@npm:0.167.0-alpha.3.2-win32-arm64"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@openai/codex-win32-x64@npm:@openai/codex@0.167.0-alpha.3.2-win32-x64":
+  version: 0.167.0-alpha.3.2-win32-x64
+  resolution: "@openai/codex@npm:0.167.0-alpha.3.2-win32-x64"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@openai/codex@npm:0.167.0-alpha.3.2":
+  version: 0.167.0-alpha.3.2
+  resolution: "@openai/codex@npm:0.167.0-alpha.3.2"
+  dependencies:
+    "@openai/codex-darwin-arm64": "npm:@openai/codex@0.167.0-alpha.3.2-darwin-arm64"
+    "@openai/codex-darwin-x64": "npm:@openai/codex@0.167.0-alpha.3.2-darwin-x64"
+    "@openai/codex-linux-arm64": "npm:@openai/codex@0.167.0-alpha.3.2-linux-arm64"
+    "@openai/codex-linux-x64": "npm:@openai/codex@0.167.0-alpha.3.2-linux-x64"
+    "@openai/codex-win32-arm64": "npm:@openai/codex@0.167.0-alpha.3.2-win32-arm64"
+    "@openai/codex-win32-x64": "npm:@openai/codex@0.167.0-alpha.3.2-win32-x64"
+  dependenciesMeta:
+    "@openai/codex-darwin-arm64":
+      optional: true
+    "@openai/codex-darwin-x64":
+      optional: true
+    "@openai/codex-linux-arm64":
+      optional: true
+    "@openai/codex-linux-x64":
+      optional: true
+    "@openai/codex-win32-arm64":
+      optional: true
+    "@openai/codex-win32-x64":
+      optional: true
+  bin:
+    codex: bin/codex.js
+  checksum: 10c0/23bb33cfa70098d31eee909c0733ecf6b84ce3d80840c1128cd9a04152b67ffc8594ca049410099eafe22f130acb3049a11fb24e63645e05a3920f8bed562638
+  languageName: node
+  linkType: hard
+
 "@opencode-ai/sdk@npm:^1.18.34":
   version: 1.19.4
   resolution: "@opencode-ai/sdk@npm:1.19.4"
@@ -4648,6 +4719,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "model-fit-evals@workspace:."
   dependencies:
+    "@openai/codex": "npm:0.167.0-alpha.3.2"
     promptfoo: "npm:0.125.1"
   languageName: unknown
   linkType: soft

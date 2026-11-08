@@ -25,6 +25,7 @@
     "node": ">=22.22.0"
   },
   "devDependencies": {
+    "@openai/codex": "0.167.0-alpha.3.2",
     "promptfoo": "0.125.1"
   },
   "packageManager": "yarn@4.18.0"
