@@ -1,0 +1,2 @@
+class UnknownSpeedChange(ValueError):
+    pass

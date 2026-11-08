@@ -46,6 +46,7 @@ def assess(
             runtime_factory or AppServer,
             skill_directory,
             native_input=native_input,
+            active_profile=request["active_profile"],
         )
 
     def read_sources():

@@ -11,3 +11,5 @@ Unknown assessment preserves the current profile and does not prove its suitabil
 Public Directory review does not include this hook-bearing distribution. Installation and updates are explicit user operations; the CLI-only distribution does not install this one.
 
 Local verification baseline: Codex CLI 0.167.0-alpha.3.2 and Codex Desktop 26.1029.61003 on macOS. Other Desktop versions require their own native capability check.
+
+Assessment context includes native incoming Codex delegation messages that summary history omits. These remain data from another agent and do not create user authorization. The correction applies when assessing a subsequent user continuation; direct app-tool turns without hook callbacks remain outside that guarantee.

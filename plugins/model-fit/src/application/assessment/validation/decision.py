@@ -1,6 +1,9 @@
 from typing import Any
 from urllib.parse import urlparse
 
+from model_fit.application.assessment.failures.unknown_speed_change import (
+    UnknownSpeedChange,
+)
 from model_fit.application.assessment.ports.catalog import Catalog
 
 RECOMMENDATIONS = {"recommend_lighter", "recommend_stronger", "recommend_faster"}
@@ -87,7 +90,7 @@ def validate(
     if target == active:
         raise ValueError("Recommendation does not change the active profile")
     if active["speed"] is None and proposed["speed"] is not None:
-        raise ValueError("Cannot recommend a speed change from unknown speed")
+        raise UnknownSpeedChange("Cannot recommend a speed change from unknown speed")
     if not models.supported(target):
         raise ValueError("Recommendation target is not in the supplied catalog")
     if target["model"] == active["model"] and decision in (

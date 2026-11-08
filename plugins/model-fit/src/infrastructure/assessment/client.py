@@ -8,10 +8,13 @@ import subprocess
 import sys
 from typing import Any
 
-from model_fit.application.assessment.validation import RECOMMENDATIONS
 from model_fit.application.assessment.failures.source_unavailable import (
     SourceUnavailable,
 )
+from model_fit.application.assessment.failures.unknown_speed_change import (
+    UnknownSpeedChange,
+)
+from model_fit.application.assessment.validation import RECOMMENDATIONS
 
 
 def triage(request: dict[str, Any]) -> dict[str, Any]:
@@ -31,6 +34,7 @@ def triage(request: dict[str, Any]) -> dict[str, Any]:
     failures = {
         "SourceUnavailable": SourceUnavailable,
         "TimeoutError": TimeoutError,
+        "UnknownSpeedChange": UnknownSpeedChange,
         "ValueError": ValueError,
         "KeyError": KeyError,
         "TypeError": TypeError,

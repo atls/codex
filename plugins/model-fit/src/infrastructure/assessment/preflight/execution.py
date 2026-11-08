@@ -1,7 +1,8 @@
 import json
+from collections.abc import Callable
 from importlib.resources import files
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from model_fit.infrastructure.assessment.preflight.response import assessment_response
 from model_fit.infrastructure.assessment.preflight.workspace import assessment_workspace
@@ -21,7 +22,12 @@ def execute_assessment(
     skill_directory: Path | None,
     *,
     native_input: list[dict[str, Any]] | None = None,
+    active_profile: dict[str, Any],
 ) -> dict[str, Any]:
+    schema = json.loads(SCHEMA.read_text())
+    if active_profile["speed"] is None:
+        for field in ("active_speed", "recommended_speed"):
+            schema["properties"][field] = {"type": "null"}
     with assessment_workspace() as scratch:
         runtime_options = (
             {"skill_dir": skill_directory} if skill_directory is not None else {}
@@ -73,7 +79,7 @@ def execute_assessment(
                         ],
                         "effort": evaluator_effort,
                         "sandboxPolicy": {"type": "readOnly"},
-                        "outputSchema": json.loads(SCHEMA.read_text()),
+                        "outputSchema": schema,
                     },
                     15,
                 )

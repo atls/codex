@@ -17,3 +17,5 @@ The evaluator is a separate local Codex process. The implementation temporarily 
 Exit codes: 0 for a validated decision, 1 for unavailable assessment (`unknown`), 2 for malformed input. The CLI does not change the active profile, create a handoff, install hooks, or require pending hook state.
 
 The archive includes its runtime and selection rules. Developer evals, benchmarks and the private corpus are not installed. Public Directory upload/review remains separate from a GitHub Release.
+
+When the current speed is unknown, the evaluator output schema permits only null for active and recommended speed. A speed change from unknown state is rejected as UnknownSpeedChange; the CLI does not infer Standard or Fast. Known-speed assessment does not imply automatic Desktop speed switching.

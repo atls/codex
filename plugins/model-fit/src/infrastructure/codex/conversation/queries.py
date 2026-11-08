@@ -5,7 +5,10 @@ from __future__ import annotations
 from typing import Any, Iterator
 import time
 
-from model_fit.application.conversation.context import recent_context
+from model_fit.application.conversation.context import (
+    CONTEXT_TURN_LIMIT,
+    recent_context,
+)
 from model_fit.entrypoints.desktop.instructions import CONTROL_PROMPT
 from model_fit.infrastructure.codex.identity import executor_thread_id
 from model_fit.infrastructure.codex.input.codec import (
@@ -324,6 +327,57 @@ def session_input(event: dict[str, Any]) -> dict[str, Any]:
             if cursor in seen_cursors:
                 raise ValueError("Conversation context pagination repeated a cursor")
             seen_cursors.add(cursor)
+        current_index = (
+            next(
+                (
+                    index
+                    for index, turn in enumerate(turns)
+                    if turn.get("id") == event.get("turn_id")
+                ),
+                None,
+            )
+            if event.get("turn_id") is not None
+            else None
+        )
+        if current_index is not None:
+            turns = turns[current_index + 1 :]
+        deadline = time.monotonic() + INPUT_SCAN_TIMEOUT_SECONDS
+        for turn in turns[:CONTEXT_TURN_LIMIT]:
+            if not turn.get("id") or any(
+                item.get("type") == "userMessage" for item in turn.get("items", [])
+            ):
+                continue
+            items = []
+            cursor = None
+            seen = set()
+            for _ in range(MAX_INPUT_PAGES):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError("Native working context read timed out")
+                result = app.call(
+                    "thread/items/list",
+                    {
+                        "threadId": session_id,
+                        "turnId": turn["id"],
+                        "limit": QUEUE_PAGE_LIMIT,
+                        **({"cursor": cursor} if cursor else {}),
+                    },
+                    min(RPC_TIMEOUT_SECONDS, remaining),
+                )
+                items.extend(entry["item"] for entry in result["data"])
+                cursor = result.get("nextCursor")
+                if cursor is None:
+                    break
+                if cursor in seen:
+                    raise ValueError("Native working context repeated a cursor")
+                seen.add(cursor)
+            else:
+                raise ValueError(
+                    "Native working context pagination exceeded the supported bound"
+                )
+            turn["items"] = [
+                item for item in items if item.get("type") == "functionCallOutput"
+            ] + turn.get("items", [])
     request = {
         "task": prompt
         or "Запрос с вложениями без текстового описания; учитывай контекст текущей работы.",
