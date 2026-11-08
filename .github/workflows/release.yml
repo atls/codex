@@ -29,9 +29,9 @@ jobs:
         with:
           node-version: '24'
       - run: npm install --global @openai/codex@0.167.0-alpha.3.2
-      - run: corepack yarn install --immutable
+      - run: yarn install --immutable
         working-directory: evals/model-fit
-      - run: corepack yarn test
+      - run: yarn test
         working-directory: evals/model-fit
       - run: python tools/build.py
       - run: python -m unittest discover -s tools -p 'test_*.py'
