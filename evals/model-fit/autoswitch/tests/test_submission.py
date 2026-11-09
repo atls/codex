@@ -1695,7 +1695,7 @@ class SubmittedInputTests(unittest.TestCase):
             self.content[2],
         ]
         api.submit_prompt(
-            {**self.event, "turn_id": "edited-replay", "model": "gpt-6.1-terra"}
+            {**self.event, "turn_id": "edited-replay", "model": self.profile["model"]}
         )
         output = self.assess(
             decision=lambda _: self.fail("Native profile override was reassessed")

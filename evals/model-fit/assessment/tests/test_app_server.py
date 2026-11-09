@@ -109,7 +109,7 @@ class AppServerTransportTests(unittest.TestCase):
         import signal
 
         app = self.connection()
-        app.close_timeout = 0.05
+        app.close_timeout = 0.5
         app.process = subprocess.Popen(
             [
                 sys.executable,
