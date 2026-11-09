@@ -2,6 +2,9 @@ import model_fit.infrastructure.adapters.codex.transport.assessment.session as N
 
 "Check the thin provider's no-model controls and error result."
 import json
+import subprocess
+import sys
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 
@@ -9,6 +12,24 @@ from infrastructure.adapters.promptfoo.provider import TRIAGE, call_api
 
 
 class AssessmentProviderTests(unittest.TestCase):
+    def test_provider_imports_in_a_fresh_isolated_worker(self):
+        provider = (
+            Path(__file__).resolve().parents[2]
+            / "infrastructure/adapters/promptfoo/provider.py"
+        )
+        code = (
+            "import importlib.util,json;spec=importlib.util.spec_from_file_location('fresh_provider',"
+            + repr(str(provider))
+            + ");module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);result=module.call_api(json.dumps({'case_id':'user-choice-preserved'}),{},{});assert json.loads(result['output'])['decision']=='keep';assert result['metadata']['user_choice_bypass'] is True"
+        )
+        run = subprocess.run(
+            [sys.executable, "-I", "-c", code],
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+        self.assertEqual(run.returncode, 0, run.stderr)
+
     def test_selected_executable_reaches_production_run(self):
         selected = "/fixture/bundled-codex"
         with patch.object(TRIAGE, "assess", return_value={"decision": "keep"}) as run:
