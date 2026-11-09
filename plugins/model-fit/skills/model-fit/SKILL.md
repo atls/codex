@@ -4,176 +4,82 @@ description: >-
   Recommend or allocate a suitable Codex model profile before complex
   development, architecture, instruction changes, review, remediation,
   investigation, publication, risky mutations, or long-running work, and
-  before subagent allocation. Do not use for ordinary dialogue, explanations, short statuses,
-  or simple low-risk edits without a subagent spawn; it never grants task
-  admission.
+  before subagent allocation. Do not use for ordinary dialogue, explanations,
+  short statuses, or simple low-risk edits without a subagent spawn; it never
+  grants task admission.
 ---
 
 # Model Fit
 
-До начала нетривиальной работы сопоставить требования задачи с профилем
-активной задачи и доступными моделями. Для complex root action с subagent
-оценить root до preamble и распределения lanes. Рекомендация не разрешает
-предметное действие; правило паузы после рекомендации описано в разделе «Ответ».
+Before substantial work, match the task requirements to the active profile and available models. For complex root work involving subagents, assess the root before the preamble and lane allocation. A recommendation does not authorize the task; follow the response rule below.
 
-Оценивать профиль при начале нетривиальной работы или существенном изменении
-её требований. Для продолжения той же задачи использовать уже установленное
-решение, пока профиль и требования не изменились; новый ход сам по себе не
-требует повторного чтения документации и каталога.
+Assess when substantial work starts or its requirements materially change. Continue using an established decision while the work and profile remain the same; a new turn alone does not require rereading guidance and the catalog.
 
-Профиль будущей дочерней lane выбирать отдельно по её работе до запуска.
-Он не меняет профиль root-задачи и не требует повторной рекомендации для root.
+Assess a proposed child lane separately before starting it. This does not change the root profile or require another root recommendation.
 
-## Решение Пользователя
+## User choice
 
-Если пользователь после рекомендации прямо выбрал прежний профиль, сохранить
-это решение для неизменившихся требований текущей root-задачи. Не повторять ту
-же рекомендацию в следующем ходе и не превращать выбор пользователя в новый
-admission gate. Повторная оценка нужна только после существенного изменения
-сложности, риска, обязательных capabilities или объёма задачи.
+If the user explicitly retains a profile after a recommendation, honor that choice for the unchanged root task. Do not repeat the same recommendation or turn the retained choice into another admission gate. Reassess only after a material change in complexity, risk, required capabilities or scope.
 
-## Источники
+## Sources
 
-- Для выбора открыть актуальные официальные
-  [рекомендации по моделям](https://developers.openai.com/api/docs/guides/model-selection)
-  и [reasoning effort](https://developers.openai.com/api/docs/guides/reasoning).
-  [Каталог моделей](https://developers.openai.com/api/docs/models) и карточку
-  рассматриваемой модели читать для её возможностей. Считать рекомендации
-  отправной точкой для текущей работы, а не обязательным выбором
-- Официальная документация определяет назначение и trade-offs моделей, а
-  локальный каталог Codex — доступные в текущем runtime профили и поддержанные
-  reasoning/speed. Один источник не заменяет другой
-- Для root-задачи брать текущие model, reasoning и speed только из
-  авторитетного session state активной задачи
-- Оставлять отсутствующее поле текущего профиля как `unknown`; не подменять его
-  предположением или настройками запуска
-- Не читать `~/.codex/config.toml` как состояние активной задачи
-- Не читать `~/.codex/models_cache.json` напрямую
-- Получать доступные профили обычной командой `codex debug models`; не
-  использовать `--bundled` и разрешать CLI собственный refresh каталога,
-  включая необходимый ему network access
-- Не использовать сторонние рейтинги, model API или пересказы как замену
-  официальным рекомендациям и локальной доступности. При необходимости читать
-  относящуюся к точной версии официальную документацию, а не переносить
-  поведение другой версии
-- Передавать в контекст только результат следующей ограниченной проекции:
+- Read current official [model-selection guidance](https://developers.openai.com/api/docs/guides/model-selection) and [reasoning guidance](https://developers.openai.com/api/docs/guides/reasoning). Use the [model catalog](https://developers.openai.com/api/docs/models) and the relevant model page for capabilities. Guidance is a starting point, not a mandatory selection
+- Official documentation explains purpose and trade-offs; the local Codex catalog establishes available profiles and supported reasoning/speed. Neither source replaces the other
+- Obtain the active root model, reasoning and speed only from authoritative session state. Leave missing fields unknown; do not infer them from launch settings
+- Do not treat `~/.codex/config.toml` as active task state or read `~/.codex/models_cache.json` directly
+- Obtain available profiles with ordinary `codex debug models`. Do not use `--bundled`; let Codex refresh its catalog, including required network access
+- Do not substitute rankings, a model API or third-party summaries for official guidance and local availability. Verify version-specific behavior when needed
+- Put only this bounded projection in context:
 
 ```sh
 set -o pipefail
 codex debug models | jq '{models: [.models[] | select(.visibility == "list") | {slug, display_name, description, supported_reasoning_levels, service_tiers, additional_speed_tiers, visibility}]}'
 ```
 
-Не запускать `codex debug models` отдельно от проекции. Не сохранять сырой
-результат или проекцию, не создавать собственный каталог, кэш, reference-файл
-или script и не пересказывать пользователю весь список моделей. Если команда,
-её refresh, проекция либо обязательная официальная страница недоступны, не
-использовать сырой вывод, cache, сторонний lookup, model API или `--bundled` как
-fallback. Проверить exit status всей проекции: успешный `jq` не скрывает сбой
-`codex`. Не придумывать рекомендацию. Кратко сообщить, какой обязательный
-источник недоступен и что оценка не завершена. Не выдавать отсутствие новой
-рекомендации за доказанную пригодность текущего профиля: если его
-непригодность уже была установлена для той же работы, ошибка нового lookup
-не отменяет её и работа на нём не возобновляется. Если пригодность неизвестна,
-не называть профиль ни подходящим, ни неподходящим; дальнейшее действие
-определяется текущим поручением и доступными проверенными фактами.
+Do not run the unprojected command, save its raw result or projection, create another catalog/cache/reference/script, or recite the model list to the user. If the command, refresh, projection or required official page is unavailable, do not use raw output, caches, third-party lookup, a model API or `--bundled` as fallback. Check the complete pipeline exit status: successful `jq` must not hide a Codex failure. Do not invent a recommendation.
 
-## Сопоставить Профиль С Работой
+Briefly identify the unavailable required source and report that assessment is incomplete. An unsuccessful lookup does not establish that the current profile is suitable. If it was already shown unsuitable for the same work, a new lookup failure does not revoke that finding or authorize resuming on it. If suitability is unknown, call it neither suitable nor unsuitable; continue according to the task and verified facts.
 
-Оценить ближайшую ограниченную работу: требуемые возможности, качество
-результата, допустимые время и расход, частоту повторения и способ проверки.
-Длину треда, количество инструментов и систем не принимать за сложность
-текущего шага. Уже принятое пользователем решение о профиле сохраняется по
-правилу выше, пока требования не изменились.
+## Match the profile to the work
 
-Сопоставить это с текущими официальными рекомендациями OpenAI по модели и
-reasoning и с доступными возможностями локального каталога Codex. Документация
-описывает назначение и trade-offs, но не устанавливает текущие model, effort,
-speed или доступность аккаунта. Эти факты брать только из session state и
-проверенного локального каталога.
+Assess the next bounded work: required capabilities, result quality, acceptable time and cost, repetition and verification. Conversation length and the number of tools or systems do not establish complexity. Preserve an established user choice while requirements remain unchanged.
 
-Сохранить текущий профиль, когда нет доказанного основания менять его для
-этой работы. Новизна модели, число сервисов, желание действовать аккуратно
-или наличие более мощной альтернативы сами по себе таким основанием не
-являются. Не выдавать локальное предположение за рекомендацию OpenAI.
+Compare those requirements with current official model/reasoning guidance and the capabilities of the local catalog. Documentation does not establish the active task profile or account access; use authoritative session state and the verified local catalog for those facts.
 
-Рекомендовать изменение model или reasoning только когда проверенные
-требования работы и официальное руководство дают конкретную причину ожидать
-нужного улучшения, а кандидат доступен и поддерживает целевые настройки.
-Отдельно учитывать время и расход, если они значимы для пользователя.
-Проверять model и reasoning независимо: более высокий effort на текущей
-модели может быть уместнее её замены, а новая модель сама по себе не требует
-повысить effort. Не назначать `high`, `xhigh` или `max` по собственному
-каталогу типов задач; применять актуальные критерии и ограничения из
-официального руководства.
+Retain the active profile unless there is a demonstrated reason to change it. A newer model, more services, a desire to be careful, or the existence of a stronger alternative is not enough. Do not present a local inference as an OpenAI recommendation.
 
-Независимая проверка обеих осей относится и к `keep`: сохранение модели само
-по себе не обосновывает сохранение effort. Основание effort — нужная глубина
-планирования и проверки ближайшей работы; одно требование может влиять на
-обе оси. Если стартовый профиль прямо обозначен техническим seed, а не выбором
-пользователя, отсутствие прошлых провалов или отдельного требования экономить
-не доказывает пригодность его высокого effort. Это не отменяет сохранённый
-выбор пользователя из раздела «Решение Пользователя».
+Recommend a model or reasoning change only when verified requirements and official guidance give a concrete reason to expect a needed improvement and the candidate is available with the target settings. Account for time and cost when relevant to the user.
 
-Speed менять только при выраженном приоритете времени и подтверждённой
-поддержке выбранной моделью. Отсутствие поля текущего профиля оставлять
-неизвестным, не достраивать его из обычных defaults и не предлагать
-изменение неизвестного поля без доказанной цели.
+Evaluate model and reasoning independently. More effort on the current model may be preferable to changing models; a model change alone does not justify increasing effort. Do not assign `high`, `xhigh` or `max` from a private task taxonomy; use current official criteria and restrictions.
 
-## Дочерняя Lane
+This independence also applies to `keep`: retaining a model does not justify retaining its effort. Effort follows the planning and verification depth needed for the next work; the same requirement can affect both axes. If the initial profile is explicitly a technical seed, rather than a user choice, absence of prior failures or a separate request to save money does not establish that high effort is appropriate. This does not override a retained user choice.
 
-До запуска subagent оценить его ограниченную работу отдельно от root:
+Change speed only when the user has expressed a time priority and the chosen model supports it. Leave an absent current speed unknown; do not fill in a default or propose changing an unknown field without a demonstrated goal.
 
-- учитывать тяжесть, риск, объём неизвестных, независимость работы и стоимость
-  дочерней lane
-- не наследовать сильный root-профиль как автоматический минимум для простой
-  lane и не занижать профиль сложной lane ради экономии
-- выбирать model и reasoning по тем же официальным рекомендациям и
-  capabilities проверенного каталога; speed включать только когда нативный
-  spawn-механизм поддерживает отдельное поле speed
-- передавать выбранные значения непосредственно в нативный spawn-механизм до
-  запуска subagent, а не выводить их как рекомендацию пользователю
-- не классифицировать текущий root-профиль и не предлагать менять его из-за
-  требований дочерней lane
+## Child lane
 
-Если каталог или обязательная capability недоступны, не придумывать override.
-Сообщить об этом текущему operation owner. Наследование профиля допустимо
-только когда для той же дочерней работы не доказана его непригодность; при
-доказанной непригодности не запускать child на этом профиле.
+Before a subagent starts, assess its bounded work separately:
 
-## Ответ
+- Consider difficulty, risk, unknowns, independence and cost
+- Do not inherit a strong root profile as a minimum for simple work or under-provision complex work merely to save cost
+- Choose model/reasoning using the same official guidance and verified local capabilities. Include speed only if native spawn supports a separate speed field
+- Pass the selected values directly to native spawn, rather than giving the user a recommendation about the child
+- Do not classify or change the root profile because a child has different requirements
 
-Не анонсировать проверку профиля до результата. При прямом запросе на оценку
-дать короткий результат и тогда, когда подтверждённый профиль подходит или
-источник оценки недоступен. При неявном применении подходящий профиль либо
-сохранённый выбор пользователя не требуют отдельного сообщения; недоступный
-обязательный источник сообщается по разделу «Источники».
+If the catalog or a required capability is unavailable, do not invent an override. Report the limitation to the operation owner. Inheritance is acceptable only if the inherited profile has not already been shown unsuitable for that same child work; do not start a child on a demonstrated unsuitable profile.
 
-Полезная рекомендация содержит только требующие действия model, reasoning
-или speed и проверенную причину. Не называть неизвестное текущее значение
-неподходящим, не перечислять каталог моделей и не предлагать больше изменений,
-чем обосновано текущей работой.
+## Response
 
-При рекомендации привести прямую ссылку на использованное официальное
-руководство и отделить его общую рекомендацию от вывода для текущей задачи.
+Do not announce assessment before its result. For an explicit assessment request, briefly report suitability or an unavailable source. For implicit use, a suitable profile or retained user choice does not require a separate message. Handle missing required sources as described above.
 
-Обоснованная root-рекомендация является единственным ответом текущего хода.
-После неё закончить ход: не продолжать основную работу, tools или делегирование.
-Исключение составляет только явно включённый автоматический Desktop-пилот ниже:
-он выполняет техническую смену профиля и переносит исходный запрос в следующий
-ход, не выполняя его на текущем профиле.
-В обычном режиме продолжение возможно в новом пользовательском ходе после смены профиля либо
-явного выбора работать с прежним. Эта сохранённая пользовательская пауза не
-выдаёт предметного допуска; после выбора применяется раздел «Решение
-Пользователя». Рекомендация дочернего профиля вместо этого потребляется
-непосредственно при spawn.
+A useful recommendation identifies only the model, reasoning or speed changes that require action and their verified reason. Do not call an unknown active value unsuitable, enumerate the catalog or recommend more changes than the evidence warrants.
 
-Для подключения и диагностики явно разрешённого Desktop hook на macOS читать
-[Desktop hook](references/desktop-hook.md). Выбор этого skill сам по себе
-не включает hooks.
+Link the official guidance used, separating its general advice from the task-specific conclusion.
 
-Для отдельно включённого автоматического Desktop-пилота проверенная рекомендация
-запускает только [технический перенос в следующий ход](references/desktop-hook.md#автоматический-перенос-в-следующий-ход).
-Исходную задачу выполнять после старта поставленного в очередь хода на целевом
-профиле. Если перенос не подтвердился, не выполнять её на прежнем профиле.
+An established root recommendation is the only response for that turn. End the turn without task tools or delegation. The exception is an explicitly enabled automatic Desktop pilot: it performs only the technical profile change and [handoff to the next turn](references/desktop-hook.md#automatic-handoff-to-the-next-turn), where the queued task starts on the target profile. In ordinary mode, resume in a new user turn after a profile change or explicit decision to keep the previous profile. This pause does not grant task admission; apply User choice after the user's decision.
 
-При сопровождении реализации читать [карту функций и зависимостей](references/code-map.md).
+A child recommendation is instead consumed directly when spawning that child.
+
+For an authorized Desktop-hook connection or diagnosis on macOS, read [Desktop hook](references/desktop-hook.md). Selecting this skill does not enable hooks. If an automatic handoff is not confirmed, do not perform the original task on the previous profile.
+
+When maintaining implementation, read the [code map](references/code-map.md).

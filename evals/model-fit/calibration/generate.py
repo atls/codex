@@ -13,4 +13,4 @@ def build(variables, case, entry, config, task, active, sources, rubric):
             "provider": config["judge"],
         }
     ]
-    return variables, assertions
+    return (variables, assertions)

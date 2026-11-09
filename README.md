@@ -1,37 +1,80 @@
 # Model Fit for Codex Desktop
 
-Two Desktop-only distributions share one assessment implementation:
+**Choose a model for the work you are about to do, and keep your own choice in control.**
 
-| Distribution | Purpose |
+<img src="plugins/model-fit/assets/icon.png" alt="ATLS mark" width="80" />
+
+Model Fit helps Codex decide when a task needs a more capable model, when a lighter profile is enough, and how much reasoning effort the next step warrants. You can ask for a recommendation explicitly or enable automatic assessment before work starts.
+
+Created by [Torin Asakura](https://github.com/TorinAsakura), published through [ATLS](https://github.com/atls).
+
+## Why it exists
+
+Choosing the largest model for every task can make a short edit or check-in unnecessarily slow. Choosing a small model for work it cannot complete can cost more time in retries, broken tool access and manual recovery. A long conversation makes this harder: the next request may be a small summary even though the previous task was complex.
+
+Model Fit grew out of investigating those failures in everyday Codex work. It evaluates the **next piece of work**, its relevant context and the active profile. It uses OpenAI's model guidance and the models available in your local Codex installation. Model and reasoning effort are considered separately.
+
+## What you can ask
+
+Talk to Codex in your usual language. For example:
+
+- “Use Model Fit to recommend a profile before we start this task”
+- “This is only a short check-in from facts we already verified. Reassess whether a lighter model or less effort is enough”
+- “The task now includes a risky migration and recovery planning. Reassess whether we need a stronger model”
+- “I care more about finishing quickly than minimizing model cost”
+- “Keep the model and effort I selected for this work”
+
+These are requests and preferences, not magic commands that force one universal model. Codex can reassess when requirements change. The automatic integration applies a validated recommendation through Codex's native profile and queue mechanisms; the explicit CLI returns a recommendation for you to act on.
+
+To require a specific available profile, select it in Codex or explicitly instruct Codex to use it. Ask for a fresh assessment when you want that choice reconsidered.
+
+An explicit profile choice remains in effect for the same work until you revoke it or the requirements materially change. A failed hook, transport or provider request is not evidence that the model itself is too weak.
+
+## Choose how to use it
+
+| Package | Everyday behavior |
 | --- | --- |
-| `model-fit-guidance` (Model Fit CLI) | Explicit skill/CLI assessment and a profile recommendation, without hooks or automatic switching |
-| `model-fit` | The same assessor plus opt-in lifecycle hooks and native automatic handoff |
+| **Model Fit CLI** (`model-fit-guidance`) | Invoke the skill or CLI when you want advice. Receive a model/effort recommendation and explanation. No lifecycle hooks or automatic profile changes |
+| **Model Fit** (`model-fit`) | Opt in to assessment before work. When a profile change is justified and supported, transfer the original native request to the next turn through the Codex queue |
+
+Both packages use the same assessment rules and implementation. The CLI package is the Desktop-only Plugins Directory candidate. Directory submission and approval are separate from availability in this repository.
+
+## Get started
+
+You need an authenticated local Codex installation, Python 3.11+, Git and uv. This implementation targets Codex Desktop; it is not a cloud-chat integration.
+
+**For explicit recommendations:** follow the [CLI installation and usage guide](plugins/model-fit-guidance/README.md). The installed `model-fit` command accepts JSON containing the task and authoritative active profile and returns a structured recommendation. You do not need to enable automatic hooks.
+
+**For automatic handoff:** register this Git marketplace and follow the [automatic setup guide](plugins/model-fit/README.md):
 
 ```sh
 codex plugin marketplace add https://github.com/atls/codex.git
+codex plugin add model-fit@atls-codex
 ```
 
-Use Codex's native plugin installation and hook trust controls. See [automatic setup](plugins/model-fit/README.md) and [standalone CLI](plugins/model-fit-guidance/README.md). Each plugin uses its own project environment; do not install the two Python distributions into a shared global environment.
+Enable and trust the hooks only in the Codex configuration scope where you want automatic assessment. Keep the two plugin environments separate. After an update, already-loaded Desktop sessions may require a restart to load the new handlers.
 
-The Directory submission is the CLI archive, marked Desktop only. Automatic-mode documentation is kept here in the repository. Public Directory submission, review and publication are separate steps from the source PR and GitHub Release.
+## What happens during automatic work
 
-Development evals and synthetic fixtures live under `evals/model-fit`. They are excluded from installation ZIPs. Private conversations, credentials, diagnostic corpora and real attachment payloads are never published.
+1. Model Fit reads the accepted native request and relevant context, including original attachments and annotations
+2. A suitable profile keeps the work in the current turn. An uncertain assessment preserves the current profile and reports that suitability is unknown
+3. A supported model/effort change produces a technical handoff: Codex changes the profile, queues the original input once, and continues it in the next turn
+4. Queue and replay checks protect against duplicate transfers and stale assessment results. A bounded answer check detects some replies that have drifted to a different task
 
-## Build and verify
+You should not have to retype the request or reattach an image just to change profiles. A queue acknowledgement alone is not proof that the work completed.
 
-```sh
-cd evals/model-fit && yarn install --immutable && yarn run test
-cd ../..
-uv run --project plugins/model-fit --locked python tools/build.py
-uv run --project plugins/model-fit --locked python -m unittest discover -s tools -p 'test_*.py'
-```
+## Current scope and limits
 
-GitHub Release attaches both archives at the declared version. Reusing an existing release version fails. See LICENSE for the existing BSD-3-Clause terms.
+- A recommendation does not guarantee task quality, lower latency or lower cost
+- Automatic model/effort handoff depends on the native capabilities of the installed Codex version. Full automatic speed-tier changes are not implemented
+- Ephemeral input and direct app-tool turns without lifecycle callbacks can be outside the supported history path
+- A final-answer relevance check cannot undo tool actions that already happened
+- The separately observed scheduled-heartbeat stale-replay issue is not fixed by this package
 
-## Source layout
+The verified local baseline is documented in the [automatic integration guide](plugins/model-fit/README.md). Report other environments and failures through [Issues](https://github.com/atls/codex/issues), including a minimal reproduction and version information.
 
-Production scenarios live in `plugins/model-fit/src/assessment`, `submission`, `autoswitch` and `answer`. State transitions have one owner in `autoswitch/transitions.py`. Native Codex and filesystem implementations live under `infrastructure/adapters`; `entrypoints/cli` and `entrypoints/hooks` decode and compose their calls. Both distributions use the same assessment scenario.
+## Help improve it
 
-`tools/build.py` reads plugin sources, manifests and LICENSE only. It builds without an `evals` directory. Evaluation fixture validation runs separately in the development suite. Public synthetic evaluations are grouped by scenario; their Promptfoo provider adapter lives under `evals/model-fit/infrastructure/adapters/promptfoo`. Private-corpus import, snapshot and trace-analysis tools are not part of this repository.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, tests, bug reports and the PR workflow. Public synthetic evaluations are included for reproducibility. Private conversation corpora, credentials and real attachment payloads are not published or installed with either package.
 
-The Yarn runtime is the verified package/runtime pair installed by Raijin's public updater. Follow the [Raijin setup guide](https://github.com/atls/raijin/blob/master/docs/raijin/setup.md) for `yarn dlx @atls/raijin update`; commit its package, lockfile, configuration and runtime together.
+Releases attach both versioned plugin archives. See [LICENSE](LICENSE) for the BSD-3-Clause terms.

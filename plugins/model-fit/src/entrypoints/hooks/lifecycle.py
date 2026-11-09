@@ -1,4 +1,4 @@
-"CLI and native Desktop hook dispatch for Model Fit."
+"""CLI and native Desktop hook dispatch for Model Fit."""
 
 from __future__ import annotations
 
@@ -8,17 +8,17 @@ import subprocess
 import sys
 from typing import Any
 
-from model_fit.autoswitch.failures.unavailable import SubmissionUnavailable
+from model_fit.autoswitch.exceptions.unavailable import SubmissionUnavailable
 from model_fit.entrypoints.hooks.activation import (
     automatic_allowed,
     inactive_output,
     record_unavailable,
 )
-from model_fit.entrypoints.hooks.configuration import AUTO_THREAD_ENV
 from model_fit.entrypoints.hooks.instructions import (
     admission_unavailable_context,
     inactive_context,
 )
+from model_fit.entrypoints.hooks.native_contract import AUTO_THREAD_ENV
 from model_fit.entrypoints.hooks.operations import (
     assess_submitted,
     guard_replay_answer,
@@ -214,7 +214,7 @@ def handle_lifecycle(
         if event_name in (None, "Stop"):
             output = None
         else:
-            reason = f"Model Fit: автоматический перенос не подготовлен ({type(error).__name__}); исходная задача не запускалась."
+            reason = f"Model Fit: automatic handoff was not prepared ({type(error).__name__}); the original task was not started."
             output = (
                 deny_tool(reason)
                 if event_name == "PreToolUse"

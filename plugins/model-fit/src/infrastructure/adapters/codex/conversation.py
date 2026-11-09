@@ -1,7 +1,7 @@
-import model_fit.infrastructure.adapters.codex.settings as native_settings
+import model_fit.infrastructure.adapters.codex.chat_profile as native_settings
 import model_fit.infrastructure.adapters.codex.history as conversation
-from model_fit.autoswitch.contracts.accepted_input import AcceptedInput
-from model_fit.autoswitch.contracts.receipt import Receipt
+from model_fit.autoswitch.interfaces.accepted_input import AcceptedNativeInput
+from model_fit.autoswitch.interfaces.receipt import NativeQueueReceipt
 
 
 class ConversationGateway:
@@ -50,10 +50,10 @@ class ConversationGateway:
             for index, message in enumerate(messages)
             if index == 0
             or conversation.input_text(message["content"]).strip()
-            != conversation.CONTROL_PROMPT
+            not in conversation.CONTROL_PROMPTS
             for value in message["content"]
         ]
-        return AcceptedInput(
+        return AcceptedNativeInput(
             message_id=messages[0]["id"],
             client_message_id=messages[0].get("clientId"),
             content=content,
@@ -88,7 +88,7 @@ class ConversationGateway:
             conversation.RPC_TIMEOUT_SECONDS,
         )
         receipt = result["queuedSubmission"]
-        return Receipt(receipt["id"], receipt["input"])
+        return NativeQueueReceipt(receipt["id"], receipt["input"])
 
     def delete(self, thread_id, submission_id):
         return self.reader.call(

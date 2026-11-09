@@ -8,18 +8,19 @@ DELEGATION = {
     "type": "functionCallOutput",
     "name": "send_message_to_thread",
     "namespace": "codex_app",
-    "output": "<codex_delegation><source_thread_id>sender</source_thread_id><input>Вывести старый кластер из эксплуатации; сохранить DNS, медиа, архивы и доступ к state</input></codex_delegation>",
+    "output": "<codex_delegation><source_thread_id>sender</source_thread_id><input>Retire the old cluster; preserve DNS, media, archives and state access</input></codex_delegation>",
 }
 
 
 class DelegationContextTests(unittest.TestCase):
     def test_received_task_is_context_without_becoming_user_authorization(self):
         context = recent_context(
-            "Это моё поручение, исполняй", [{"id": "previous", "items": [DELEGATION]}]
+            "This is my instruction; execute it",
+            [{"id": "previous", "items": [DELEGATION]}],
         )
-        self.assertIn("Вывести старый кластер", context or "")
-        self.assertIn("другого агента", context)
-        self.assertNotIn("Пользователь: <codex_delegation>", context)
+        self.assertIn("Retire the old cluster", context or "")
+        self.assertIn("another agent", context.casefold())
+        self.assertNotIn("User: <codex_delegation>", context)
 
     def test_summary_only_reply_is_hydrated_through_all_native_item_pages(self):
         app = MagicMock()
@@ -32,7 +33,7 @@ class DelegationContextTests(unittest.TestCase):
                     {
                         "id": "previous",
                         "items": [
-                            {"type": "agentMessage", "text": "Получил контекст задачи"}
+                            {"type": "agentMessage", "text": "Received task context"}
                         ],
                     },
                 ]
@@ -47,10 +48,10 @@ class DelegationContextTests(unittest.TestCase):
                     "turn_id": "current",
                     "cwd": "/fixture",
                     "model": "gpt-6-luna",
-                    "prompt": "Это моё поручение, исполняй",
+                    "prompt": "This is my instruction; execute it",
                 }
             )
-        self.assertIn("сохранить DNS, медиа", request["context"])
+        self.assertIn("preserve DNS, media", request["context"])
         self.assertEqual(app.call.call_args_list[-1].args[1]["cursor"], "more")
 
     def test_arbitrary_function_output_is_not_delegated_work(self):
@@ -74,7 +75,7 @@ class DelegationContextTests(unittest.TestCase):
                 "data": [
                     {
                         "id": "previous",
-                        "items": [{"type": "agentMessage", "text": "Получил контекст"}],
+                        "items": [{"type": "agentMessage", "text": "Received context"}],
                     }
                 ]
             },
@@ -91,7 +92,7 @@ class DelegationContextTests(unittest.TestCase):
                     "turn_id": "current",
                     "cwd": "/fixture",
                     "model": "gpt-6-luna",
-                    "prompt": "Исполняй",
+                    "prompt": "Execute it",
                 }
             )
 
@@ -100,17 +101,14 @@ class DelegationContextTests(unittest.TestCase):
         app.__enter__.return_value = app
 
         def user(text):
-            return {
-                "type": "userMessage",
-                "content": [{"type": "text", "text": text}],
-            }
+            return {"type": "userMessage", "content": [{"type": "text", "text": text}]}
 
         app.call.side_effect = [
             {"thread": {"model": "gpt-6-luna", "reasoningEffort": "low"}},
             {
                 "data": [
                     {"id": "newer", "items": [user("FUTURE TASK")]},
-                    {"id": "current", "items": [user("Исполняй")]},
+                    {"id": "current", "items": [user("Execute it")]},
                     {"id": "older", "items": [user("CURRENT WORK")]},
                 ]
             },
@@ -122,7 +120,7 @@ class DelegationContextTests(unittest.TestCase):
                     "turn_id": "current",
                     "cwd": "/fixture",
                     "model": "gpt-6-luna",
-                    "prompt": "Исполняй",
+                    "prompt": "Execute it",
                 }
             )
         self.assertIn("CURRENT WORK", r["context"])

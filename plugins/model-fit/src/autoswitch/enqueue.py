@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from contextlib import AbstractContextManager
 from typing import Callable
 
 from model_fit.autoswitch import transitions
-from model_fit.autoswitch.configuration import HANDOFF_TTL_SECONDS
-from model_fit.autoswitch.ports.conversation import Conversation
-from model_fit.autoswitch.ports.inputs import Inputs
-from model_fit.autoswitch.ports.store import Store
+from model_fit.autoswitch.interfaces.conversation_factory import (
+    NativeConversationFactory,
+)
+from model_fit.autoswitch.interfaces.inputs import NativeInputReader
+from model_fit.autoswitch.interfaces.store import TransferStateStore
+from model_fit.autoswitch.queue_expiry import HANDOFF_TTL_SECONDS
+from model_fit.autoswitch.types.clock import Clock
 
 
 def enqueue(
@@ -15,11 +17,11 @@ def enqueue(
     turn_id: str,
     *,
     caller_thread: str | None,
-    clock: Callable[[], float],
-    inputs: Inputs,
-    conversation: Callable[[object], AbstractContextManager[Conversation]],
+    clock: Clock,
+    inputs: NativeInputReader,
+    conversation: NativeConversationFactory,
     queue_rejection: type[Exception],
-    store: Store,
+    store: TransferStateStore,
     working_directory: Callable[[], str],
 ) -> dict[str, str]:
     caller_thread = caller_thread

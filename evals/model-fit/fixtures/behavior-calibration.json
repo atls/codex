@@ -266,7 +266,7 @@
       "official_source_url": null,
       "official_guidance": null,
       "task_inference": null,
-      "reason": "Thread Memory MCP отсутствует и CLI нет в PATH, поэтому доступа нет. Keep: дальше ничего сделать нельзя."
+      "reason": "Thread Memory MCP is missing and the CLI is not on PATH, so there is no access. Keep: nothing further can be done."
     }
   },
   {
@@ -356,7 +356,7 @@
       "official_source_url": null,
       "official_guidance": null,
       "task_inference": null,
-      "reason": "Keep допустим для ограниченного чтения: доступный database-access указывает настроенный CLI. Предыдущее объявление недоступности было необоснованным. Нужно открыть reference, выполнить чтение указанной версии и проверить результат; если снова не удаётся выполнить известный маршрут, пересмотреть пригодность профиля по конкретной неудаче."
+      "reason": "Keep is acceptable for the bounded read: available database-access identifies a configured CLI. The previous unavailability claim was unsupported. Read the reference, perform the requested-version read and verify the result; if the known path fails again, reassess suitability from that specific failure."
     }
   },
   {
@@ -374,7 +374,7 @@
       "official_source_url": null,
       "official_guidance": null,
       "task_inference": null,
-      "reason": "Клиент найден и инструкции прочитаны — поручение выполнено, читать базу не нужно."
+      "reason": "The client was found and the guide read, so the task is complete; there is no need to read the database."
     }
   },
   {
@@ -392,7 +392,7 @@
       "official_source_url": null,
       "official_guidance": null,
       "task_inference": null,
-      "reason": "Клиент и команда уже найдены, но чтение ещё не выполнено. Это незавершённая работа. Для ближайшего безопасного чтения сохраняю профиль с проверяемым результатом: исполнить команду и вернуть ответ по истории либо фактическую ошибку. Предыдущая остановка сама по себе не доказывает недоступность базы или универсальный нижний предел модели."
+      "reason": "The client and command are already known, but the read has not happened. The work is unfinished. Retain the profile for the next safe read with a verifiable result: execute the command and return the history answer or actual error. Stopping earlier alone does not establish database unavailability or a universal minimum model."
     }
   }
 ]

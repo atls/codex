@@ -1,4 +1,4 @@
-"Append privacy-filtered lifecycle observations without changing hook results."
+"""Append privacy-filtered lifecycle observations without changing hook results."""
 
 from __future__ import annotations
 
@@ -49,7 +49,7 @@ def append_audit(
     session_id: str, turn_id: Any, outcome: str, details: dict[str, Any] | None = None
 ) -> None:
     path = audit_path(session_id)
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=448)
     entry = {
         "time": int(time.time()),
         "time_ns": time.time_ns(),

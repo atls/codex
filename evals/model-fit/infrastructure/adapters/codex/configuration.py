@@ -51,4 +51,4 @@ def provider_configuration(executable, home, shell_path, model, effort):
             },
         },
     }
-    return config, judge
+    return (config, judge)

@@ -3,10 +3,10 @@ import json
 from pathlib import Path
 
 SUITE = Path(__file__).resolve().parents[2]
-
 from calibration import generate as calibration
 from calibration import regrade
-from . import selection, native, ordinary
+
+from . import native, ordinary, selection
 from .catalog import catalog_models
 from .controls import calibration_controls
 from .fixtures import fixture_context, prepare_workspace
@@ -49,13 +49,13 @@ def generate_tests(config=None):
             if isinstance(saved["results"], list)
             else saved["results"]["results"]
         )
-        if any(row["testCase"]["description"] not in by_id for row in rows):
+        if any((row["testCase"]["description"] not in by_id for row in rows)):
             raise ValueError("Unknown retained scenario")
         entries = [
             row
             for row in rows
             if not by_id[row["testCase"]["description"]].get("source_failure")
-            and not by_id[row["testCase"]["description"]].get("prior_choice")
+            and (not by_id[row["testCase"]["description"]].get("prior_choice"))
         ]
     else:
         entries = [
@@ -68,8 +68,7 @@ def generate_tests(config=None):
             )
             and (
                 surface != "native"
-                or not case.get("source_failure")
-                and not case.get("prior_choice")
+                or (not case.get("source_failure") and (not case.get("prior_choice")))
             )
         ]
     tests = []

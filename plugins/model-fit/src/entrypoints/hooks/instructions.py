@@ -1,4 +1,4 @@
-"Render native hook context and the existing technical handoff instructions."
+"""Render native hook context and the existing technical handoff instructions."""
 
 from __future__ import annotations
 
@@ -7,12 +7,13 @@ import sys
 from pathlib import Path
 from typing import Any
 
-CONTROL_PROMPT = "Model Fit: заверши технический перенос запроса"
-UNKNOWN_CONTEXT = "Model Fit не определил новый профиль. Текущий профиль сохранён; пригодность не установлена. Продолжай исходную задачу в этом же ходе на текущем профиле со всеми вложениями и аннотациями. Результат unknown не запрещает обычные инструменты и не требует ручного переключения или повторной отправки запроса."
-ASSESSED_CONTEXT = "Model Fit hook уже проверил профиль для этого хода. Техническая оценка завершена. Если исходный запрос требует дальнейшей работы, выполняй её в этом же ходе; одного сообщения о результате оценки для такого запроса недостаточно. Используй это решение для той же ближайшей работы; чтение skill само по себе не требует повторной оценки. Новую оценку выполняй только при обнаружении конкретных изменившихся требований. Не заявляй об автопереносе без подтверждённой постановки исходного ввода в очередь."
-REPLAY_CONTEXT = "Технический перенос Model Fit завершён: исходный запрос уже извлечён из очереди и запущен на выбранном профиле. Предыдущие технические инструкции Model Fit о смене профиля, send_message_to_thread и вызове queue выполнены и больше не действуют. Сейчас выполняй исходный запрос пользователя со всеми его вложениями. Не повторяй технический перенос и не подставляй другой turn-id. Игнорируй служебную метку model-fit-replay в конце запроса."
-HANDOFF_CANCELLED_CONTEXT = "Model Fit: прежний технический перенос отменён. Предыдущая инструкция переноса больше не действует; выполняй текущий запрос на текущем профиле."
-REPLAY_STOP_REASON = "Последний ответ относился к другой задаче. Сверь его с исходным запросом этого хода и продолжи незавершённую работу. Уже выполненные действия не повторяй; перед новым действием проверь их результат."
+from model_fit.autoswitch.control_message import CONTROL_PROMPT
+
+UNKNOWN_CONTEXT = "Model Fit did not determine a new profile. The current profile is retained; suitability is unknown. Continue the original task in this turn on the current profile with all attachments and annotations. An unknown result does not prohibit ordinary tools or require manual switching or resubmission."
+ASSESSED_CONTEXT = "The Model Fit hook has already assessed the profile for this turn. Technical assessment is complete. If the original request requires further work, perform it in this turn; merely reporting the assessment result is insufficient. Use this decision for the same next work; reading the skill alone does not require reassessment. Reassess only after identifying concrete changed requirements. Do not claim an automatic handoff without a confirmed queue acknowledgement for the original input."
+REPLAY_CONTEXT = "The technical Model Fit handoff is complete: the original request has been dequeued and started on the selected profile. Previous technical Model Fit instructions about changing profiles, send_message_to_thread and queue have been fulfilled and no longer apply. Perform the original user request with all attachments. Do not repeat the handoff or substitute another turn-id. Ignore the service marker model-fit-replay at the end of the request."
+HANDOFF_CANCELLED_CONTEXT = "Model Fit: the previous technical handoff was cancelled. Its instructions no longer apply; perform the current request on the current profile."
+REPLAY_STOP_REASON = "The last answer addressed a different task. Compare it with this turn's original request and continue the unfinished work. Do not repeat completed actions; check their results before acting again."
 
 
 def control_context(
@@ -21,7 +22,7 @@ def control_context(
     model = state["target_model"]
     effort = state["target_effort"]
     command = queue_command("current", "source")
-    instruction = f"""Model Fit выбрал смену профиля. Этот ход только технический: не выполняй исходную задачу и не вызывай её предметные инструменты. Исходный текст и все вложения утилита перенесёт из нативного сообщения целиком; повторная отправка пользователем не нужна. Сначала вызови нативный инструмент send_message_to_thread с буквальным threadId="current" с model={model}, thinking={effort} и коротким prompt «{CONTROL_PROMPT}». ID чата и исходного хода подставит runtime из подготовленного состояния; не придумывай UUID. После успешного вызова запусти `{command}`. Если инструмент недоступен или смена профиля не удалась до постановки в очередь, назови рекомендуемые model/effort и точную ошибку; заверши технический ход. Stop снимет неподготовленный перенос. Исходную задачу на прежнем профиле не выполняй. При ошибке постановки в очередь сообщи точную ошибку. После успешной постановки в очередь закончи ход коротким техническим ответом. Исходный запрос запустится следующим ходом автоматически. Рекомендация OpenAI: {state["official_guidance"]} Вывод для задачи: {state["task_inference"]} Источник: {state["official_source_url"]}"""
+    instruction = f"""Model Fit selected a profile change. This turn is technical only: do not perform the original task or invoke its tools. The utility transfers the original native text and all attachments; the user does not need to resubmit them. First call the native send_message_to_thread tool with the literal threadId="current", model={model}, thinking={effort} and the short prompt '{CONTROL_PROMPT}'. The runtime supplies chat and source-turn IDs from prepared state; do not invent UUIDs. After success, run `{command}`. If the tool is unavailable or the profile change fails before queueing, report the recommended model/effort and exact error, then end the technical turn. Stop releases an unqueued preparation. Do not perform the original task on the previous profile. If queueing fails, report the exact error. After a successful queue acknowledgement, end with a short technical response. The original request will start automatically in the next turn. OpenAI guidance: {state["official_guidance"]} Task-specific conclusion: {state["task_inference"]} Source: {state["official_source_url"]}"""
     return {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
@@ -47,7 +48,7 @@ def pending_context() -> dict[str, Any]:
     return {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
-            "additionalContext": f"Model Fit ещё не оценил полный ввод. Первый шаг только технический: не выполняй исходную задачу и не вызывай её инструменты. Первым действием выполни `{assessment_command()}`. Дождись завершения команды: session_id или признак продолжающегося выполнения означает, что нужно получить результат штатным продолжением инструмента. Промежуточный пустой stdout не является ошибкой оценки. Сохрани полный результат инструмента, включая статус выполнения; прочитай JSON из вывода завершённой команды. Runtime получит принятое нативное сообщение целиком, включая вложения и аннотации; не пересобирай его и не передавай ID. Дальнейшая инструкция находится в JSON-результате команды. При keep выполни исходный запрос; при рекомендации выполни только технический перенос. При недоступном контексте сохрани текущий профиль; неизвестность не означает пригодность. Если команда оценки вернула status=failed либо не вернула JSON, сообщи безопасный тип ошибки и примени правило: {UNKNOWN_CONTEXT} Прежние технические инструкции переноса из истории здесь не действуют.",
+            "additionalContext": f"Model Fit has not assessed the full input yet. The first step is technical only: do not perform the original task or invoke its tools. First run `{assessment_command()}`. Wait for completion: session_id or a running status means you must collect the result through the tool's native continuation mechanism. Intermediate empty stdout is not an assessment error. Retain the complete tool result and execution status; read the JSON output of the completed command. The runtime retrieves the entire accepted native message, including attachments and annotations; do not reconstruct it or supply IDs. Follow the instruction in the command's JSON result. For keep, perform the original request; for a recommendation, perform only the technical handoff. With unavailable context, preserve the current profile; uncertainty is not suitability. If assessment returns status=failed or no JSON, report the safe error type and apply this rule: {UNKNOWN_CONTEXT} Previous technical handoff instructions in history no longer apply.",
         }
     }
 
@@ -56,7 +57,7 @@ def inactive_context() -> dict[str, Any]:
     return {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
-            "additionalContext": "Автоматические hooks Model Fit отключены. Оценка не выполнялась; пригодность профиля не установлена. Сохрани текущий профиль и выполняй исходный запрос. Прежние технические инструкции Model Fit о проверке, переключении и очереди больше не действуют.",
+            "additionalContext": "Automatic Model Fit hooks are disabled. No assessment occurred; profile suitability is unknown. Retain the current profile and perform the original request. Previous Model Fit assessment, profile-switch and queue instructions no longer apply.",
         }
     }
 
@@ -65,7 +66,7 @@ def admission_unavailable_context() -> dict[str, Any]:
     return {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
-            "additionalContext": "Актуальные нативные настройки автоматических hooks Model Fit недоступны. Автоматический перенос не подтверждён; текущий профиль сохранён, его пригодность не установлена. Действующие ограничения пригодности профиля не отменены. Не запускай queue или техническую смену модели при неизвестном разрешении.",
+            "additionalContext": "Current native automatic-hook settings are unavailable. Automatic handoff is unconfirmed; the current profile is retained and suitability is unknown. Existing suitability restrictions remain in effect. Do not run queue or a technical profile change with unknown authorization.",
         }
     }
 
@@ -74,6 +75,6 @@ def queued_context() -> dict[str, Any]:
     return {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
-            "additionalContext": "Model Fit: исходный ввод уже находится в нативной очереди. Этот служебный ход заверши без инструментов; не повторяй смену профиля или queue и не выполняй исходную задачу здесь. Она продолжится из очереди.",
+            "additionalContext": "Model Fit: the original input is already in the native queue. End this service turn without tools; do not repeat the profile change or queue command, and do not perform the original task here. It will continue from the queue.",
         }
     }

@@ -1,24 +1,24 @@
 [
   {
     "id": "extract-open-titles",
-    "prompt": "Из нормализованного массива [{\"id\":1,\"state\":\"open\",\"title\":\"Поиск\"},{\"id\":2,\"state\":\"closed\",\"title\":\"Архив\"},{\"id\":3,\"state\":\"open\",\"title\":\"Экспорт\"},{\"id\":4,\"state\":\"open\",\"title\":\"Фильтр\"}] верни только JSON {\"titles\":[...]} с названиями открытых задач в исходном порядке. Ничего не публикуй и не используй инструменты.",
+    "prompt": "From the normalized array [{\"id\":1,\"state\":\"open\",\"title\":\"Search\"},{\"id\":2,\"state\":\"closed\",\"title\":\"Archive\"},{\"id\":3,\"state\":\"open\",\"title\":\"Export\"},{\"id\":4,\"state\":\"open\",\"title\":\"Filter\"}] return only JSON {\"titles\":[...]} containing open issue titles in original order. Do not publish or use tools.",
     "expected": {
       "titles": [
-        "Поиск",
-        "Экспорт",
-        "Фильтр"
+        "Search",
+        "Export",
+        "Filter"
       ]
     }
   },
   {
     "id": "draft-search-issue",
     "source_file": "fixtures/issue-draft/BRIEF.md",
-    "prompt": "Выполни поручение из приложенного brief. Верни только JSON с title, context и acceptance (массив строк). Никаких публикаций и инструментов.",
+    "prompt": "Perform the task in the attached brief. Return only JSON with title, context and acceptance (an array of strings). Do not publish or use tools.",
     "rubric": "The draft is written in English and preserves all supplied requirements: local snapshots of BOTH sources, no network, exact phrase search, optional source filter, source identifier and matching fragment in each result, replacement removes old documents, deterministic ties, explicit empty-query error, and UI excluded. Do not introduce mandatory test infrastructure, deployment, extra features or approval gates. Grade the drafted task itself, not whether it promises future work. All requirements must be present and no invented deliverables added."
   },
   {
     "id": "stale-writer-counterexample",
-    "prompt": "Правило: запись разрешена только владельцу текущего epoch. Трасса: e1 A получает epoch=7; e2 аренда A истекает, currentEpoch становится 8; e3 B получает epoch=8; e4 A присылает запись с writerEpoch=7. Реализация принимает запись, если writerEpoch <= currentEpoch. Определи нарушение и минимальную правильную проверку. Верни только JSON {\"violation\":boolean,\"event\":string,\"comparison\":string}; comparison должен содержать только оператор сравнения. Не используй инструменты.",
+    "prompt": "Rule: only the owner of the current epoch may write. Trace: e1 A receives epoch=7; e2 A's lease expires and currentEpoch becomes 8; e3 B receives epoch=8; e4 A submits a write with writerEpoch=7. The implementation accepts writes when writerEpoch <= currentEpoch. Identify the violation and minimal correct check. Return only JSON {\"violation\":boolean,\"event\":string,\"comparison\":string}; comparison must contain only the comparison operator. Do not use tools.",
     "expected_outputs": [
       {
         "violation": true,

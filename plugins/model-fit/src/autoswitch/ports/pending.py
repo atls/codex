@@ -1,9 +1,0 @@
-from typing import Any, Protocol
-
-
-class Pending(Protocol):
-    def load(self) -> dict[str, Any] | None: ...
-
-    def clear(self, *, missing_ok: bool = False) -> None: ...
-
-    def save(self, request: dict[str, Any], result: dict[str, Any]) -> None: ...

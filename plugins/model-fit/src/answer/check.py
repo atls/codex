@@ -3,24 +3,24 @@ from __future__ import annotations
 from contextlib import AbstractContextManager
 from typing import Any, Callable
 
+from model_fit.answer.limits import MAX_REPLAY_EVAL_CHARS
 from model_fit.autoswitch import transitions
-from model_fit.autoswitch.configuration import MAX_REPLAY_EVAL_CHARS
-from model_fit.autoswitch.ports.conversation import Conversation
-from model_fit.autoswitch.ports.inputs import Inputs
-from model_fit.autoswitch.ports.presentation import Presentation
-from model_fit.autoswitch.ports.store import Store
-from model_fit.autoswitch.requests.answer_check import AnswerCheck
+from model_fit.autoswitch.interfaces.answer_check import ReplayAnswerInput
+from model_fit.autoswitch.interfaces.conversation import NativeConversation
+from model_fit.autoswitch.interfaces.inputs import NativeInputReader
+from model_fit.autoswitch.interfaces.presentation import HookOutputRenderer
+from model_fit.autoswitch.interfaces.store import TransferStateStore
 
 
 def guard_replay_answer(
-    event: AnswerCheck,
+    event: ReplayAnswerInput,
     *,
     audit: Callable[..., Any],
-    inputs: Inputs,
-    conversation: Callable[[object], AbstractContextManager[Conversation]],
-    presentation: Presentation,
+    inputs: NativeInputReader,
+    conversation: Callable[[object], AbstractContextManager[NativeConversation]],
+    presentation: HookOutputRenderer,
     relevance: Callable[[str, str, str], str],
-    store: Store,
+    store: TransferStateStore,
 ) -> dict[str, Any] | None:
     if event.stop_hook_active is True:
         return None
@@ -40,7 +40,7 @@ def guard_replay_answer(
             if pending["turn_id"] != turn_id or pending["status"] == "failed":
                 return None
             return presentation.block(
-                "Model Fit: перед ответом выполни техническую команду оценки из инструкции текущего хода."
+                "Model Fit: before answering, run the technical assessment command from this turn's instructions."
             )
         if (
             state is not None

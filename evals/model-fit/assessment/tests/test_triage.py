@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-import model_fit.infrastructure.adapters.codex.sources as SOURCES
-
-from pathlib import Path
-
-
 import io
 import json
 import subprocess
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
+from pathlib import Path
 from unittest.mock import patch
+
+import model_fit.infrastructure.adapters.codex.sources as SOURCES
 
 ROOT = Path(__file__).resolve().parents[4]
 HERE = ROOT / "evals/model-fit"
@@ -20,9 +18,7 @@ MODULE_PATH = ROOT / "plugins/model-fit/src/triage.py"
 import model_fit.assessment.assess as TRIAGE
 import model_fit.entrypoints.cli.assess as CLI
 import model_fit.infrastructure.adapters.codex.assessment as ASSESSMENT_CLIENT
-from model_fit.assessment.failures.source_unavailable import (
-    SourceUnavailable,
-)
+from model_fit.assessment.exceptions.source_unavailable import SourceUnavailable
 from model_fit.assessment.validation import empty_decision, validate
 from model_fit.infrastructure.adapters.codex.catalog import NativeCatalog
 
@@ -38,21 +34,26 @@ class TriageContractTest(unittest.TestCase):
         cls.profiles = json.loads((HERE / "fixtures/triage-decisions.json").read_text())
 
     def saved_output(self, case_id: str) -> tuple[dict, dict]:
-        case = next(case for case in self.profiles[0]["cases"] if case["id"] == case_id)
+        case = next(
+            (case for case in self.profiles[0]["cases"] if case["id"] == case_id)
+        )
         active = dict(case["active_profile"])
-        return active, {
-            "active_model": active["model"],
-            "active_effort": active["effort"],
-            "active_speed": active["speed"],
-            "decision": case["decision"],
-            "recommended_model": case["target_model"],
-            "recommended_effort": case["target_effort"],
-            "recommended_speed": case["target_speed"],
-            "official_source_url": case["official_source_url"],
-            "official_guidance": case["official_guidance"],
-            "task_inference": case["task_inference"],
-            "reason": case["reason"],
-        }
+        return (
+            active,
+            {
+                "active_model": active["model"],
+                "active_effort": active["effort"],
+                "active_speed": active["speed"],
+                "decision": case["decision"],
+                "recommended_model": case["target_model"],
+                "recommended_effort": case["target_effort"],
+                "recommended_speed": case["target_speed"],
+                "official_source_url": case["official_source_url"],
+                "official_guidance": case["official_guidance"],
+                "task_inference": case["task_inference"],
+                "reason": case["reason"],
+            },
+        )
 
     def test_decision_contract_vectors_remain_consumable(self) -> None:
         for profile in self.profiles:
@@ -84,7 +85,7 @@ class TriageContractTest(unittest.TestCase):
 
         active, output = self.saved_output("writer-delegation-only")
         native = [
-            {"type": "text", "text": "Сравни вложения", "text_elements": []},
+            {"type": "text", "text": "Compare attachments", "text_elements": []},
             {"type": "localImage", "path": "/fixture/complex-a.png"},
             {"type": "image", "url": "data:image/png;base64,Yg==", "detail": "high"},
         ]
@@ -133,7 +134,7 @@ class TriageContractTest(unittest.TestCase):
             },
         ]
         result = TRIAGE.assess(
-            {"task": "Сравни вложения", "input": native, "active_profile": active},
+            {"task": "Compare attachments", "input": native, "active_profile": active},
             active["model"],
             active["effort"],
             1,
@@ -234,7 +235,7 @@ class TriageContractTest(unittest.TestCase):
 
     def test_missing_catalog_does_not_become_keep(self) -> None:
         active, _ = self.saved_output("mail-collection")
-        request = {"task": "Собери даты и темы писем", "active_profile": active}
+        request = {"task": "Collect email dates and subjects", "active_profile": active}
         visible = io.StringIO()
         with (
             patch("sys.argv", ["triage.py"]),
@@ -299,15 +300,15 @@ class TriageContractTest(unittest.TestCase):
             {"active_profile": active, "input": None},
             {"active_profile": active, "input": []},
             {"task": "   ", "active_profile": active},
-            {"task": "Собери письма", "active_profile": active, "context": []},
-            {"task": "Собери письма", "active_profile": active, "prior_choice": 1},
+            {"task": "Collect emails", "active_profile": active, "context": []},
+            {"task": "Collect emails", "active_profile": active, "prior_choice": 1},
             {
-                "task": "Собери письма",
+                "task": "Collect emails",
                 "active_profile": active,
-                "prior_choice": "останься на этом профиле",
+                "prior_choice": "keep this profile",
             },
             {
-                "task": "Собери письма",
+                "task": "Collect emails",
                 "active_profile": active,
                 "prior_choice": {
                     "user_selected": True,
@@ -340,7 +341,7 @@ class TriageContractTest(unittest.TestCase):
     def test_confirmed_choice_skips_sources_and_model(self) -> None:
         active, _ = self.saved_output("user-choice-preserved")
         request = {
-            "task": "Продолжи ту же работу",
+            "task": "Continue the same work",
             "active_profile": active,
             "prior_choice": {
                 "user_selected": True,

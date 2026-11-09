@@ -17,9 +17,7 @@ SUITE = ROOT / "evals/model-fit"
 sys.path.insert(0, str(ROOT / "plugins/model-fit/src"))
 sys.path.insert(0, str(SUITE))
 from model_fit.infrastructure.adapters.codex.authentication import authenticated_home
-from model_fit.infrastructure.adapters.codex.history import (
-    unavailable_session_input,
-)
+from model_fit.infrastructure.adapters.codex.history import unavailable_session_input
 from model_fit.infrastructure.adapters.codex.transport.connection import (
     AppServerConnection,
     AppServerRPCError,
@@ -79,13 +77,15 @@ def candidate_hooks(app, plugin, cwd, command):
             hook.get("isManaged", False)
             or hook.get("pluginId") != "model-fit@media-acceptance"
             or hook.get("async", False)
-            or hook["source"] != "plugin"
-            or Path(hook["sourcePath"]).resolve()
-            != (plugin / "hooks/hooks.json").resolve()
-            or hook["handlerType"] != "command"
-            or hook["command"] != command
-            or not isinstance(hook["currentHash"], str)
-            or not hook["currentHash"]
+            or (hook["source"] != "plugin")
+            or (
+                Path(hook["sourcePath"]).resolve()
+                != (plugin / "hooks/hooks.json").resolve()
+            )
+            or (hook["handlerType"] != "command")
+            or (hook["command"] != command)
+            or (not isinstance(hook["currentHash"], str))
+            or (not hook["currentHash"])
         ):
             raise RuntimeError("Hook is not the exact candidate command/source")
     return hooks
@@ -120,9 +120,11 @@ def trust(home, workspace, codex, command, plugin):
         fresh = candidate_hooks(app, plugin, workspace, command)
     expected = {(h["key"], h["currentHash"]) for h in hooks}
     if any(
-        {(h["key"], h["currentHash"]) for h in result} != expected
-        or any(not h["enabled"] or h["trustStatus"] != "trusted" for h in result)
-        for result in [first, fresh]
+        (
+            {(h["key"], h["currentHash"]) for h in result} != expected
+            or any((not h["enabled"] or h["trustStatus"] != "trusted" for h in result))
+            for result in [first, fresh]
+        )
     ):
         raise RuntimeError("Native trust is absent in same/fresh-process readback")
     return [
@@ -205,7 +207,7 @@ def install_candidate(home, codex):
     command = hooks["hooks"]["UserPromptSubmit"][0]["hooks"][0]["command"].replace(
         "${PLUGIN_ROOT}", str(plugin)
     )
-    return plugin, command
+    return (plugin, command)
 
 
 def capability_preflight(home, workspace, codex):
@@ -251,7 +253,7 @@ def main():
     codex = str(Path(shutil.which("codex")).resolve())
     image_python = os.environ["MODEL_FIT_IMAGE_PYTHON"]
     evidence = Path(os.environ["MODEL_FIT_ACCEPTANCE_OUTPUT"]).resolve()
-    evidence.mkdir(mode=0o700, parents=True, exist_ok=False)
+    evidence.mkdir(mode=448, parents=True, exist_ok=False)
     stage = "prepare"
     report = {
         "scope": "native ephemeral host, not Desktop sidebar/full switch",
@@ -303,7 +305,7 @@ def main():
                 stage = "trust:" + identifier
                 if (
                     (home / "auth.json").is_symlink()
-                    or (home / "auth.json").stat().st_mode & 0o777 != 0o600
+                    or (home / "auth.json").stat().st_mode & 511 != 384
                     or (
                         (home / "auth.json").stat().st_dev,
                         (home / "auth.json").stat().st_ino,
@@ -314,7 +316,7 @@ def main():
                 readback = trust(home, workspace, codex, command, plugin)
                 capability = capability_preflight(home, workspace, codex)
                 output = evidence / identifier
-                output.mkdir(mode=0o700)
+                output.mkdir(mode=448)
                 retained_images = []
                 for filename in ["first.png", "second.png"]:
                     source = workspace / filename

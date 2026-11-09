@@ -4,7 +4,8 @@ import json
 import re
 
 PROFILE_ADVICE = re.compile(
-    r"model[ -]fit|gpt-|luna|astra|reasoning[_ ]effort|смен[аыу] профил", re.IGNORECASE
+    "model[ -]fit|gpt-|luna|astra|reasoning[_ ]effort|profile (?:change|switch)|смен[аыу] профил",
+    re.IGNORECASE,
 )
 
 

@@ -5,7 +5,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 from assessment import scenarios
-
 from assessment.scenarios import fixtures, loading
 
 
@@ -41,8 +40,10 @@ class NativeGeneratorTests(unittest.TestCase):
                     )
                     and (
                         surface != "native"
-                        or not case.get("source_failure")
-                        and not case.get("prior_choice")
+                        or (
+                            not case.get("source_failure")
+                            and (not case.get("prior_choice"))
+                        )
                     )
                 ]
                 self.assertEqual(
@@ -81,7 +82,7 @@ class NativeGeneratorTests(unittest.TestCase):
             self.assertEqual(rows[-3]["description"], "fabricated-official-policy")
             self.assertEqual(rows[-2]["assert"][0]["type"], "llm-rubric")
             self.assertEqual(rows[-1]["assert"][0]["type"], "not-llm-rubric")
-            self.assertTrue(all("expected_pass" not in row["vars"] for row in rows))
+            self.assertTrue(all(("expected_pass" not in row["vars"] for row in rows)))
             self.assertIn(
                 "resolving ownership conflicts",
                 json.loads(rows[-2]["vars"]["answer"])["task_inference"],
@@ -129,7 +130,7 @@ class NativeGeneratorTests(unittest.TestCase):
                 case = row["vars"]["scenario"]
                 self.assertFalse(case["allowed_recommendations"])
                 rubric = next(
-                    a["value"] for a in row["assert"] if a["type"] == "llm-rubric"
+                    (a["value"] for a in row["assert"] if a["type"] == "llm-rubric")
                 )
                 self.assertIn(case["quality_requirements"], rubric)
 

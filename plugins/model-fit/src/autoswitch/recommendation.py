@@ -4,14 +4,16 @@ from typing import Any
 
 from model_fit.assessment.validation import validated_active_profile
 from model_fit.autoswitch import transitions
-from model_fit.autoswitch.ports.inputs import Inputs
-from model_fit.autoswitch.ports.presentation import Presentation
-from model_fit.autoswitch.ports.recommendations import Recommendations
-from model_fit.autoswitch.ports.store import Store
-from model_fit.autoswitch.requests.prompt import Prompt
+from model_fit.autoswitch.interfaces.handoff_state import HandoffStateRecord
+from model_fit.autoswitch.interfaces.inputs import NativeInputReader
+from model_fit.autoswitch.interfaces.pending_assessment import PendingAssessmentRecord
+from model_fit.autoswitch.interfaces.presentation import HookOutputRenderer
+from model_fit.autoswitch.interfaces.prompt import SubmissionInput
+from model_fit.autoswitch.interfaces.recommendations import RecommendationStore
+from model_fit.autoswitch.interfaces.store import TransferStateStore
 
 
-def recommended_profile(pending: dict[str, Any]) -> dict[str, Any]:
+def recommended_profile(pending: HandoffStateRecord) -> dict[str, Any]:
     active = pending["active_profile"]
     result = pending["result"]
     return {
@@ -21,7 +23,10 @@ def recommended_profile(pending: dict[str, Any]) -> dict[str, Any]:
 
 
 def load_blocking_recommendation(
-    thread_id: str, *, recommendations: Recommendations, presentation: Presentation
+    thread_id: str,
+    *,
+    recommendations: RecommendationStore,
+    presentation: HookOutputRenderer,
 ) -> dict[str, Any] | None:
     if recommendations.unsafe(thread_id):
         raise ValueError("Blocking recommendation cannot be a symlink")
@@ -54,13 +59,13 @@ def load_blocking_recommendation(
 
 
 def blocking_recommendation(
-    event: Prompt,
+    event: SubmissionInput,
     *,
     prompt_hash: str | None = None,
     empty_input: bool | None = None,
-    recommendations: Recommendations,
-    inputs: Inputs,
-    presentation: Presentation,
+    recommendations: RecommendationStore,
+    inputs: NativeInputReader,
+    presentation: HookOutputRenderer,
 ) -> dict[str, Any] | None:
     cached = load_blocking_recommendation(
         event.thread_id, recommendations=recommendations, presentation=presentation
@@ -83,14 +88,14 @@ def blocking_recommendation(
 
 
 def retain_manual_recommendation(
-    event: Prompt,
+    event: SubmissionInput,
     request: dict[str, Any],
     result: dict[str, Any],
     output: dict[str, Any],
     *,
-    expected_submission: dict[str, Any] | None = None,
-    recommendations: Recommendations,
-    store: Store,
+    expected_submission: PendingAssessmentRecord | None = None,
+    recommendations: RecommendationStore,
+    store: TransferStateStore,
 ) -> dict[str, Any]:
     with store.transaction(
         event.thread_id,

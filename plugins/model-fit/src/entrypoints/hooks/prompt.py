@@ -1,4 +1,4 @@
-"Opt-in Desktop hook that runs Model Fit triage before a user turn."
+"""Opt-in Desktop hook that runs Model Fit triage before a user turn."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import os
 import subprocess
 import sys
 
-from model_fit.autoswitch.manual import decide as decide_prompt
+from model_fit.autoswitch.prompt_recommendation import decide as decide_prompt
 from model_fit.entrypoints.hooks.presentation import HookPresentation
 from model_fit.infrastructure.adapters.codex.assessment import triage
 from model_fit.infrastructure.adapters.codex.codec import prompt_digest as prompt_hash
@@ -60,7 +60,7 @@ def handle_prompt() -> int:
         subprocess.SubprocessError,
     ) as error:
         output = {
-            "systemMessage": "Model Fit: hook не получил проверенное решение; профиль не оценён."
+            "systemMessage": "Model Fit: the hook received no validated decision; the profile was not assessed."
         }
         if pilot_thread:
             record_audit(pilot_thread, turn_id, f"error:{type(error).__name__}")

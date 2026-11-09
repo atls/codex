@@ -1,14 +1,12 @@
 """Tests for the opt-in Desktop Model Fit hook."""
 
-from pathlib import Path
-
-
 import io
 import json
 import os
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
+from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -24,7 +22,7 @@ class DesktopHookTests(unittest.TestCase):
         "session_id": "test-thread",
         "cwd": "/tmp",
         "model": "gpt-6-luna",
-        "prompt": "Спроектируй поисковик по снимкам",
+        "prompt": "Design a snapshot search engine",
     }
 
     def run_hook(self, event, decision=None):
@@ -42,7 +40,7 @@ class DesktopHookTests(unittest.TestCase):
                 redirect_stdout(output),
             ):
                 status = HOOK.handle_prompt()
-        return status, output.getvalue(), read, triage
+        return (status, output.getvalue(), read, triage)
 
     def test_other_thread_does_not_run_preflight(self):
         event = dict(self.event, session_id="other-thread")
@@ -64,7 +62,7 @@ class DesktopHookTests(unittest.TestCase):
                                 {
                                     "type": "userMessage",
                                     "content": [
-                                        {"type": "text", "text": "Предыдущая задача"}
+                                        {"type": "text", "text": "Previous task"}
                                     ],
                                 },
                                 {
@@ -77,7 +75,7 @@ class DesktopHookTests(unittest.TestCase):
                 },
             ]
             request = RUNTIME.session_input(self.event)
-        self.assertIn("Предыдущая задача", request["context"])
+        self.assertIn("Previous task", request["context"])
         self.assertNotIn("large tool output", request["context"])
         self.assertEqual(app.call.call_args_list[1].args[1]["itemsView"], "summary")
 
@@ -93,13 +91,15 @@ class DesktopHookTests(unittest.TestCase):
         self.assertEqual(request["active_profile"], self.active)
         self.assertTrue(
             all(
-                call.args[1]["threadId"] == "child-thread"
-                for call in app.call.call_args_list
+                (
+                    call.args[1]["threadId"] == "child-thread"
+                    for call in app.call.call_args_list
+                )
             )
         )
 
     def test_summary_history_omits_current_prompt_with_trailing_newline(self):
-        event = dict(self.event, prompt="Покажи бэклог\n")
+        event = dict(self.event, prompt="Show the backlog\n")
         with patch.object(RUNTIME, "AppServerReader") as reader:
             app = reader.return_value.__enter__.return_value
             app.call.side_effect = [
@@ -111,13 +111,13 @@ class DesktopHookTests(unittest.TestCase):
                                 {
                                     "type": "userMessage",
                                     "content": [
-                                        {"type": "text", "text": "Покажи бэклог\n"}
+                                        {"type": "text", "text": "Show the backlog\n"}
                                     ],
                                 },
                                 {
                                     "type": "userMessage",
                                     "content": [
-                                        {"type": "text", "text": "Предыдущая задача"}
+                                        {"type": "text", "text": "Previous task"}
                                     ],
                                 },
                             ]
@@ -126,11 +126,11 @@ class DesktopHookTests(unittest.TestCase):
                 },
             ]
             request = RUNTIME.session_input(event)
-        self.assertIn("Пользователь: Предыдущая задача", request["context"])
-        self.assertNotIn("Покажи бэклог", request["context"])
+        self.assertIn("user: previous task", request["context"].casefold())
+        self.assertNotIn("Show the backlog", request["context"])
 
     def test_continuation_includes_plan_and_excludes_tools_and_current_turn(self):
-        event = dict(self.event, prompt="ну так вперёд", turn_id="current")
+        event = dict(self.event, prompt="Go ahead", turn_id="current")
         with patch.object(RUNTIME, "AppServerReader") as reader:
             app = reader.return_value.__enter__.return_value
             app.call.side_effect = [
@@ -151,14 +151,14 @@ class DesktopHookTests(unittest.TestCase):
                                     "content": [
                                         {
                                             "type": "text",
-                                            "text": "Подготовь план восстановления",
+                                            "text": "Prepare a recovery plan",
                                         }
                                     ],
                                 },
                                 {
                                     "type": "agentMessage",
                                     "phase": "final_answer",
-                                    "text": "Проверить действующий reverse proxy, восстановить внешний маршрут и проверить rollback.",
+                                    "text": "Check the active reverse proxy, restore the external route and verify rollback.",
                                 },
                                 {"type": "reasoning", "text": "HIDDEN REASONING"},
                                 {
@@ -172,7 +172,7 @@ class DesktopHookTests(unittest.TestCase):
             ]
             request = RUNTIME.session_input(event)
         self.assertIn("rollback", request["context"])
-        self.assertIn("Подготовь план восстановления", request["context"])
+        self.assertIn("Prepare a recovery plan", request["context"])
         for excluded in ["FUTURE ANSWER", "HIDDEN REASONING", "TOOL OUTPUT"]:
             self.assertNotIn(excluded, request["context"])
         self.assertNotIn("prior_choice", request)
@@ -206,7 +206,7 @@ class DesktopHookTests(unittest.TestCase):
         self.assertLessEqual(len(request["context"]), 20000)
 
     def test_paginated_context_keeps_choice_and_failure_behind_control_turns(self):
-        event = dict(self.event, prompt="пабли", turn_id="current")
+        event = dict(self.event, prompt="publish", turn_id="current")
         control = {
             "items": [
                 {
@@ -236,14 +236,14 @@ class DesktopHookTests(unittest.TestCase):
                                     "content": [
                                         {
                                             "type": "text",
-                                            "text": "Сохрани выбранный мной профиль для этой работы",
+                                            "text": "Retain the profile I selected for this work",
                                         }
                                     ],
                                 },
                                 {
                                     "type": "agentMessage",
                                     "phase": "final_answer",
-                                    "text": "Публикацию не выполнил",
+                                    "text": "Did not publish",
                                 },
                             ],
                         }
@@ -252,8 +252,8 @@ class DesktopHookTests(unittest.TestCase):
                 },
             ]
             request = RUNTIME.session_input(event)
-        self.assertIn("Сохрани выбранный мной профиль", request["context"])
-        self.assertIn("Публикацию не выполнил", request["context"])
+        self.assertIn("Retain the profile I selected", request["context"])
+        self.assertIn("Did not publish", request["context"])
         self.assertNotIn("TECHNICAL ONLY", request["context"])
         self.assertEqual(app.call.call_args_list[-1].args[1]["cursor"], "earlier")
 
@@ -316,10 +316,7 @@ class DesktopHookTests(unittest.TestCase):
         entry = json.loads(audit_text)
         self.assertEqual(
             entry["details"],
-            {
-                "hook_event": "PreToolUse",
-                "reason_code": "state_lock_busy",
-            },
+            {"hook_event": "PreToolUse", "reason_code": "state_lock_busy"},
         )
         self.assertNotIn("private request text", audit_text)
         error_output = io.StringIO()
@@ -342,9 +339,9 @@ class DesktopHookTests(unittest.TestCase):
             "recommended_model": "gpt-6.1-sol",
             "recommended_effort": "medium",
             "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
-            "official_guidance": "OpenAI рекомендует выбирать модель по задаче.",
-            "task_inference": "Для этой задачи нужен другой профиль.",
-            "reason": "Нужна более глубокая техническая работа.",
+            "official_guidance": "OpenAI recommends selecting a model for the task.",
+            "task_inference": "This task needs a different profile.",
+            "reason": "Deeper technical work is needed.",
         }
         outcomes = []
         with tempfile.TemporaryDirectory() as temporary:
@@ -371,22 +368,22 @@ class DesktopHookTests(unittest.TestCase):
             "recommended_model": "gpt-6.1-sol",
             "recommended_effort": "medium",
             "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
-            "official_guidance": "OpenAI рекомендует выбирать модель по задаче.",
-            "task_inference": "Для этой задачи нужен другой профиль.",
-            "reason": "Нужна более глубокая техническая работа.",
+            "official_guidance": "OpenAI recommends selecting a model for the task.",
+            "task_inference": "This task needs a different profile.",
+            "reason": "Deeper technical work is needed.",
         }
         status, output, _, _ = self.run_hook(self.event, decision)
         self.assertEqual(status, 0)
         result = json.loads(output)
         self.assertEqual(result["decision"], "block")
         self.assertIn("gpt-6.1-sol / medium", result["reason"])
-        self.assertIn("повтори этот запрос", result["reason"])
+        self.assertIn("repeat this request", result["reason"].casefold())
         self.assertIn(
-            "Рекомендация OpenAI: OpenAI рекомендует выбирать модель по задаче.",
+            "OpenAI guidance: OpenAI recommends selecting a model for the task.",
             result["reason"],
         )
         self.assertIn(
-            "Вывод для этой задачи: Для этой задачи нужен другой профиль.",
+            "Task-specific conclusion: This task needs a different profile.",
             result["reason"],
         )
 
@@ -415,7 +412,8 @@ class DesktopHookTests(unittest.TestCase):
                 status = HOOK.handle_prompt()
         self.assertEqual(status, 0)
         self.assertIn(
-            "профиль не оценён", json.loads(output.getvalue())["systemMessage"]
+            "profile was not assessed",
+            json.loads(output.getvalue())["systemMessage"].casefold(),
         )
         triage.assert_not_called()
 
@@ -428,9 +426,9 @@ class DesktopHookTests(unittest.TestCase):
             "recommended_model": "gpt-6.1-sol",
             "recommended_effort": "medium",
             "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
-            "official_guidance": "OpenAI рекомендует выбирать модель по задаче.",
-            "task_inference": "Для этой задачи нужен другой профиль.",
-            "reason": "Задача требует более сильного профиля.",
+            "official_guidance": "OpenAI recommends selecting a model for the task.",
+            "task_inference": "This task needs a different profile.",
+            "reason": "The task needs a stronger profile.",
         }
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "pending.json"
@@ -450,9 +448,9 @@ class DesktopHookTests(unittest.TestCase):
             "recommended_model": "gpt-6.1-sol",
             "recommended_effort": "medium",
             "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
-            "official_guidance": "OpenAI рекомендует выбирать модель по задаче.",
-            "task_inference": "Для этой задачи нужен другой профиль.",
-            "reason": "Задача требует более сильного профиля.",
+            "official_guidance": "OpenAI recommends selecting a model for the task.",
+            "task_inference": "This task needs a different profile.",
+            "reason": "The task needs a stronger profile.",
         }
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "pending.json"
@@ -479,9 +477,9 @@ class DesktopHookTests(unittest.TestCase):
             "recommended_model": "gpt-6.1-sol",
             "recommended_effort": "medium",
             "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
-            "official_guidance": "OpenAI рекомендует выбирать модель по задаче.",
-            "task_inference": "Для этой задачи нужен другой профиль.",
-            "reason": "Задача требует более сильного профиля.",
+            "official_guidance": "OpenAI recommends selecting a model for the task.",
+            "task_inference": "This task needs a different profile.",
+            "reason": "The task needs a stronger profile.",
         }
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "pending.json"
@@ -495,7 +493,7 @@ class DesktopHookTests(unittest.TestCase):
             ):
                 output = HOOK.decide(request, path, outcomes.append)
             self.assertEqual(output["decision"], "block")
-            self.assertIn("не сохранилось", output["reason"])
+            self.assertIn("could not be saved", output["reason"].casefold())
             self.assertEqual(outcomes, ["recommend_stronger", "pending_save_error"])
 
     def test_new_task_does_not_inherit_old_recommendation(self):
@@ -507,15 +505,18 @@ class DesktopHookTests(unittest.TestCase):
             "recommended_model": "gpt-6.1-sol",
             "recommended_effort": "medium",
             "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
-            "official_guidance": "OpenAI рекомендует выбирать модель по задаче.",
-            "task_inference": "Для этой задачи нужен другой профиль.",
-            "reason": "Задача требует более сильного профиля.",
+            "official_guidance": "OpenAI recommends selecting a model for the task.",
+            "task_inference": "This task needs a different profile.",
+            "reason": "The task needs a stronger profile.",
         }
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "pending.json"
             with patch.object(HOOK, "triage", return_value=decision):
                 self.assertEqual(HOOK.decide(request, path)["decision"], "block")
-            next_request = {"task": "Собери темы писем", "active_profile": self.active}
+            next_request = {
+                "task": "Collect email subjects",
+                "active_profile": self.active,
+            }
             with patch.object(
                 HOOK, "triage", return_value={"decision": "unknown"}
             ) as triage:
@@ -545,15 +546,15 @@ class DesktopHookTests(unittest.TestCase):
             "recommended_model": "gpt-6.1-sol",
             "recommended_effort": "medium",
             "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
-            "official_guidance": "OpenAI рекомендует выбирать модель по задаче.",
-            "task_inference": "Для этой задачи нужен другой профиль.",
-            "reason": "Задача требует более сильного профиля.",
+            "official_guidance": "OpenAI recommends selecting a model for the task.",
+            "task_inference": "This task needs a different profile.",
+            "reason": "The task needs a stronger profile.",
         }
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "pending.json"
             with patch.object(HOOK, "triage", return_value=decision):
                 self.assertEqual(HOOK.decide(request, path)["decision"], "block")
-            next_request = {"task": "Новая задача", "active_profile": self.active}
+            next_request = {"task": "New task", "active_profile": self.active}
             with (
                 patch.object(Path, "unlink", side_effect=OSError("permission denied")),
                 patch.object(HOOK, "triage") as triage,

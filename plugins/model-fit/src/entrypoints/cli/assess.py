@@ -1,4 +1,4 @@
-"CLI for one isolated Model Fit profile assessment."
+"""CLI for one isolated Model Fit profile assessment."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 from model_fit.assessment.assess import assess
-from model_fit.assessment.failures.source_unavailable import SourceUnavailable
+from model_fit.assessment.exceptions.source_unavailable import SourceUnavailable
 from model_fit.assessment.validation import empty_decision, validated_request
 
 
@@ -39,7 +39,7 @@ def main() -> int:
     except SourceUnavailable as error:
         print(f"model-fit triage error: {type(error).__name__}", file=sys.stderr)
         result = empty_decision(
-            active, "unknown", "Недоступен обязательный источник оценки"
+            active, "unknown", "A required assessment source is unavailable"
         )
     except (
         OSError,
@@ -51,7 +51,7 @@ def main() -> int:
     ) as error:
         print(f"model-fit triage error: {type(error).__name__}", file=sys.stderr)
         result = empty_decision(
-            active, "unknown", "Триаж не вернул проверенное решение"
+            active, "unknown", "Triage did not return a validated decision"
         )
     print(json.dumps(result, ensure_ascii=False))
     return 0 if result["decision"] != "unknown" else 1

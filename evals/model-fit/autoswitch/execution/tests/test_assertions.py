@@ -11,7 +11,7 @@ class TaskResultTests(unittest.TestCase):
             (Path(__file__).resolve().parents[1] / "cases.json").read_text()
         )
         trace = next(
-            case for case in cases if case["id"] == "stale-writer-counterexample"
+            (case for case in cases if case["id"] == "stale-writer-counterexample")
         )
         self.context = {"vars": {"expected_outputs": trace["expected_outputs"]}}
 

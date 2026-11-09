@@ -1,7 +1,7 @@
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 from fixtures.validation import FIXTURES, validate_fixtures
 

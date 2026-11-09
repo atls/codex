@@ -1,22 +1,20 @@
 """Exact capability fallback and protected handoff regression checks."""
 
-import sys
-from pathlib import Path
-
-
 import io
 import json
 import os
 import select
 import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 SCRIPTS = Path(__file__).resolve().parents[1]
-import model_fit.entrypoints.hooks.configuration as DESKTOP_CONFIGURATION
 import model_fit.entrypoints.hooks.instructions as HOOKS_INSTRUCTIONS
+import model_fit.entrypoints.hooks.native_contract as DESKTOP_CONFIGURATION
 import model_fit.entrypoints.hooks.operations as HANDOFF_GUARDS
 import model_fit.entrypoints.hooks.operations as HANDOFF_PREPARATION
 import model_fit.entrypoints.hooks.operations as HANDOFF_RECOMMENDATION
@@ -108,7 +106,7 @@ class SidechatFallbackTests(unittest.TestCase):
     ):
         output = self.invoke(self.error())
         self.assertEqual(set(output), {"systemMessage"})
-        self.assertIn("пригодность не установлена", output["systemMessage"])
+        self.assertIn("suitability is unknown", output["systemMessage"].casefold())
         self.assertEqual(
             {
                 key: value
@@ -170,7 +168,9 @@ class SidechatFallbackTests(unittest.TestCase):
         for error in cases:
             with self.subTest(error=str(error)):
                 output = self.invoke(error)
-                self.assertIn("Продолжай исходную задачу", output["systemMessage"])
+                self.assertIn(
+                    "continue the original task", output["systemMessage"].casefold()
+                )
                 self.assertEqual(
                     HANDOFF_STATE.read_state(HANDOFF_STATE.state_path("thread"))[
                         "assessment_decision"
@@ -194,9 +194,7 @@ class SidechatFallbackTests(unittest.TestCase):
             "turn",
         )
 
-    def test_pending_and_unknown_attempt_states_remain_protected(
-        self,
-    ):
+    def test_pending_and_unknown_attempt_states_remain_protected(self):
         for phase in ["ready", "attempting", "queued"]:
             with self.subTest(phase=phase):
                 state = {
@@ -218,7 +216,9 @@ class SidechatFallbackTests(unittest.TestCase):
                     self.assertEqual(output["decision"], "block")
                     self.assertEqual(path.read_bytes(), before)
                 elif phase == "ready":
-                    self.assertIn("Продолжай исходную задачу", output["systemMessage"])
+                    self.assertIn(
+                        "continue the original task", output["systemMessage"].casefold()
+                    )
                     self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
                     continue
                 else:
@@ -251,8 +251,10 @@ class SidechatFallbackTests(unittest.TestCase):
 
             with self.subTest(phase=phase):
                 self.assertIn(
-                    "устарела",
-                    self.invoke(unavailable)["hookSpecificOutput"]["additionalContext"],
+                    "superseded",
+                    self.invoke(unavailable)["hookSpecificOutput"][
+                        "additionalContext"
+                    ].casefold(),
                 )
                 self.assertEqual(HANDOFF_STATE.read_state(path), state)
 
@@ -325,7 +327,8 @@ class SidechatFallbackTests(unittest.TestCase):
         ):
             CLI.assess_current()
         self.assertIn(
-            "Продолжай исходную задачу", json.loads(output.getvalue())["systemMessage"]
+            "continue the original task",
+            json.loads(output.getvalue())["systemMessage"].casefold(),
         )
 
     def test_preserved_profile_choice_context_is_not_a_fresh_fallback(self):
@@ -336,7 +339,8 @@ class SidechatFallbackTests(unittest.TestCase):
         }
         path = self.write(state)
         self.assertIn(
-            "Продолжай исходную задачу", self.invoke(self.error())["systemMessage"]
+            "continue the original task",
+            self.invoke(self.error())["systemMessage"].casefold(),
         )
         self.assertEqual(
             HANDOFF_STATE.read_state(path)["profile_context_turn_id"], "choice"
@@ -415,7 +419,7 @@ class SidechatFallbackTests(unittest.TestCase):
         self.stage_manual_block()
         output = self.invoke(self.error(), dict(self.event, turn_id="second"))
         self.assertNotEqual(output.get("decision"), "block")
-        self.assertIn("пригодность не установлена", output["systemMessage"])
+        self.assertIn("suitability is unknown", output["systemMessage"].casefold())
         self.assertEqual(
             HANDOFF_STATE.read_state(HANDOFF_STATE.state_path("thread"))["phase"],
             "passed",
@@ -483,13 +487,15 @@ class SidechatFallbackTests(unittest.TestCase):
         ]:
             evidence.write_text(value)
             self.assertIn(
-                "Продолжай исходную задачу", self.invoke(self.error())["systemMessage"]
+                "continue the original task",
+                self.invoke(self.error())["systemMessage"].casefold(),
             )
             self.assertEqual(evidence.read_text(), value)
         evidence.unlink()
         evidence.symlink_to(evidence.parent / "missing")
         self.assertIn(
-            "Продолжай исходную задачу", self.invoke(self.error())["systemMessage"]
+            "continue the original task",
+            self.invoke(self.error())["systemMessage"].casefold(),
         )
         self.assertTrue(evidence.is_symlink())
 
@@ -605,7 +611,8 @@ class SidechatFallbackTests(unittest.TestCase):
         ):
             CLI.assess_current()
         self.assertIn(
-            "Продолжай исходную задачу", json.loads(output.getvalue())["systemMessage"]
+            "continue the original task",
+            json.loads(output.getvalue())["systemMessage"].casefold(),
         )
         self.assertEqual(
             RECOMMENDATION_STORE.load_pending(

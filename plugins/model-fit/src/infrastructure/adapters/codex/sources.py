@@ -1,4 +1,4 @@
-"Load authoritative model guidance and the native Codex catalog."
+"""Load authoritative model guidance and the native Codex catalog."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import json
 import subprocess
 from urllib.request import urlopen
 
-from model_fit.assessment.failures.source_unavailable import SourceUnavailable
+from model_fit.assessment.exceptions.source_unavailable import SourceUnavailable
 from model_fit.infrastructure.adapters.codex.catalog import NativeCatalog
 
 MODEL_SELECTION_URL = "https://developers.openai.com/api/docs/guides/model-selection.md"

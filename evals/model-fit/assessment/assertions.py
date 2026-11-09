@@ -15,17 +15,21 @@ def get_assert(output, context):
         if not isinstance(items, list):
             raise ValueError("Native items must be an array")
         found = any(
-            isinstance(item, dict)
-            and item.get("type") == "user_message"
-            and isinstance(item.get("content"), list)
-            and any(
-                isinstance(entry, dict)
-                and entry.get("type") == "skill"
-                and entry.get("name") == "model-fit"
-                and entry.get("path") == expected
-                for entry in item["content"]
+            (
+                isinstance(item, dict)
+                and item.get("type") == "user_message"
+                and isinstance(item.get("content"), list)
+                and any(
+                    (
+                        isinstance(entry, dict)
+                        and entry.get("type") == "skill"
+                        and (entry.get("name") == "model-fit")
+                        and (entry.get("path") == expected)
+                        for entry in item["content"]
+                    )
+                )
+                for item in items
             )
-            for item in items
         )
     except (ValueError, TypeError, KeyError, AttributeError):
         return {"pass": False, "score": 0, "reason": "Native events unavailable"}

@@ -97,10 +97,10 @@ def guidance_package() -> tuple[dict, dict[str, bytes]]:
             files[name] = data
     files.update(source_files(package))
     files["LICENSE"] = (ROOT / "LICENSE").read_bytes()
-    rules = full["skills/model-fit/SKILL.md"].decode().split("\n## Ответ\n", 1)[0]
+    rules = full["skills/model-fit/SKILL.md"].decode().split("\n## Response\n", 1)[0]
     files["skills/model-fit/SKILL.md"] = (
         rules
-        + "\n## Ответ\n\nВерни результат явной оценки и его обоснование. Этот вариант не применяет рекомендацию к текущему чату.\n\n## Явная оценка через CLI\n\nДля явного вызова оценки используй установленный CLI с JSON-вводом по [README пакета](../../README.md). Отсутствующие данные профиля запроси у пользователя; не угадывай их. Оценка возвращает рекомендацию и сама не меняет модель.\n"
+        + "\n## Response\n\nReturn the explicit assessment and its explanation. This variant does not apply the recommendation to the current chat.\n\n## Explicit CLI assessment\n\nUse the installed CLI with JSON input as described in the [package README](../../README.md). Ask for missing profile values instead of guessing. Assessment returns a recommendation and does not change the model.\n"
     ).encode()
     files["skills/model-fit/agents/openai.yaml"] = full[
         "skills/model-fit/agents/openai.yaml"

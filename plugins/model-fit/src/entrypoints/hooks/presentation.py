@@ -1,10 +1,12 @@
+from model_fit.autoswitch.control_message import CONTROL_PROMPT, CONTROL_PROMPTS
 from model_fit.entrypoints.hooks import instructions, response
 
 
 class HookPresentation:
     queued_context = staticmethod(instructions.queued_context)
     pending_context = staticmethod(instructions.pending_context)
-    control_prompt = instructions.CONTROL_PROMPT
+    control_prompt = CONTROL_PROMPT
+    control_prompts = CONTROL_PROMPTS
     replay_context = instructions.REPLAY_CONTEXT
     handoff_cancelled_context = instructions.HANDOFF_CANCELLED_CONTEXT
     replay_stop_reason = instructions.REPLAY_STOP_REASON

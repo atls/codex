@@ -1,4 +1,4 @@
-"File-backed Model Fit handoff state and per-thread lock ownership."
+"""File-backed Model Fit handoff state and per-thread lock ownership."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def locked_state(
     turn_id: str | None = None,
 ) -> Iterator[Path]:
     path = state_path(thread_id)
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=448)
     descriptor = os.open(
         path.with_suffix(".lock"), os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 384
     )

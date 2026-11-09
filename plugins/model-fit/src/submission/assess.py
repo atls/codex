@@ -1,38 +1,43 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from contextlib import AbstractContextManager
 from typing import Any
 
 from model_fit.autoswitch import transitions
-from model_fit.autoswitch.failures.superseded import AssessmentSuperseded
-from model_fit.autoswitch.failures.unavailable import SubmissionUnavailable
-from model_fit.autoswitch.ports.conversation import Conversation
-from model_fit.autoswitch.ports.inputs import Inputs
-from model_fit.autoswitch.ports.presentation import Presentation
-from model_fit.autoswitch.ports.recommendations import Recommendations
-from model_fit.autoswitch.ports.store import Store
-from model_fit.autoswitch.prepare import prepare
+from model_fit.autoswitch.exceptions.superseded import AssessmentSuperseded
+from model_fit.autoswitch.exceptions.unavailable import SubmissionUnavailable
+from model_fit.autoswitch.handoff_preparation import prepare
+from model_fit.autoswitch.interfaces.assessment_runner import AssessmentRunner
+from model_fit.autoswitch.interfaces.audit import AuditWriter
+from model_fit.autoswitch.interfaces.context_reader import AssessmentContextReader
+from model_fit.autoswitch.interfaces.conversation_factory import (
+    NativeConversationFactory,
+)
+from model_fit.autoswitch.interfaces.inputs import NativeInputReader
+from model_fit.autoswitch.interfaces.presentation import HookOutputRenderer
+from model_fit.autoswitch.interfaces.prompt import SubmissionInput
+from model_fit.autoswitch.interfaces.recommendations import RecommendationStore
+from model_fit.autoswitch.interfaces.store import TransferStateStore
 from model_fit.autoswitch.recommendation import blocking_recommendation
-from model_fit.autoswitch.requests.prompt import Prompt
+from model_fit.autoswitch.types.clock import Clock
 
 
 def assess_submitted(
-    decode: Callable[[dict[str, Any], str], Prompt],
+    decode: Callable[[dict[str, Any], str], SubmissionInput],
     *,
-    assessor: Callable[[dict[str, Any]], dict[str, Any]],
+    assessor: AssessmentRunner,
     assessment_failure: tuple[type[Exception], ...],
-    audit: Callable[..., Any],
-    recommendations: Recommendations,
+    audit: AuditWriter,
+    recommendations: RecommendationStore,
     caller_thread: str | None,
-    clock: Callable[[], float],
+    clock: Clock,
     context_failure: type[Exception],
     context_reason: Callable[[Exception, str], str | None],
-    inputs: Inputs,
-    conversation: Callable[[object], AbstractContextManager[Conversation]],
-    presentation: Presentation,
-    read_context: Callable[[Prompt], dict[str, Any]],
-    store: Store,
+    inputs: NativeInputReader,
+    conversation: NativeConversationFactory,
+    presentation: HookOutputRenderer,
+    read_context: AssessmentContextReader,
+    store: TransferStateStore,
 ) -> dict[str, Any]:
     try:
         thread_id = caller_thread
@@ -55,11 +60,11 @@ def assess_submitted(
                 if state.get("assessment_decision") == "keep":
                     return presentation.assessed()
                 return presentation.warning(
-                    "Model Fit: новой проверки не выполнялось; пригодность не установлена."
+                    "Model Fit: no new assessment was performed; suitability is unknown."
                 )
             if pending["status"] == "running":
                 return presentation.warning(
-                    "Model Fit: проверка уже выполняется; дождись результата первого вызова."
+                    "Model Fit: assessment is already running; wait for the first invocation's result."
                 )
             pending = transitions.start_assessment(slot)
         event = decode(pending, "")
@@ -109,7 +114,7 @@ def assess_submitted(
                     {"hook_event": "assessment"},
                 )
                 return presentation.unknown(
-                    "Нативный контекст чата недоступен для оценки."
+                    "Native chat context is unavailable for assessment."
                 )
             else:
                 with conversation(event.working_directory) as app:
@@ -182,7 +187,7 @@ def assess_submitted(
                                 thread_id, event.turn_id, "auto_native_profile_override"
                             )
                             return presentation.context(
-                                "Model Fit: профиль был изменён нативным владельцем после постановки запроса. Текущий профиль сохранён; его пригодность здесь не переоценивалась. Выполни текущий исходный запрос со всеми текущими вложениями и аннотациями."
+                                "Model Fit: the native owner changed the profile after queueing. The current profile is retained; its suitability was not reassessed here. Perform the current original request with all current attachments and annotations."
                             )
                         if matches and unchanged:
                             transitions.bind_replay(slot, current, event.turn_id)
@@ -293,7 +298,7 @@ def assess_submitted(
                         },
                     )
                     return presentation.context(
-                        "Model Fit: нативный владелец изменил профиль во время оценки. Прежняя рекомендация отменена, текущий выбор сохранён; его пригодность не установлена. Выполни исходный запрос с текущими вложениями."
+                        "Model Fit: the native owner changed the profile during assessment. The previous recommendation is cancelled; the current choice is retained and its suitability is unknown. Perform the original request with its current attachments."
                     )
             with store.transaction(
                 thread_id, operation="assessment", turn_id=event.turn_id
@@ -359,7 +364,7 @@ def assess_submitted(
                         },
                     )
                     return presentation.unknown(
-                        "Оценщик недоступен (" + type(error).__name__ + ")."
+                        "The evaluator is unavailable (" + type(error).__name__ + ")."
                     )
             try:
                 with store.transaction(
@@ -386,5 +391,5 @@ def assess_submitted(
             },
         )
         return presentation.context(
-            "Предыдущая оценка Model Fit устарела и не применена. Используй инструкцию Model Fit для последнего принятого ввода; не повторяй перенос по результату отменённой оценки."
+            "The previous Model Fit assessment was superseded and not applied. Use the instruction for the latest accepted input; do not repeat a handoff based on the cancelled assessment."
         )

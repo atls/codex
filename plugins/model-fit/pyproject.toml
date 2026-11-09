@@ -13,7 +13,7 @@ dependencies = []
 model-fit = "model_fit.entrypoints.cli.assess:main"
 
 [tool.setuptools]
-packages = ["model_fit", "model_fit.answer", "model_fit.assessment", "model_fit.assessment.contracts", "model_fit.assessment.failures", "model_fit.assessment.ports", "model_fit.autoswitch", "model_fit.autoswitch.contracts", "model_fit.autoswitch.failures", "model_fit.autoswitch.ports", "model_fit.autoswitch.requests", "model_fit.entrypoints", "model_fit.entrypoints.cli", "model_fit.entrypoints.hooks", "model_fit.infrastructure", "model_fit.infrastructure.adapters", "model_fit.infrastructure.adapters.codex", "model_fit.infrastructure.adapters.codex.transport", "model_fit.infrastructure.adapters.codex.transport.assessment", "model_fit.infrastructure.adapters.filesystem", "model_fit.submission"]
+packages = ["model_fit", "model_fit.answer", "model_fit.assessment", "model_fit.assessment.exceptions", "model_fit.assessment.interfaces", "model_fit.assessment.types", "model_fit.autoswitch", "model_fit.autoswitch.exceptions", "model_fit.autoswitch.interfaces", "model_fit.autoswitch.types", "model_fit.entrypoints", "model_fit.entrypoints.cli", "model_fit.entrypoints.hooks", "model_fit.infrastructure", "model_fit.infrastructure.adapters", "model_fit.infrastructure.adapters.codex", "model_fit.infrastructure.adapters.codex.transport", "model_fit.infrastructure.adapters.codex.transport.assessment", "model_fit.infrastructure.adapters.filesystem", "model_fit.submission"]
 package-dir = { model_fit = "src" }
 
 [tool.setuptools.package-data]

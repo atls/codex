@@ -1,79 +1,53 @@
-# Код Model Fit
+# Model Fit code map
 
-`pyproject.toml` связывает импорт `model_fit` непосредственно с `src/`.
-Код сгруппирован по выполняемым сценариям. Внешние операции находятся в
-`infrastructure/adapters`, разбор и связывание входов — в `entrypoints`.
+`pyproject.toml` maps `model_fit` directly to `src/`. Scenario names describe the work performed; native and filesystem implementations live under `infrastructure/adapters` and input composition under `entrypoints`.
 
-| Путь в `src/` | Поведение |
+| Responsibility | Implementation |
 | --- | --- |
-| `assessment/assess.py` | Явный выбор пользователя, источники, prompt, вызов оценщика и проверка решения |
-| `assessment/validation.py` | Проверка запроса, активного профиля и решения |
-| `assessment/contracts/` и `assessment/ports/` | Типы запроса и решения, контракты источников и оценщика |
-| `submission/accept.py` | Регистрация нового native запроса |
-| `submission/assess.py` | Чтение принятого ввода и выполнение его оценки |
-| `submission/reassess.py` | Оценка изменившихся требований к текущему вводу |
-| `submission/context.py` | Ограниченный контекст ближайшей работы |
-| `autoswitch/prepare.py` и `autoswitch/apply.py` | Подготовка переноса и обработка решения |
-| `autoswitch/enqueue.py` | Одна native постановка в очередь с проверкой квитанции |
-| `autoswitch/guards.py` и `autoswitch/replay.py` | Допуск инструмента и продолжения |
-| `autoswitch/transitions.py` | Единственная реализация сохраняемых переходов переноса |
-| `autoswitch/requests/`, `contracts/`, `ports/` | Входы сценариев и нужные им контракты; native event остаётся opaque |
-| `answer/check.py` | Проверка ответа связанного продолжения |
-| `infrastructure/adapters/codex/` | Каталог, официальные источники, native history/input, RPC, оценка и временная auth-копия |
-| `infrastructure/adapters/filesystem/` | Файлы состояния и рекомендаций, flock, атомарная запись и audit |
-| `entrypoints/cli/assess.py` | JSON stdin/stdout CLI оценки и exit status |
-| `entrypoints/hooks/` | Native hook input/output, Desktop CLI и композиция сценариев |
+| Assess a task and profile | `assessment/assess.py`, `prompt.py`, `validation.py` |
+| Assessment input/output interfaces | `assessment/interfaces/` |
+| Typed assessment stop conditions | `assessment/exceptions/` |
+| Register, assess or reassess accepted input | `submission/accept.py`, `assess.py`, `reassess.py` |
+| Read relevant prior work | `submission/context.py` |
+| Prepare profile handoff | `autoswitch/handoff_preparation.py`, `assessment_outcome.py` |
+| Admit tools | `autoswitch/tool_admission.py`, `tool_continuation.py` |
+| Authorize a prepared transfer | `autoswitch/transfer_authorization.py` |
+| Retain prompt-hook recommendations | `autoswitch/prompt_recommendation.py` |
+| Enqueue the accepted native input once | `autoswitch/enqueue.py`, `queue_expiry.py` |
+| Own durable handoff transitions | `autoswitch/transitions.py` |
+| Data and callback interfaces | `autoswitch/interfaces/` |
+| Typed submission stop conditions | `autoswitch/exceptions/` |
+| Check a bound replay answer | `answer/check.py`, `limits.py`, `relevance.schema.json` |
+| Native Codex profile/history/input and assessment IO | `infrastructure/adapters/codex/` |
+| Locked atomic state, recommendations and audit | `infrastructure/adapters/filesystem/` |
+| Explicit assessment CLI | `entrypoints/cli/assess.py` |
+| Hook and technical CLI composition | `entrypoints/hooks/` |
 
-Сценарии получают только используемые зависимости явными аргументами.
-Общего Dependencies и пересылающего вызовы Lifecycle нет. Исходный native event
-передаётся context reader без потери неизвестных полей. Model Fit не создаёт
-собственную модель медиа и не заменяет механизм сессий и очередей Codex.
+Interfaces describe data or callable contracts, not domain entities. `TypedDict`, dataclass and Protocol are Python representations of those established roles. The scenarios receive explicit dependencies; there is no global Dependencies container or forwarding Lifecycle class. The original native event reaches the context reader without discarding unknown fields. Media remains opaque native input.
 
-## Переходы переноса
+## State ownership
 
-`autoswitch/transitions.py` владеет изменениями состояния одного фактического
-исполнителя Codex; parent session ID сохраняется как происхождение.
-Файловый адаптер обеспечивает блокировку и атомарную запись. Generation
-сохраняется после удаления pending; устаревшая оценка не меняет новое состояние.
+`autoswitch/transitions.py` owns changes for one actual Codex executor; parent session ID is provenance. The filesystem implementation owns locking and atomic persistence. Assessment generation survives removal of pending state. A superseded assessment cannot modify newer input.
 
-| Состояние | Значение и завершение |
+| State | Meaning |
 | --- | --- |
-| отсутствует | Для запроса ещё нет решения или прежний перенос завершён и освобождён |
-| submitted | Ожидает оценки принятого native input; повторный ввод меняет generation, прежняя оценка не может его заменить |
-| passed | Текущий ход допущен; keep и неизвестная пригодность различаются assessment_decision |
-| ready | Подготовлен перенос; технический ход может сменить профиль и вызвать queue |
-| attempting | Native queue вызвана; до подтверждения исхода повтор запрещён |
-| rejected | Получен подтверждённый отказ; новый запрос может начать новую оценку |
-| queued | Получена квитанция; точный replay привязывается после проверки входа и профиля |
+| absent | No decision exists, or a completed handoff was released |
+| submitted | Accepted native input awaits assessment; new input changes generation |
+| passed | The current turn is admitted; keep and unknown remain distinct |
+| ready | Prepared handoff permits the technical profile switch and queue command |
+| attempting | Native queue was called; repeating it is forbidden until its outcome is established |
+| rejected | A confirmed queue rejection was received; a new request can start a new assessment |
+| queued | A receipt exists; replay binds only after checking native input and profile |
 
+Submission registers metadata and digests, then assessment reads the complete native userMessage. The shared assessor returns a validated decision. Handoff preparation processes that decision. Queue execution records attempting before the external call and verifies the receipt. The continuation binds by native client identity, accepted input and profile; edited queued input is reassessed, and native profile choice is preserved.
 
-`submission/accept.py` регистрирует служебные поля и digest и выдаёт команду
-`assess`. `submission/assess.py` получает полный принятый userMessage через native
-API, учитывает контекст и передаёт native input общему оценщику.
-`autoswitch/prepare.py` и `apply.py` обрабатывают keep, unknown и рекомендацию.
-Технический перенос применяет профиль через native Codex, затем `enqueue.py`
-фиксирует attempting до внешнего вызова и проверяет квитанцию.
+Answer checking is a bounded relevance check, not a quality grade. Unknown queue outcomes are not automatically released. Codex owns its profile and queue; audit is not a recovery source of truth.
 
-Продолжение связывается по native client identity, входу и профилю. Изменённый
-в очереди ввод оценивается заново, внешний выбор профиля сохраняется.
-`answer/check.py` выполняет ограниченную проверку релевантности bound replay;
-это не оценка качества решения. Неизвестный attempting не освобождается
-автоматически. Native Codex остаётся владельцем профиля и очереди;
-audit не используется как источник восстановления.
+## Entry points and errors
 
-## Запуск и проверка
+Explicit assessment: `model-fit` or `python -m model_fit.entrypoints.cli.assess`.
+Automatic CLI: `python -m model_fit.entrypoints.hooks.cli` with `hook`, `lifecycle`, `assess`, `reassess`, `prompt` and `queue`. Internal Python module paths are not another public API.
 
-Явная оценка: `model-fit` или `python -m model_fit.entrypoints.cli.assess`.
-Автоматический CLI: `python -m model_fit.entrypoints.hooks.cli`
-с командами `hook`, `lifecycle`, `assess`, `reassess`, `prompt`, `queue`.
-Внутренние Python-пути не образуют дополнительный публичный API.
+Invalid input exits 2 without a decision. Unavailable assessment returns unknown and exits 1. Unknown does not establish suitability. Typed exceptions preserve distinct causes and caller handling; a technical relocation does not rename serialized diagnostic codes. See [Desktop hook](desktop-hook.md) for native admission and revocation.
 
-Неверный вход даёт status 2 без решения; невозможность оценки — unknown и status 1.
-Unknown не подтверждает пригодность профиля. Временные ресурсы оценки закрываются
-при завершении и ошибке. Самостоятельный wheel получает явный skill_directory
-либо установленный skill из CODEX_HOME. Native допуск и отзыв описаны в
-[Desktop hook](desktop-hook.md).
-
-Публичные синтетические проверки находятся в `evals/model-fit` по сценариям;
-адаптер Promptfoo — в его `infrastructure/adapters/promptfoo`.
-Они не входят в установочные ZIP. Сборщик не читает eval fixtures.
+Public synthetic evaluations are organized by scenario under `evals/model-fit`; their Promptfoo implementation is in `infrastructure/adapters/promptfoo`. They are not installed with either plugin. Fixture validation runs independently of package construction.

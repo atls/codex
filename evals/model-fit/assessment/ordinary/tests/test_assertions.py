@@ -25,7 +25,7 @@ class OrdinaryDialogueTests(unittest.TestCase):
             "gpt-6-luna",
             "LUNA",
             "reasoning_effort",
-            "смена профиля",
+            "profile change",
         ]:
             self.assertFalse(get_assert(answer, self.context([]))["pass"])
 

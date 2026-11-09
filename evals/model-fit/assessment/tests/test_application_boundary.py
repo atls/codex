@@ -32,26 +32,13 @@ class ApplicationBoundaryTests(unittest.TestCase):
                         else []
                     )
                     self.assertFalse(
-                        any(name and name.startswith(forbidden) for name in names),
+                        any((name and name.startswith(forbidden) for name in names)),
                         str(path),
                     )
         self.assertTrue(checked)
 
     def test_assessment_runs_with_ports_without_loading_external_adapters(self):
-        program = """
-import sys
-from model_fit.assessment.assess import assess
-from model_fit.assessment.validation import empty_decision
-profile = {"model":"fixture", "effort":"low", "speed":None}
-request = {"task":"bounded work", "active_profile":profile}
-class FixtureCatalog:
-    def supported(self, profile):
-        return True
-models = FixtureCatalog()
-result = assess(request, "fixture", "low", 1, source_reader=lambda:("source",models), evaluator=lambda *args:empty_decision(profile,"keep","suitable"))
-assert result["decision"] == "keep"
-assert not any(name.startswith(("model_fit.infrastructure", "model_fit.entrypoints")) for name in sys.modules)
-"""
+        program = '\nimport sys\nfrom model_fit.assessment.assess import assess\nfrom model_fit.assessment.validation import empty_decision\nprofile = {"model":"fixture", "effort":"low", "speed":None}\nrequest = {"task":"bounded work", "active_profile":profile}\nclass FixtureCatalog:\n    def supported(self, profile):\n        return True\nmodels = FixtureCatalog()\nresult = assess(request, "fixture", "low", 1, source_reader=lambda:("source",models), evaluator=lambda *args:empty_decision(profile,"keep","suitable"))\nassert result["decision"] == "keep"\nassert not any(name.startswith(("model_fit.infrastructure", "model_fit.entrypoints")) for name in sys.modules)\n'
         result = subprocess.run(
             [sys.executable, "-I", "-c", program], capture_output=True, text=True
         )
@@ -108,7 +95,7 @@ assert not any(name.startswith(("model_fit.infrastructure", "model_fit.entrypoin
             )
 
     def test_application_does_not_unpack_the_opaque_native_source(self):
-        source = (Path(__file__).resolve().parents[4] / "plugins/model-fit") / "src"
+        source = Path(__file__).resolve().parents[4] / "plugins/model-fit" / "src"
         for path in (
             path
             for folder in ("assessment", "submission", "autoswitch", "answer")

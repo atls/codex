@@ -1,4 +1,4 @@
-"Desktop hooks and queued profile handoff."
+"""Desktop hooks and queued profile handoff."""
 
 import argparse
 import json

@@ -1,23 +1,23 @@
 [
   {
     "id": "backend-p2-answer-about-prior-tasks",
-    "request": "давай начинать разработку бэкенда (п2)",
-    "task_context": "P2 — серверный приём заявок с формы аудита: проверить Reg.ru/Symfony, согласовать контракт и реализовать обработчик",
-    "answer": "Готово. #138 — общий UI и устранение регрессий закрыт после closing Check-in. #126 — Open Graph и SEO главной обновлён и закрыт. Аналитику #127/#128 сделаем после production-релиза.",
+    "request": "Let's start backend development (P2)",
+    "task_context": "P2 is server-side intake for the audit form: verify Reg.ru/Symfony, agree the contract and implement the handler",
+    "answer": "Done. #138, shared UI and regression fixes, was closed after its closing Check-in. #126, homepage Open Graph and SEO, was updated and closed. Analytics #127/#128 will follow the production release.",
     "expected": "unrelated"
   },
   {
     "id": "backend-p2-specific-blocker",
-    "request": "давай начинать разработку бэкенда (п2)",
-    "task_context": "P2 — серверный приём заявок с формы аудита: проверить Reg.ru/Symfony, согласовать контракт и реализовать обработчик",
-    "answer": "Я начал #124: клиентская форма готова, но в web нет серверного обработчика, а stage статичен. Для приёма заявок нужен доступ к Reg.ru/Symfony-хостингу и подтверждённый способ установки PHP-обработчика. До этого не буду добавлять фиктивный endpoint.",
+    "request": "Let's start backend development (P2)",
+    "task_context": "P2 is server-side intake for the audit form: verify Reg.ru/Symfony, agree the contract and implement the handler",
+    "answer": "I started #124: the client form is ready, but the web project has no server handler and staging is static. Receiving submissions requires Reg.ru/Symfony hosting access and a verified PHP handler installation path. Until then I will not add a fake endpoint.",
     "expected": "relevant"
   },
   {
     "id": "visual-fix-completed",
-    "request": "верни оранжевый надзаголовок над блоком Где теряется эффект",
-    "task_context": "Точечная правка оформления секции главной",
-    "answer": "Вернул оранжевый надзаголовок над секцией «Где теряется эффект» и проверил главную в браузере.",
+    "request": "Restore the orange eyebrow above the Where impact is lost section",
+    "task_context": "A small styling correction to one homepage section",
+    "answer": "Restored the orange eyebrow above the Where impact is lost section and checked the homepage in the browser.",
     "expected": "relevant"
   }
 ]

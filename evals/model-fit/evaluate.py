@@ -33,14 +33,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "suite",
-        choices=[
-            "native",
-            "assessment",
-            "ordinary",
-            "calibration",
-            "regrade",
-            "tasks",
-        ],
+        choices=["native", "assessment", "ordinary", "calibration", "regrade", "tasks"],
     )
     parser.add_argument("--validate", action="store_true")
     args, extra = parser.parse_known_args()

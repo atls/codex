@@ -1,25 +1,23 @@
 """Contract checks for the opt-in Desktop queued handoff."""
 
-import sys
-from pathlib import Path
-
-
 import copy
 import io
 import json
 import os
 import select
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 ROOT = Path(__file__).resolve().parents[4]
 SCRIPTS = ROOT / "plugins/model-fit/src"
-import model_fit.entrypoints.hooks.configuration as DESKTOP_CONFIGURATION
 import model_fit.entrypoints.hooks.instructions as HOOKS_INSTRUCTIONS
+import model_fit.entrypoints.hooks.native_contract as DESKTOP_CONFIGURATION
 import model_fit.entrypoints.hooks.operations as HANDOFF_GUARDS
 import model_fit.entrypoints.hooks.operations as HANDOFF_PREPARATION
 import model_fit.entrypoints.hooks.operations as HANDOFF_QUEUE
@@ -33,7 +31,7 @@ from model_fit.entrypoints.hooks import lifecycle as CLI
 class DesktopAutoSwitchTests(unittest.TestCase):
     thread_id = "test-thread"
     turn_id = "test-turn"
-    prompt = "Спроектируй поисковик по снимкам"
+    prompt = "Design a snapshot search engine"
     active = {"model": "gpt-6-luna", "effort": "low", "speed": None}
     event = {
         "hook_event_name": "UserPromptSubmit",
@@ -52,19 +50,16 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         "recommended_effort": "medium",
         "recommended_speed": None,
         "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
-        "official_guidance": "Выбирайте профиль по задаче.",
-        "task_inference": "Нужно проектирование.",
-        "reason": "Нужна глубина.",
+        "official_guidance": "Select the profile for the task.",
+        "task_inference": "Design is needed.",
+        "reason": "Deeper reasoning is needed.",
     }
 
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.environment = patch.dict(
             os.environ,
-            {
-                "CODEX_HOME": self.temporary.name,
-                "CODEX_THREAD_ID": self.thread_id,
-            },
+            {"CODEX_HOME": self.temporary.name, "CODEX_THREAD_ID": self.thread_id},
         )
         self.environment.start()
 
@@ -182,7 +177,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         )
         self.assertNotIn("hookSpecificOutput", output)
         self.assertIn("systemMessage", output)
-        self.assertIn("Продолжай исходную задачу", output["systemMessage"])
+        self.assertIn("continue the original task", output["systemMessage"].casefold())
         self.assertIsNone(
             HANDOFF_GUARDS.guard_tool(
                 {**self.event, "tool_name": "Bash", "tool_input": {"command": "pwd"}}
@@ -208,9 +203,11 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             Path(self.temporary.name) / ".tmp/model-fit-hook-audit/test-thread.jsonl"
         ).read_text()
         row = next(
-            json.loads(line)
-            for line in raw.splitlines()
-            if json.loads(line)["outcome"] == "auto_assessed"
+            (
+                json.loads(line)
+                for line in raw.splitlines()
+                if json.loads(line)["outcome"] == "auto_assessed"
+            )
         )
         self.assertEqual(row["details"]["triage_decision"], "keep")
         self.assertEqual(row["details"]["active_model"], "gpt-6-luna")
@@ -274,10 +271,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 {
                     "item": {
                         "type": "userMessage",
-                        "content": content
-                        or [
-                            {"type": "text", "text": self.prompt},
-                        ],
+                        "content": content or [{"type": "text", "text": self.prompt}],
                     }
                 }
             ],
@@ -342,7 +336,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             queued_input_digest=HANDOFF_INPUT.input_digest(queued),
         )
         HANDOFF_STATE.write_state(path, state)
-        return content, queued
+        return (content, queued)
 
     def test_recommendation_stages_exact_prompt_for_control_only_turn(self):
         request = {"task": self.prompt, "active_profile": self.active}
@@ -363,12 +357,12 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         self.assertIn("queue --thread-id current --turn-id source", instruction)
         self.assertNotIn(self.thread_id, instruction)
         self.assertNotIn(self.turn_id, instruction)
-        self.assertIn("не выполняй исходную задачу", instruction)
+        self.assertIn("do not perform the original task", instruction.casefold())
         state = HANDOFF_STATE.read_state(HANDOFF_STATE.state_path(self.thread_id))
         self.assertEqual(state["prompt"], self.prompt)
         self.assertEqual(state["source_turn_id"], self.turn_id)
         self.assertEqual(
-            HANDOFF_STATE.state_path(self.thread_id).stat().st_mode & 0o777, 0o600
+            HANDOFF_STATE.state_path(self.thread_id).stat().st_mode & 511, 384
         )
 
     def test_keep_never_stages_or_switches(self):
@@ -399,7 +393,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             ),
         ):
             self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(self.event))
-        steer = dict(self.event, prompt="Также сократи ссылку до Подробнее")
+        steer = dict(self.event, prompt="Also shorten the link label to Learn more")
         with (
             patch.object(HANDOFF_PREPARATION, "session_input") as session,
             patch.object(
@@ -485,14 +479,14 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         with patch.object(HANDOFF_PREPARATION, "triage") as triage:
             self.assertIsNone(
                 HANDOFF_PREPARATION.prepare_handoff(
-                    dict(self.event, prompt="Уточнение")
+                    dict(self.event, prompt="Clarification")
                 )
             )
             triage.assert_not_called()
 
     def test_steer_in_ready_source_turn_preserves_tool_guard(self):
         path = self.stage()
-        steered = dict(self.event, prompt="Покажи бэклог")
+        steered = dict(self.event, prompt="Show the backlog")
         self.assertIn(
             "additionalContext", self.prepare_ready(steered)["hookSpecificOutput"]
         )
@@ -574,7 +568,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         self.stage()
         correction = {
             "type": "text",
-            "text": "Сохрани связь с исходной задачей",
+            "text": "Preserve the connection to the original task",
             "text_elements": [],
         }
         source = {"type": "text", "text": self.prompt, "text_elements": []}
@@ -608,7 +602,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         state = HANDOFF_STATE.read_state(path)
         state["created_at"] = 0
         HANDOFF_STATE.write_state(path, state)
-        event = dict(self.event, turn_id="next-turn", prompt="И сохрани ссылку")
+        event = dict(self.event, turn_id="next-turn", prompt="And retain the link")
         result = self.prepare_ready(event)
         self.assertIn(
             HOOKS_INSTRUCTIONS.queue_command("current", "source"),
@@ -681,20 +675,13 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         ]
         correction = {
             "type": "text",
-            "text": "Добавь correction: true",
+            "text": "Add correction: true",
             "text_elements": [],
         }
         self.prepare_ready(
             dict(self.event, turn_id="correction-turn", prompt=correction["text"])
         )
-        queued = [
-            source[0],
-            source[1],
-            dict(
-                correction,
-                text=correction["text"],
-            ),
-        ]
+        queued = [source[0], source[1], dict(correction, text=correction["text"])]
         with patch.object(HANDOFF_QUEUE, "AppServerReader") as reader:
             app = reader.return_value.__enter__.return_value
             app.call.side_effect = [
@@ -704,7 +691,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 {"queuedSubmission": {"id": "queued-1", "input": queued}},
             ]
             HANDOFF_QUEUE.enqueue_handoff(self.thread_id, self.turn_id)
-        native_prompt = self.prompt + "Добавь correction: true"
+        native_prompt = self.prompt + "Add correction: true"
         with (
             patch.object(
                 HANDOFF_PREPARATION,
@@ -714,7 +701,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                         "model": "gpt-6-sol",
                         "effort": "medium",
                         "speed": None,
-                    },
+                    }
                 },
             ),
             patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader,
@@ -804,10 +791,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         with patch.object(HANDOFF_QUEUE, "AppServerReader") as reader:
             self.assertEqual(
                 HANDOFF_QUEUE.enqueue_handoff(self.thread_id, self.turn_id),
-                {
-                    "queued_submission_id": "queued-1",
-                    "status": "already_queued",
-                },
+                {"queued_submission_id": "queued-1", "status": "already_queued"},
             )
             reader.assert_not_called()
 
@@ -924,7 +908,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
     def test_missing_or_mismatched_source_never_queues_partial_input(self):
         for response in [
             {"data": [], "nextCursor": None},
-            self.source_response([{"type": "text", "text": "Другое поручение"}]),
+            self.source_response([{"type": "text", "text": "Another instruction"}]),
         ]:
             with self.subTest(response=response):
                 path = self.stage()
@@ -1017,7 +1001,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                         "model": "gpt-6-sol",
                         "effort": "medium",
                         "speed": None,
-                    },
+                    }
                 },
             ),
             patch.object(HANDOFF_PREPARATION, "triage") as triage,
@@ -1061,10 +1045,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             )
             self.assertEqual(
                 [c.args[0] for c in app.call.call_args_list],
-                [
-                    "thread/queue/list",
-                    "thread/queue/delete",
-                ],
+                ["thread/queue/list", "thread/queue/delete"],
             )
         self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
 
@@ -1172,10 +1153,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             patch.object(
                 HANDOFF_PREPARATION,
                 "session_input",
-                return_value={
-                    "task": self.prompt,
-                    "active_profile": self.active,
-                },
+                return_value={"task": self.prompt, "active_profile": self.active},
             ),
             patch.object(
                 HANDOFF_PREPARATION, "triage", return_value={"decision": "keep"}
@@ -1217,7 +1195,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                     **self.event,
                     "tool_name": "Bash",
                     "tool_input": {
-                        "command": HOOKS_INSTRUCTIONS.queue_command(*identifiers),
+                        "command": HOOKS_INSTRUCTIONS.queue_command(*identifiers)
                     },
                 }
                 with patch.object(HANDOFF_QUEUE.time, "time", return_value=4000):
@@ -1291,7 +1269,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             "tool_input": {
                 "command": HOOKS_INSTRUCTIONS.queue_command(
                     self.thread_id, self.turn_id
-                ),
+                )
             },
         }
         with patch.object(HANDOFF_QUEUE.time, "time", return_value=4000):
@@ -1326,7 +1304,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                     "tool_input": {
                         "command": HOOKS_INSTRUCTIONS.queue_command(
                             self.thread_id, self.turn_id
-                        ),
+                        )
                     },
                 }
             )
@@ -1423,7 +1401,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 event = dict(
                     self.event,
                     turn_id=turn_id,
-                    prompt="Не переключай модель, продолжай на текущей и доводи задачу",
+                    prompt="Do not switch models; continue on the current profile and finish the task",
                 )
                 request = {"task": event["prompt"], "active_profile": self.active}
                 with (
@@ -1467,7 +1445,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
     def test_unknown_reassessment_releases_unqueued_handoff_and_allows_task(self):
         path = self.stage()
         event = dict(
-            self.event, turn_id="new-user-turn", prompt="Продолжи исходную задачу"
+            self.event, turn_id="new-user-turn", prompt="Continue the original task"
         )
         request = {"task": event["prompt"], "active_profile": self.active}
         with (
@@ -1477,7 +1455,6 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             ) as triage,
         ):
             output = HANDOFF_PREPARATION.prepare_handoff(event)
-
         triage.assert_called_once()
         self.assertNotEqual(output.get("decision"), "block")
         self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
@@ -1494,17 +1471,16 @@ class DesktopAutoSwitchTests(unittest.TestCase):
 
     def test_profile_choice_survives_input_and_native_history_failures(self):
         path = HANDOFF_STATE.state_path(self.thread_id)
-        choice = "Не переключай модель, продолжай на текущей"
+        choice = "Do not switch models; continue on the current profile"
         prior = {
             "phase": "passed",
             "source_turn_id": "choice-turn",
             "profile_context_turn_id": "choice-turn",
         }
         event = dict(
-            self.event, turn_id="follow-up-turn", prompt="Продолжай ту же задачу"
+            self.event, turn_id="follow-up-turn", prompt="Continue the same task"
         )
         request = {"task": event["prompt"], "active_profile": self.active}
-
         path.parent.mkdir(parents=True, exist_ok=True)
         HANDOFF_STATE.write_state(path, prior)
         with (
@@ -1517,7 +1493,6 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         ):
             HANDOFF_PREPARATION.prepare_handoff(event)
         self.assertEqual(HANDOFF_STATE.read_state(path), prior)
-
         with (
             patch.object(HANDOFF_PREPARATION, "session_input", return_value=request),
             patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader,
@@ -1528,7 +1503,6 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             )
             HANDOFF_PREPARATION.prepare_handoff(event)
         self.assertEqual(HANDOFF_STATE.read_state(path), prior)
-
         with (
             patch.object(HANDOFF_PREPARATION, "session_input", return_value=request),
             patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader,
@@ -1537,11 +1511,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             ) as triage,
         ):
             reader.return_value.__enter__.return_value.call.return_value = (
-                self.source_response(
-                    [
-                        {"type": "text", "text": choice},
-                    ]
-                )
+                self.source_response([{"type": "text", "text": choice}])
             )
             HANDOFF_PREPARATION.prepare_handoff(event)
         self.assertIn(choice, triage.call_args.args[0]["context"])
@@ -1557,7 +1527,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
 
     def test_cancelled_handoff_keeps_native_user_context_beyond_recent_turns(self):
         path = self.stage()
-        choice = "Не переключай модель, продолжай на текущей"
+        choice = "Do not switch models; continue on the current profile"
         choice_turn = "user-choice-turn"
         event = dict(self.event, turn_id=choice_turn, prompt=choice)
         with (
@@ -1574,9 +1544,9 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         for index in range(4):
             next_turn = "continuation-" + str(index)
             request = {
-                "task": "Продолжай ту же задачу",
+                "task": "Continue the same task",
                 "active_profile": self.active,
-                "context": "Недавние сообщения уже не содержат выбора профиля",
+                "context": "Recent messages no longer include the profile choice",
             }
             with (
                 patch.object(
@@ -1588,11 +1558,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader,
             ):
                 reader.return_value.__enter__.return_value.call.return_value = (
-                    self.source_response(
-                        [
-                            {"type": "text", "text": choice},
-                        ]
-                    )
+                    self.source_response([{"type": "text", "text": choice}])
                 )
                 self.assertIsNone(
                     HANDOFF_PREPARATION.prepare_handoff(
@@ -1612,7 +1578,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
     def test_pending_reassessment_does_not_overwrite_queue_transition(self):
         path = self.stage()
         event = dict(
-            self.event, turn_id="new-user-turn", prompt="Продолжай на текущей модели"
+            self.event, turn_id="new-user-turn", prompt="Continue on the current model"
         )
 
         def concurrent_queue(request):
@@ -1653,7 +1619,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             elapsed = time.monotonic() - started
         self.assertEqual(result["hookSpecificOutput"]["permissionDecision"], "deny")
         self.assertIn(
-            "занято", result["hookSpecificOutput"]["permissionDecisionReason"]
+            "busy", result["hookSpecificOutput"]["permissionDecisionReason"].casefold()
         )
         self.assertLess(elapsed, 1)
         audit = (
@@ -1757,14 +1723,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
 
     def test_lock_contention_identifies_other_process(self):
         self.stage()
-        script = (
-            "import sys; "
-            f"sys.path.insert(0, {str(SCRIPTS.parent / 'src')!r}); "
-            "from model_fit.infrastructure.adapters.filesystem.state import locked_state; "
-            "\nwith locked_state('test-thread', operation='queue', turn_id='holder-turn'):"
-            "\n print('locked', flush=True)"
-            "\n sys.stdin.readline()"
-        )
+        script = f"import sys; sys.path.insert(0, {str(SCRIPTS.parent / 'src')!r}); from model_fit.infrastructure.adapters.filesystem.state import locked_state; \nwith locked_state('test-thread', operation='queue', turn_id='holder-turn'):\n print('locked', flush=True)\n sys.stdin.readline()"
         holder = subprocess.Popen(
             [sys.executable, "-c", script],
             stdin=subprocess.PIPE,
@@ -1906,7 +1865,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         state.pop("prompt")
         state.update(phase="queued", queued_submission_id="queued-1", queued_at=100)
         HANDOFF_STATE.write_state(path, state)
-        steered = dict(self.event, prompt="Покажи бэклог")
+        steered = dict(self.event, prompt="Show the backlog")
         with patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader:
             self.assertEqual(
                 HANDOFF_PREPARATION.prepare_handoff(steered)["decision"], "block"
@@ -1932,13 +1891,13 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         state.pop("prompt")
         state.update(phase="queued", queued_submission_id="queued-1", queued_at=100)
         HANDOFF_STATE.write_state(path, state)
-        new_event = dict(self.event, prompt="Покажи бэклог", turn_id="new-turn")
+        new_event = dict(self.event, prompt="Show the backlog", turn_id="new-turn")
         with (
             patch.object(
                 HANDOFF_PREPARATION,
                 "session_input",
                 return_value={
-                    "task": "Покажи бэклог",
+                    "task": "Show the backlog",
                     "active_profile": self.active,
                 },
             ),
@@ -1967,7 +1926,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             replay_turn_id="replay-turn",
         )
         HANDOFF_STATE.write_state(path, state)
-        new_event = dict(self.event, prompt="Покажи бэклог", turn_id="new-turn")
+        new_event = dict(self.event, prompt="Show the backlog", turn_id="new-turn")
         with patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader:
             reader.return_value.__enter__.return_value.call.side_effect = [
                 {"data": [], "nextCursor": None},
@@ -1999,13 +1958,13 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             queued_at=100,
         )
         HANDOFF_STATE.write_state(path, state)
-        new_event = dict(self.event, prompt="Покажи бэклог", turn_id="new-turn")
+        new_event = dict(self.event, prompt="Show the backlog", turn_id="new-turn")
         with (
             patch.object(
                 HANDOFF_PREPARATION,
                 "session_input",
                 return_value={
-                    "task": "Покажи бэклог",
+                    "task": "Show the backlog",
                     "active_profile": self.active,
                 },
             ),
@@ -2033,12 +1992,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                         {
                             "item": {
                                 "type": "userMessage",
-                                "content": [
-                                    {
-                                        "type": "text",
-                                        "text": self.prompt,
-                                    }
-                                ],
+                                "content": [{"type": "text", "text": self.prompt}],
                             }
                         }
                     ],
@@ -2050,11 +2004,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(new_event))
             self.assertEqual(
                 [call.args[0] for call in app.call.call_args_list],
-                [
-                    "thread/queue/list",
-                    "thread/turns/list",
-                    "thread/items/list",
-                ],
+                ["thread/queue/list", "thread/turns/list", "thread/items/list"],
             )
         self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
 
@@ -2138,7 +2088,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 )
             )
             self.assertFalse(
-                any(c.args[0] == "thread/queue/add" for c in app.call.call_args_list)
+                any((c.args[0] == "thread/queue/add" for c in app.call.call_args_list))
             )
         self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
 
@@ -2244,10 +2194,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             patch.object(
                 HANDOFF_PREPARATION,
                 "session_input",
-                return_value={
-                    "task": self.prompt,
-                    "active_profile": self.active,
-                },
+                return_value={"task": self.prompt, "active_profile": self.active},
             ),
             patch.object(
                 HANDOFF_PREPARATION, "triage", return_value={"decision": "keep"}
@@ -2262,10 +2209,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(new_event))
             self.assertEqual(
                 [call.args[0] for call in app.call.call_args_list],
-                [
-                    "thread/queue/list",
-                    "thread/queue/delete",
-                ],
+                ["thread/queue/list", "thread/queue/delete"],
             )
         self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
 
@@ -2287,10 +2231,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             patch.object(
                 HANDOFF_PREPARATION,
                 "session_input",
-                return_value={
-                    "task": self.prompt,
-                    "active_profile": self.active,
-                },
+                return_value={"task": self.prompt, "active_profile": self.active},
             ),
             patch.object(
                 HANDOFF_PREPARATION, "triage", return_value={"decision": "keep"}
@@ -2319,11 +2260,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(new_event))
             self.assertEqual(
                 [call.args[0] for call in app.call.call_args_list],
-                [
-                    "thread/queue/list",
-                    "thread/turns/list",
-                    "thread/turns/list",
-                ],
+                ["thread/queue/list", "thread/turns/list", "thread/turns/list"],
             )
         self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
 
@@ -2360,7 +2297,9 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 "nextCursor": None,
             }
             result = HANDOFF_PREPARATION.prepare_handoff(replay_event)
-        self.assertIn("Игнорируй", result["hookSpecificOutput"]["additionalContext"])
+        self.assertIn(
+            "ignore", result["hookSpecificOutput"]["additionalContext"].casefold()
+        )
         self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "queued")
         self.assertEqual(
             HANDOFF_STATE.read_state(path)["replay_turn_id"], "replay-turn"
@@ -2384,10 +2323,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             patch.object(
                 HANDOFF_PREPARATION,
                 "session_input",
-                return_value={
-                    "task": self.prompt,
-                    "active_profile": self.active,
-                },
+                return_value={"task": self.prompt, "active_profile": self.active},
             ),
         ):
             reader.return_value.__enter__.return_value.call.return_value = {
@@ -2448,13 +2384,15 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                     queued_prompt_digest=HANDOFF_INPUT.prompt_digest(self.prompt),
                 )
                 HANDOFF_STATE.write_state(path, state)
-                new_event = dict(self.event, prompt="Покажи бэклог", turn_id="new-turn")
+                new_event = dict(
+                    self.event, prompt="Show the backlog", turn_id="new-turn"
+                )
                 with (
                     patch.object(
                         HANDOFF_PREPARATION,
                         "session_input",
                         return_value={
-                            "task": "Покажи бэклог",
+                            "task": "Show the backlog",
                             "active_profile": self.active,
                         },
                     ),
@@ -2493,7 +2431,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             queued_prompt_digest=HANDOFF_INPUT.prompt_digest(self.prompt),
         )
         HANDOFF_STATE.write_state(path, state)
-        event = dict(self.event, prompt="Покажи бэклог", turn_id="replay-turn")
+        event = dict(self.event, prompt="Show the backlog", turn_id="replay-turn")
         with (
             patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader,
             patch.object(HANDOFF_PREPARATION, "triage") as triage,
@@ -2612,19 +2550,21 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                         denied["hookSpecificOutput"]["permissionDecision"], "deny"
                     )
                     self.assertIn(
-                        "выполняй исходный запрос",
-                        denied["hookSpecificOutput"]["permissionDecisionReason"],
+                        "perform the original user request",
+                        denied["hookSpecificOutput"][
+                            "permissionDecisionReason"
+                        ].casefold(),
                     )
                     self.assertEqual(path.read_bytes(), saved)
         ordinary = [
             ("Bash", {"command": "git status --short"}),
             (
                 "mcp__codex_app__send_message_to_thread",
-                {"threadId": "another-thread", "prompt": "Продолжи порученную задачу"},
+                {"threadId": "another-thread", "prompt": "Continue the assigned task"},
             ),
             (
                 "mcp__codex_app__send_message_to_thread",
-                {"threadId": self.thread_id, "prompt": "Уточнение пользователя"},
+                {"threadId": self.thread_id, "prompt": "User clarification"},
             ),
         ]
         for tool, arguments in ordinary:
@@ -2674,7 +2614,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             hook_event_name="Stop",
             turn_id="replay-turn",
             stop_hook_active=False,
-            last_assistant_message="Чужой ответ",
+            last_assistant_message="An unrelated answer",
         )
         output = io.StringIO()
         with (
@@ -2751,7 +2691,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             hook_event_name="Stop",
             turn_id="replay-turn",
             stop_hook_active=False,
-            last_assistant_message="Готово: закрыты старые #138 и #126",
+            last_assistant_message="Done: closed the old #138 and #126",
         )
         with (
             patch.object(HANDOFF_GUARDS, "AppServerReader") as reader,
@@ -2793,7 +2733,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             hook_event_name="Stop",
             turn_id="replay-turn",
             stop_hook_active=False,
-            last_assistant_message="Проверил backend #124; нужен доступ к Reg.ru",
+            last_assistant_message="Checked backend #124; Reg.ru access is needed",
         )
         with (
             patch.object(HANDOFF_GUARDS, "AppServerReader") as reader,
@@ -2815,7 +2755,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
     def test_stop_evaluates_the_correction_preserved_before_transfer(self):
         content = [
             {"type": "text", "text": self.prompt},
-            {"type": "text", "text": "Вместо реализации дай только план"},
+            {"type": "text", "text": "Give only a plan instead of implementation"},
         ]
         original, queued = self.stage_replay(content)
         event = dict(
@@ -2823,7 +2763,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             hook_event_name="Stop",
             turn_id="replay-turn",
             stop_hook_active=False,
-            last_assistant_message="План реализации",
+            last_assistant_message="Implementation plan",
         )
         with (
             patch.object(HANDOFF_GUARDS, "AppServerReader") as reader,
@@ -2847,9 +2787,9 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             ]
             self.assertIsNone(HANDOFF_GUARDS.guard_replay_answer(event))
         classify.assert_called_once_with(
-            self.prompt + "\nВместо реализации дай только план",
+            self.prompt + "\nGive only a plan instead of implementation",
             self.recommendation["task_inference"],
-            "План реализации",
+            "Implementation plan",
         )
 
     def test_stop_skips_multimodal_or_steered_replay(self):
@@ -2863,7 +2803,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             hook_event_name="Stop",
             turn_id="replay-turn",
             stop_hook_active=False,
-            last_assistant_message="Ответ по картинке",
+            last_assistant_message="Image answer",
         )
         with (
             patch.object(HANDOFF_GUARDS, "AppServerReader") as reader,
@@ -2894,7 +2834,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                         {
                             "item": {
                                 "type": "userMessage",
-                                "content": [{"type": "text", "text": "Уточнение"}],
+                                "content": [{"type": "text", "text": "Clarification"}],
                             }
                         },
                     ],
@@ -2965,7 +2905,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             hook_event_name="Stop",
             turn_id="replay-turn",
             stop_hook_active=False,
-            last_assistant_message="Ответ",
+            last_assistant_message="Answer",
         )
         output = io.StringIO()
         with (

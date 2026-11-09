@@ -1,4 +1,4 @@
-"Invoke the profile assessment CLI and verify its response boundary."
+"""Invoke the profile assessment CLI and verify its response boundary."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ import subprocess
 import sys
 from typing import Any
 
-from model_fit.assessment.failures.source_unavailable import SourceUnavailable
-from model_fit.assessment.failures.unknown_speed_change import UnknownSpeedChange
+from model_fit.assessment.exceptions.source_unavailable import SourceUnavailable
+from model_fit.assessment.exceptions.unknown_speed_change import UnknownSpeedChange
 from model_fit.assessment.validation import RECOMMENDATIONS
 
 

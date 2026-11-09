@@ -1,12 +1,17 @@
+from __future__ import annotations
+
 from typing import Any
 from uuid import uuid4
 
-from model_fit.autoswitch.failures.superseded import AssessmentSuperseded
-from model_fit.autoswitch.ports.state import State
-from model_fit.autoswitch.requests.prompt import Prompt
+from model_fit.autoswitch.exceptions.superseded import AssessmentSuperseded
+from model_fit.autoswitch.interfaces.pending_assessment import PendingAssessmentRecord
+from model_fit.autoswitch.interfaces.prompt import SubmissionInput
+from model_fit.autoswitch.interfaces.state import TransferStateSlot
 
 
-def require_submission(slot: State, expected: dict[str, Any] | None) -> None:
+def require_submission(
+    slot: TransferStateSlot, expected: dict[str, Any] | None
+) -> None:
     if expected is None:
         return
     current = slot.load()
@@ -16,7 +21,7 @@ def require_submission(slot: State, expected: dict[str, Any] | None) -> None:
         )
 
 
-def _save(slot: State, state: dict[str, Any]) -> None:
+def _save(slot: TransferStateSlot, state: dict[str, Any]) -> None:
     current = slot.load()
     generation = state.get("pending_assessment", {}).get("generation")
     if generation is None and current is not None:
@@ -28,11 +33,15 @@ def _save(slot: State, state: dict[str, Any]) -> None:
     slot.save(state)
 
 
-def authorize_transfer(slot: State, state: dict[str, Any], now: float) -> None:
+def authorize_transfer(
+    slot: TransferStateSlot, state: dict[str, Any], now: float
+) -> None:
     _save(slot, {**state, "transfer_authorized_at": now})
 
 
-def register_submission(slot: State, event: Prompt, prompt_hash: str) -> None:
+def register_submission(
+    slot: TransferStateSlot, event: SubmissionInput, prompt_hash: str
+) -> None:
     current = slot.load()
     if slot.unsafe() or (
         current is not None and current["phase"] in {"attempting", "rejected"}
@@ -59,7 +68,7 @@ def register_submission(slot: State, event: Prompt, prompt_hash: str) -> None:
     _save(slot, state)
 
 
-def start_assessment(slot: State) -> dict[str, Any]:
+def start_assessment(slot: TransferStateSlot) -> dict[str, Any]:
     state = slot.load()
     if state is None or not state.get("pending_assessment"):
         raise ValueError("No submitted Model Fit input")
@@ -71,7 +80,7 @@ def start_assessment(slot: State) -> dict[str, Any]:
 
 
 def fail_assessment(
-    slot: State, pending: dict[str, Any], reason: str | None = None
+    slot: TransferStateSlot, pending: PendingAssessmentRecord, reason: str | None = None
 ) -> None:
     state = slot.load()
     if state is not None and state.get("pending_assessment") == pending:
@@ -81,7 +90,9 @@ def fail_assessment(
         _save(slot, state)
 
 
-def abstain_assessment(slot: State, pending: dict[str, Any]) -> bool:
+def abstain_assessment(
+    slot: TransferStateSlot, pending: PendingAssessmentRecord
+) -> bool:
     state = slot.load()
     if (
         state is None
@@ -97,7 +108,9 @@ def abstain_assessment(slot: State, pending: dict[str, Any]) -> bool:
 
 
 def finish_assessment(
-    slot: State, pending: dict[str, Any], assessed_profile: dict[str, Any] | None = None
+    slot: TransferStateSlot,
+    pending: PendingAssessmentRecord,
+    assessed_profile: dict[str, Any] | None = None,
 ) -> None:
     state = slot.load()
     if state is not None and (
@@ -114,7 +127,9 @@ def finish_assessment(
         _save(slot, state)
 
 
-def consume_submission(slot: State, turn_id: str, pending: dict[str, Any]) -> None:
+def consume_submission(
+    slot: TransferStateSlot, turn_id: str, pending: PendingAssessmentRecord
+) -> None:
     current = slot.load()
     if (
         current is None
@@ -133,7 +148,7 @@ def consume_submission(slot: State, turn_id: str, pending: dict[str, Any]) -> No
 
 
 def admit(
-    slot: State,
+    slot: TransferStateSlot,
     turn_id: str,
     decision: str | None = None,
     profile_context_turn_id: str | None = None,
@@ -171,14 +186,16 @@ def admit(
         _save(slot, state)
 
 
-def stage(slot: State, state: dict[str, Any]) -> None:
+def stage(slot: TransferStateSlot, state: dict[str, Any]) -> None:
     current = slot.load()
     if current is not None and current["phase"] not in {"passed", "ready", "submitted"}:
         raise RuntimeError("Cannot stage a transfer while queue outcome is pending")
     _save(slot, {**state, "phase": "ready"})
 
 
-def continue_transfer(slot: State, state: dict[str, Any], turn_id: str) -> None:
+def continue_transfer(
+    slot: TransferStateSlot, state: dict[str, Any], turn_id: str
+) -> None:
     if state["phase"] not in {"ready", "queued"}:
         raise RuntimeError("Only a prepared transfer accepts a control turn")
     state["control_turn_id"] = turn_id
@@ -189,7 +206,7 @@ def continue_transfer(slot: State, state: dict[str, Any], turn_id: str) -> None:
     _save(slot, state)
 
 
-def bind_replay(slot: State, state: dict[str, Any], turn_id: str) -> None:
+def bind_replay(slot: TransferStateSlot, state: dict[str, Any], turn_id: str) -> None:
     if state["phase"] != "queued" or state.get("replay_turn_id") not in (None, turn_id):
         raise RuntimeError("Replay does not belong to this queued transfer")
     state.pop("pending_assessment", None)
@@ -197,35 +214,37 @@ def bind_replay(slot: State, state: dict[str, Any], turn_id: str) -> None:
     _save(slot, state)
 
 
-def begin_queue(slot: State, state: dict[str, Any]) -> None:
+def begin_queue(slot: TransferStateSlot, state: dict[str, Any]) -> None:
     if state["phase"] != "ready":
         raise RuntimeError("Only a prepared transfer can enter the queue")
     state["phase"] = "attempting"
     _save(slot, state)
 
 
-def receipt(slot: State, state: dict[str, Any], submission_id: str) -> None:
+def receipt(slot: TransferStateSlot, state: dict[str, Any], submission_id: str) -> None:
     if state["phase"] != "attempting":
         raise RuntimeError("Queue receipt requires an active attempt")
     state["queued_submission_id"] = submission_id
     _save(slot, state)
 
 
-def reject(slot: State, state: dict[str, Any]) -> None:
+def reject(slot: TransferStateSlot, state: dict[str, Any]) -> None:
     if state["phase"] != "attempting":
         raise RuntimeError("Only an attempted transfer can be rejected")
     state["phase"] = "rejected"
     _save(slot, state)
 
 
-def confirm_queue(slot: State, state: dict[str, Any], timestamp: float) -> None:
+def confirm_queue(
+    slot: TransferStateSlot, state: dict[str, Any], timestamp: float
+) -> None:
     if state["phase"] != "attempting" or not state.get("queued_submission_id"):
         raise RuntimeError("Queue confirmation requires its native receipt")
     state.update(phase="queued", queued_at=int(timestamp))
     _save(slot, state)
 
 
-def release(slot: State) -> None:
+def release(slot: TransferStateSlot) -> None:
     current = slot.load()
     if current is not None and current["phase"] == "attempting":
         raise RuntimeError("An unresolved queue attempt cannot be released")

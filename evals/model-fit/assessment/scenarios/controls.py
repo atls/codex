@@ -17,6 +17,6 @@ def calibration_controls(cases):
     controls.extend(additions)
     if len({entry["id"] for entry in controls}) != len(controls):
         raise ValueError("Calibration IDs must be unique")
-    if any(entry["case_id"] not in cases for entry in controls):
+    if any((entry["case_id"] not in cases for entry in controls)):
         raise ValueError("Unknown calibration scenario")
     return controls

@@ -1,4 +1,4 @@
-"Shared stdio transport for existing Codex app-server consumers."
+"""Shared stdio transport for existing Codex app-server consumers."""
 
 from __future__ import annotations
 

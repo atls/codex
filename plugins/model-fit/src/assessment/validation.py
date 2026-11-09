@@ -1,8 +1,8 @@
 from typing import Any
 from urllib.parse import urlparse
 
-from model_fit.assessment.failures.unknown_speed_change import UnknownSpeedChange
-from model_fit.assessment.ports.catalog import Catalog
+from model_fit.assessment.exceptions.unknown_speed_change import UnknownSpeedChange
+from model_fit.assessment.interfaces.catalog import ProfileCatalog
 
 
 def validated_active_profile(request: Any) -> dict[str, Any]:
@@ -33,7 +33,7 @@ def validated_request(
         raise ValueError("Native input must be a nonempty array of objects")
     task = request.get("task")
     if task is None and native_input:
-        task = "Оцени исходное нативное сообщение, включая вложения."
+        task = "Assess the original native message, including its attachments."
     if not isinstance(task, str) or not task.strip():
         raise ValueError("Task or native input is required")
     context = request.get("context")
@@ -82,7 +82,7 @@ def official_source(url: Any) -> bool:
 
 
 def validate(
-    output: dict[str, Any], active: dict[str, Any], models: Catalog
+    output: dict[str, Any], active: dict[str, Any], models: ProfileCatalog
 ) -> dict[str, Any]:
     expected_fields = {
         "active_model",

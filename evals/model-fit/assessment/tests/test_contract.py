@@ -15,7 +15,7 @@ class PromptfooContractTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         cases = json.loads((root / "fixtures/triage-cases.json").read_text())
         self.case = next(
-            case for case in cases if case["id"] == "bounded-read-only-list"
+            (case for case in cases if case["id"] == "bounded-read-only-list")
         )
         self.case["allowed_recommendations"] = self.case.get(
             "allowed_recommendations", []
@@ -57,9 +57,11 @@ class PromptfooContractTests(unittest.TestCase):
 
     def test_catalog_valid_target_can_fail_scenario_allowlist(self):
         target = next(
-            row
-            for row in self.context["vars"]["catalog"]
-            if row["visibility"] == "list" and row["slug"] != self.case["model"]
+            (
+                row
+                for row in self.context["vars"]["catalog"]
+                if row["visibility"] == "list" and row["slug"] != self.case["model"]
+            )
         )
         level = target["supported_reasoning_levels"][0]
         effort = level["effort"] if isinstance(level, dict) else level

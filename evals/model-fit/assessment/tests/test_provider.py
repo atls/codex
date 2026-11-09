@@ -1,7 +1,6 @@
 import model_fit.infrastructure.adapters.codex.transport.assessment.session as NATIVE_SESSION
 
-"""Check the thin provider's no-model controls and error result."""
-
+"Check the thin provider's no-model controls and error result."
 import json
 import unittest
 from unittest.mock import patch

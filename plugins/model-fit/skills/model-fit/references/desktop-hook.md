@@ -1,124 +1,57 @@
-# Desktop hook на macOS
+# Desktop hook on macOS
 
-Читать при подключении или диагностике Desktop hook и при выполнении
-автоматического переноса. Оценка профиля сама по себе не требует этого файла.
+Read this reference when connecting or diagnosing the Desktop hook or performing automatic handoff. Profile assessment alone does not require it.
 
-## Подключение
+## Connect
 
-Установить plugin Model Fit через штатный локальный marketplace Codex Desktop.
-Plugin включает `.codex-plugin/plugin.json`, `hooks/hooks.json`, Python-пакет и этот skill.
-Для локальной проверки из корня репозитория:
+Install Model Fit through Codex Desktop's native local marketplace. The plugin contains `.codex-plugin/plugin.json`, `hooks/hooks.json`, its Python package and this skill. To verify a local checkout:
 
 ```sh
 codex plugin marketplace add .
 codex plugin add model-fit@atls-codex
 ```
 
-После установки в каталоге установленного plugin выполнить `uv sync --locked`.
-Для Codex 0.166 используется поддерживаемый compatibility manifest:
-portable manifest этой версии не загружает plugin hooks.
-Hooks используют переданный Codex `PLUGIN_ROOT`; определения не копируются
-в пользовательский `hooks.json`. При переходе отключить прежнее подключение
-Model Fit, чтобы один запрос не обрабатывался двумя handlers.
+Run `uv sync --locked` from the installed plugin directory. The supported compatibility manifest is used for Codex 0.166, whose portable manifest does not load plugin hooks. Hooks use Codex's `PLUGIN_ROOT`; their definitions are not copied into the user's `hooks.json`. Disable any previous Model Fit connection when switching integrations so two handlers do not process one request.
 
-Доверить точные определения через `/hooks`, затем проверить их источники
-и состояние через `hooks/list`. Этот список подтверждает подключение;
-запуск конкретного хода подтверждается его audit-записью.
-Загруженная сессия может сохранить прежний handler. Перед каждым callback и
-технической CLI-командой установленный plugin повторно читает native config и
-`hooks/list`: отключение feature, plugin или точного hook прекращает автоматическую
-оценку и перенос без удаления состояния. Обычная работа при подтверждённом
-отключении допускается. Недоступность настроек не равна отключению и не снимает
-прежние ограничения; технические инструменты не запускаются.
-Уже начатая оценка может завершить внешний запрос, но повторная проверка
-разрешения не выдаст агенту устаревшую инструкцию переноса.
+Trust the exact definitions through `/hooks`, then inspect their sources and states through `hooks/list`. Inventory establishes discovery; an audit record for a specific turn establishes invocation.
 
-Проверенный контур — macOS. Живые конфиги, auth и `.tmp/` являются локальными
-данными и не входят в общую поставку. Кандидат проверяется отдельно от рабочей
-установки.
+Loaded sessions may retain an old handler. Before every callback and technical CLI command, the installed plugin rereads native config and `hooks/list`. Disabling the feature, plugin or exact hook stops automatic assessment and handoff without deleting state. Confirmed disablement permits ordinary work. Unavailable settings do not establish disablement or release earlier restrictions; technical tools are not started. An in-flight assessment can finish its external request, but the repeated admission check will not issue an obsolete handoff instruction.
 
-## Автоматический перенос в следующий ход
+The verified environment is macOS. Live config, authentication and `.tmp/` are local data outside the shared delivery. Verify candidates separately from working installations.
 
-После однократного разрешения пользователя на автоперенос hook сам решает,
-нужна ли смена профиля. Следовать точной инструкции из `additionalContext`:
+## Automatic handoff to the next turn
 
-1. Выполнить переданную hook команду `assess`. Она читает принятое Codex
-   сообщение целиком: UserPromptSubmit ещё не предоставляет его native body.
-   До результата предметные инструменты и ответ заблокированы.
-2. При рекомендации вызвать нативный `send_message_to_thread` для того же
-   чата с указанными model/effort и служебным сообщением.
-3. Выполнить переданную hook команду `queue` без изменения аргументов.
-4. Завершить технический ход. Исходную задачу выполнять на подтверждённом
-   продолжении после смены профиля.
+Once the user authorizes automatic handoff, the hook determines whether a profile change is needed. Follow the exact `additionalContext` instruction:
 
-Исходный ввод очереди получает утилита из native user message; не собирать его
-из текстового `prompt` и не просить пользователя повторно прикладывать медиа.
-Продолжение связывается по native client message identity; изменённое в очереди
-сообщение оценивается в принятом сервером виде. Runtime не добавляет к нему
-служебный текст и не пересобирает вложения. Ephemeral без доступа к native
-history получает предупреждение о недоступной оценке; автосвич не заявляется.
-Native `session_id` дочернего исполнителя указывает на родительскую сессию;
-`agent_id` задаёт фактического исполнителя. Состояние, native input и audit
-разделяются по исполнителю. Рекомендация дочернему исполнителю возвращается
-родительскому распределителю; автоматический UI-перенос дочернего чата не заявляется.
+1. Run the supplied `assess` command. It reads the complete message accepted by Codex; UserPromptSubmit does not yet supply that native body. Task tools and the answer are guarded until assessment completes
+2. For a recommendation, call native `send_message_to_thread` for the same chat with the specified model/effort and service message
+3. Run the supplied `queue` command with unchanged arguments
+4. End the technical turn. Perform the original task only in the confirmed continuation after the profile change
 
-При недоступном инструменте или неподтверждённом переносе сообщить причину
-и применить [правило паузы](../SKILL.md#ответ).
+The utility obtains queue input from the native user message. Do not reconstruct it from text or ask the user to reattach media. The continuation is bound through native client message identity; edited queued input is assessed as accepted by the server. The runtime adds no service text to that input and does not rebuild attachments.
 
-Предупреждение о недоступном контексте означает, что профиль не оценён.
-Guard и состояние переноса обрабатывают scripts: не удалять pending state
-и не повторять queue add вручную при неизвестном исходе.
+An ephemeral thread without native history access receives an assessment-unavailable warning; no autoswitch is claimed. A child's native `session_id` identifies its parent while `agent_id` identifies the actual executor. State, native input and audit are scoped to that executor. Child recommendations return to the parent allocator; automatic child-chat UI handoff is not claimed.
 
-## Диагностика
+If a required tool or confirmed handoff is unavailable, report the reason and apply the [response rule](../SKILL.md#response). An unavailable-context warning means the profile was not assessed. Runtime scenarios own guards and state: do not delete pending state or manually repeat queue add with an unknown outcome.
 
-Локальный audit: `$CODEX_HOME/.tmp/model-fit-hook-audit/<thread-id>.jsonl`.
-Сопоставить `turn_id`, событие, исход и код причины с native hook events.
-`executor_thread_id` задаёт владельца записи; `root_session_id` сохраняет native
-родительскую сессию. `auto_assessed` содержит решение triage, профили, хеши
-входа/контекста и generation оценки; это ещё не подтверждение применения.
-`auto_assessment_superseded` отменяет только результат прежнего ввода; состояние
-нового ввода сохраняется даже при совпадении текста и native turn ID.
-`SubmissionUnavailable` различает отсутствие executor и submission; неизвестный
-turn остаётся `null`. Исходный текст и tool arguments в audit не сохраняются.
-Отсутствие audit не подтверждает ни запуск hook, ни пригодность профиля.
-Проверить фактический session cwd, hook source, enabled/trust и загрузку
-handlers сессией до повторения запроса. Не делать вывод об успешной смене
-по одному `hooks/list` или сообщению о запуске.
+## Diagnose
 
-Внешний контракт: [Hooks](https://learn.chatgpt.com/docs/hooks) и
-[App Server](https://learn.chatgpt.com/docs/app-server).
-Native identity сверена с [реализацией установленной версии Codex](https://github.com/openai/codex/blob/f79b26ccbb3116b052544666a181012fb45dc49b/codex-rs/core/src/hook_runtime.rs#L1095).
+Local audit: `$CODEX_HOME/.tmp/model-fit-hook-audit/<thread-id>.jsonl`. Correlate `turn_id`, event, outcome and reason code with native hook events. `executor_thread_id` owns the record; `root_session_id` preserves native parent identity.
 
+`auto_assessed` records triage, profiles, input/context digests and assessment generation, not proof that a recommendation was applied. `auto_assessment_superseded` cancels only the old input's result; new state survives even with identical text and native turn ID. `SubmissionUnavailable` distinguishes a missing executor from a missing submission; an unknown turn stays `null`. Audit excludes raw input and tool arguments. Missing audit proves neither hook invocation nor profile suitability.
 
-## Новые требования после чтения источников
+Check actual session cwd, hook source, enabled/trust state and handler loading before retrying. Hook inventory or a start message alone does not prove a profile switch.
 
-Если после первоначальной оценки чтение задачи или репозитория выявило существенное
-изменение требований, запиши найденные требования и ссылки на источники в локальный
-UTF-8 файл без секретов. Вызови тем же установленным Python и модулем Desktop CLI
-`reassess --requirements-file <путь-к-файлу>`, дождись завершения и следуй результату.
-Это дополнительный контекст оценки: исходное нативное сообщение, вложения и
-аннотации runtime читает самостоятельно. ID не передаются. Обычный повтор `assess`
-для неизменившихся требований остаётся чтением уже выполненного решения.
+External contracts: [Hooks](https://learn.chatgpt.com/docs/hooks) and [App Server](https://learn.chatgpt.com/docs/app-server). Native identity was checked against the [installed Codex implementation](https://github.com/openai/codex/blob/f79b26ccbb3116b052544666a181012fb45dc49b/codex-rs/core/src/hook_runtime.rs#L1095).
 
-Runtime допускает переоценку только для текущего допущенного хода или подтверждённого
-replay после извлечения из очереди. Новый submission отменяет прежний результат
-через generation. Недоступный либо другой нативный ход не даёт права оценивать
-старый ввод. Ручной выбор профиля сохраняет свою область действия.
+## Requirements discovered after reading sources
 
-После завершённой оценки runtime хранит наблюдавшийся профиль. Его нативное изменение
-перед следующим сообщением передаётся оценщику как новый выбор владельца также после
-`keep`, когда переноса и состояния queued не было. Это не доказательство пригодности.
+If reading a task or repository reveals materially changed requirements, record the requirements and source references in a local UTF-8 file without secrets. Use the same installed Python and Desktop CLI module to run `reassess --requirements-file <file>`, wait for completion and follow its result. This supplies additional assessment context: the runtime retrieves original native input, attachments and annotations itself. Do not pass IDs. Repeating `assess` for unchanged requirements reads the existing decision.
 
-Перед выдачей результата оценки runtime перечитывает текущий нативный профиль.
-Если он изменился во время проверки, прежняя рекомендация отменяется с сохранением
-нового выбора; это не новая оценка его пригодности.
+Reassessment is admitted only for the current admitted turn or a confirmed dequeued replay. A new submission supersedes the old result through generation. A missing or different native turn does not authorize assessment of old input. Manual profile choice retains its original scope.
 
-## Неопределённая оценка
+The runtime records the observed profile after assessment. A native change before the next message becomes a fresh owner choice, including after keep when no queued handoff existed. This is not proof of suitability. Before returning an assessment, the runtime rereads the native profile; a concurrent change cancels the old recommendation while retaining the new choice, without assessing its suitability.
 
-`unknown` и доступная для обработки ошибка оценщика сохраняют текущий профиль
-и разрешают обычную работу по исходному запросу. Они не подтверждают пригодность.
-Старая рекомендация без начатой очереди не становится запретом на выполнение;
-новый ввод и чужая generation не перезаписываются. Ошибка записывается отдельным
-outcome с безопасным типом и местом отказа, без exception message. Неподтверждённый
-исход уже начатой очереди остаётся транспортным ограничением: повторный перенос
-по нему не разрешается.
+## Unknown assessment
+
+`unknown` and handled evaluator failures preserve the current profile and allow ordinary work on the original request without establishing suitability. An old unqueued recommendation does not become a prohibition; new input and foreign generations are not overwritten. Errors have separate outcomes with safe types and failure locations, excluding exception messages. An unconfirmed outcome of an already-started queue operation remains a transport restriction: it does not permit another transfer.

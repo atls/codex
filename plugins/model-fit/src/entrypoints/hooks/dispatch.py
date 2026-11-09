@@ -1,4 +1,4 @@
-"Dispatch user-level lifecycle hooks to the event's Desktop chat."
+"""Dispatch user-level lifecycle hooks to the event's Desktop chat."""
 
 from __future__ import annotations
 

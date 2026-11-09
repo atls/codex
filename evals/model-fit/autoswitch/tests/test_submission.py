@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import model_fit.entrypoints.hooks.operations as api
-from model_fit.autoswitch.failures.unavailable import SubmissionUnavailable
+from model_fit.autoswitch.exceptions.unavailable import SubmissionUnavailable
 from model_fit.entrypoints.hooks.instructions import (
     CONTROL_PROMPT,
     assessment_command,
@@ -175,7 +175,10 @@ class SubmittedInputTests(unittest.TestCase):
             )
         )
         self.assertEqual(observed, [self.content])
-        self.assertIn("уже проверил", output["hookSpecificOutput"]["additionalContext"])
+        self.assertIn(
+            "already assessed",
+            output["hookSpecificOutput"]["additionalContext"].casefold(),
+        )
         self.assertIsNone(
             api.guard_tool(
                 {**self.event, "tool_name": "Bash", "tool_input": {"command": "pwd"}}
@@ -440,7 +443,7 @@ class SubmittedInputTests(unittest.TestCase):
                     )
                 )
                 self.assertIn(
-                    "Сохранённый выбор нативного владельца", seen[0].get("context", "")
+                    "retained native chat owner", seen[0].get("context", "").casefold()
                 )
                 self.assertEqual(
                     read_state(state_path("submitted-thread"))["native_profile"],
@@ -472,7 +475,7 @@ class SubmittedInputTests(unittest.TestCase):
         self.assertEqual(state["native_profile"], self.profile)
         self.assertEqual(state["assessment_decision"], "native_override")
         self.assertNotIn(
-            "смену профиля",
+            "profile change",
             output.get("hookSpecificOutput", {}).get("additionalContext", ""),
         )
         self.assertEqual(self.received, [])
@@ -484,8 +487,8 @@ class SubmittedInputTests(unittest.TestCase):
             raise subprocess.TimeoutExpired(["private-exception-sentinel"], 1)
 
         output = self.assess(decision=unavailable)
-        self.assertIn("Продолжай исходную задачу", output["systemMessage"])
-        self.assertIn("пригодность не установлена", output["systemMessage"])
+        self.assertIn("continue the original task", output["systemMessage"].casefold())
+        self.assertIn("suitability is unknown", output["systemMessage"].casefold())
         self.assertIsNone(
             api.guard_tool(
                 {**self.event, "tool_name": "Bash", "tool_input": {"command": "pwd"}}
@@ -613,7 +616,7 @@ class SubmittedInputTests(unittest.TestCase):
             context_reader=lambda _: self.fail("stale input was read"),
             assessor=lambda _: self.fail("stale input was assessed"),
         )
-        self.assertIn("пригодность не установлена", output["systemMessage"])
+        self.assertIn("suitability is unknown", output["systemMessage"].casefold())
         self.assertIsNone(api.guard_tool({**retry, "tool_input": {"command": "pwd"}}))
         self.assertEqual(self.received, [])
 
@@ -745,7 +748,7 @@ class SubmittedInputTests(unittest.TestCase):
     def test_retired_retry_generation_cancels_inflight_assessment_result(self):
         api.submit_prompt(self.event)
         path = state_path("submitted-thread")
-        entered, release = threading.Event(), threading.Event()
+        entered, release = (threading.Event(), threading.Event())
         outputs = []
 
         def assessor(request):
@@ -792,14 +795,17 @@ class SubmittedInputTests(unittest.TestCase):
             worker.join(2)
         self.assertFalse(worker.is_alive())
         self.assertEqual(path.read_bytes(), saved)
-        self.assertIn("устарела", outputs[0]["hookSpecificOutput"]["additionalContext"])
+        self.assertIn(
+            "superseded",
+            outputs[0]["hookSpecificOutput"]["additionalContext"].casefold(),
+        )
         self.assertEqual(self.received, [])
 
     def test_assessment_interpreter_alias_keeps_venv_and_command_constraints(self):
         api.submit_prompt(self.event)
         directory = Path(self.home.name) / "runtime/bin"
         directory.mkdir(parents=True)
-        first, second = directory / "python", directory / "python3"
+        first, second = (directory / "python", directory / "python3")
         first.symlink_to(sys.executable)
         second.symlink_to(sys.executable)
         foreign = Path(self.home.name) / "foreign/bin/python"
@@ -827,12 +833,7 @@ class SubmittedInputTests(unittest.TestCase):
                     [str(foreign), "-m", "model_fit.entrypoints.hooks.cli", "assess"]
                 ),
                 shlex.join(
-                    [
-                        str(different),
-                        "-m",
-                        "model_fit.entrypoints.hooks.cli",
-                        "assess",
-                    ]
+                    [str(different), "-m", "model_fit.entrypoints.hooks.cli", "assess"]
                 ),
                 shlex.join([str(first), "-m", "another_module", "assess"]),
                 shlex.join([str(first), "-c", "print(1)"]),
@@ -923,7 +924,6 @@ class SubmittedInputTests(unittest.TestCase):
                     "agent_id": "submitted-thread",
                     "agent_type": "default",
                 }
-
                 api.submit_prompt(child_event)
                 self.assertEqual(parent_path.read_bytes(), saved_parent)
                 self.assertEqual(
@@ -934,7 +934,8 @@ class SubmittedInputTests(unittest.TestCase):
                 )
                 output = self.assess()
                 self.assertIn(
-                    "уже проверил", output["hookSpecificOutput"]["additionalContext"]
+                    "already assessed",
+                    output["hookSpecificOutput"]["additionalContext"].casefold(),
                 )
                 self.assertEqual(parent_path.read_bytes(), saved_parent)
                 self.assertIsNone(
@@ -989,7 +990,7 @@ class SubmittedInputTests(unittest.TestCase):
                 RuntimeError("provider fixture failure")
             )
         )
-        self.assertIn("Продолжай исходную задачу", output["systemMessage"])
+        self.assertIn("continue the original task", output["systemMessage"].casefold())
         self.assertEqual(parent_path.read_bytes(), saved_parent)
         self.assertIsNone(
             api.guard_tool(
@@ -1029,7 +1030,7 @@ class SubmittedInputTests(unittest.TestCase):
             }
         )
         self.assertEqual(output["decision"], "block")
-        self.assertIn("родитель", output["reason"])
+        self.assertIn("parent", output["reason"].casefold())
         self.assertEqual(self.received, [])
         self.assertEqual(parent_path.read_bytes(), saved_parent)
 
@@ -1062,7 +1063,9 @@ class SubmittedInputTests(unittest.TestCase):
             assessor=lambda _: {"decision": "keep"},
             native_factory=lambda _: self.reader,
         )
-        self.assertIn("устарела", output["hookSpecificOutput"]["additionalContext"])
+        self.assertIn(
+            "superseded", output["hookSpecificOutput"]["additionalContext"].casefold()
+        )
         self.assertEqual(read_state(state_path("submitted-thread")), latest[0])
         self.assertEqual(self.received, [])
         self.assertIsNone(
@@ -1104,7 +1107,7 @@ class SubmittedInputTests(unittest.TestCase):
         def newer():
             try:
                 results.append(self.assess(decision=newer_assessor))
-            except Exception as error:  # noqa: BLE001 - retain worker failures for the parent assertion
+            except Exception as error:
                 errors.append(error)
 
         def older_assessor(request):
@@ -1118,7 +1121,10 @@ class SubmittedInputTests(unittest.TestCase):
 
         try:
             output = self.assess(decision=older_assessor)
-            self.assertIn("устарела", output["hookSpecificOutput"]["additionalContext"])
+            self.assertIn(
+                "superseded",
+                output["hookSpecificOutput"]["additionalContext"].casefold(),
+            )
             self.assertEqual(read_state(path), latest[0])
         finally:
             release.set()
@@ -1181,7 +1187,9 @@ class SubmittedInputTests(unittest.TestCase):
                     "task_inference": "fixture",
                 }
             )
-        self.assertIn("устарела", output["hookSpecificOutput"]["additionalContext"])
+        self.assertIn(
+            "superseded", output["hookSpecificOutput"]["additionalContext"].casefold()
+        )
         self.assertEqual(read_state(state_path("submitted-thread")), latest[0])
         self.assertEqual(self.received, [])
         self.assess()
@@ -1196,8 +1204,8 @@ class SubmittedInputTests(unittest.TestCase):
             decision=lambda _: self.fail("Unchanged native replay reassessed")
         )
         self.assertIn(
-            "перенос Model Fit завершён",
-            output["hookSpecificOutput"]["additionalContext"],
+            "model fit handoff is complete",
+            output["hookSpecificOutput"]["additionalContext"].casefold(),
         )
         self.assertEqual(
             read_state(state_path("submitted-thread"))["replay_turn_id"],
@@ -1659,8 +1667,8 @@ class SubmittedInputTests(unittest.TestCase):
             decision=lambda _: self.fail("Native profile override was reassessed")
         )
         self.assertIn(
-            "пригодность здесь не переоценивалась",
-            output["hookSpecificOutput"]["additionalContext"],
+            "suitability was not reassessed here",
+            output["hookSpecificOutput"]["additionalContext"].casefold(),
         )
         state = read_state(state_path("submitted-thread"))
         self.assertEqual(state["native_profile"], self.profile)
@@ -1674,7 +1682,7 @@ class SubmittedInputTests(unittest.TestCase):
         self.assess(
             decision=lambda request: observed.append(request) or {"decision": "keep"}
         )
-        self.assertIn("Сохраняй выбранный профиль", observed[0]["context"])
+        self.assertIn("Retain the selected profile", observed[0]["context"])
         self.assertEqual(
             read_state(state_path("submitted-thread"))["native_profile"], self.profile
         )
@@ -1726,7 +1734,8 @@ class SubmittedInputTests(unittest.TestCase):
                 self.assertEqual(observed[0]["active_profile"], profile)
                 self.assertEqual(observed[0]["input"], self.consumed_content)
                 self.assertIn(
-                    "проверке текущего принятого сообщения", observed[0]["context"]
+                    "checking the accepted current message",
+                    observed[0]["context"].casefold(),
                 )
                 self.assertIn(str(profile), observed[0]["context"])
                 state = read_state(state_path("submitted-thread"))
@@ -1807,7 +1816,9 @@ class SubmittedInputTests(unittest.TestCase):
 
         self.assess(decision=reselect)
         self.assertEqual(observed[0]["task"], "Reassess this profile")
-        self.assertIn("проверке текущего принятого сообщения", observed[0]["context"])
+        self.assertIn(
+            "checking the accepted current message", observed[0]["context"].casefold()
+        )
         state = read_state(state_path("submitted-thread"))
         self.assertEqual(
             (state["phase"], state["target_model"], state["target_effort"]),
@@ -1911,7 +1922,9 @@ class SubmittedInputTests(unittest.TestCase):
             return {"decision": "keep"}
 
         output = self.assess(decision=receive_steering)
-        self.assertIn("устарела", output["hookSpecificOutput"]["additionalContext"])
+        self.assertIn(
+            "superseded", output["hookSpecificOutput"]["additionalContext"].casefold()
+        )
         pending = read_state(state_path("submitted-thread"))["pending_assessment"]
         self.assertNotEqual(pending["generation"], first_generation)
         self.assertEqual(pending["status"], "waiting")
@@ -1979,7 +1992,9 @@ class SubmittedInputTests(unittest.TestCase):
 
                 if unavailable:
                     output = api.assess_submitted(context_reader=fail_context)
-                    self.assertIn("пригодность не установлена", output["systemMessage"])
+                    self.assertIn(
+                        "suitability is unknown", output["systemMessage"].casefold()
+                    )
                     self.assertEqual(
                         read_state(state_path("submitted-thread"))[
                             "assessment_decision"
@@ -1988,7 +2003,9 @@ class SubmittedInputTests(unittest.TestCase):
                     )
                 else:
                     output = api.assess_submitted(context_reader=fail_context)
-                    self.assertIn("Продолжай исходную задачу", output["systemMessage"])
+                    self.assertIn(
+                        "continue the original task", output["systemMessage"].casefold()
+                    )
                     self.assertEqual(
                         read_state(state_path("submitted-thread"))[
                             "assessment_decision"

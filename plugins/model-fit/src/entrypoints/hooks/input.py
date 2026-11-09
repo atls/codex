@@ -1,13 +1,13 @@
-from model_fit.autoswitch.requests.answer_check import AnswerCheck
-from model_fit.autoswitch.requests.prompt import Prompt
-from model_fit.autoswitch.requests.tool_check import ToolCheck
+from model_fit.autoswitch.interfaces.answer_check import ReplayAnswerInput
+from model_fit.autoswitch.interfaces.prompt import SubmissionInput
+from model_fit.autoswitch.interfaces.tool_check import ToolAdmissionInput
 from model_fit.infrastructure.adapters.codex.identity import executor_thread_id
 
 MISSING_DIRECTORY = object()
 
 
 def prompt_input(native):
-    return Prompt(
+    return SubmissionInput(
         executor_thread_id(native),
         native["turn_id"],
         native["prompt"],
@@ -19,12 +19,12 @@ def prompt_input(native):
 
 
 def tool_input(native):
-    return ToolCheck(executor_thread_id(native), native.get("turn_id"), native)
+    return ToolAdmissionInput(executor_thread_id(native), native.get("turn_id"), native)
 
 
 def answer_input(native):
     thread = executor_thread_id(native)
-    return AnswerCheck(
+    return ReplayAnswerInput(
         thread,
         native.get("turn_id"),
         native.get("last_assistant_message"),

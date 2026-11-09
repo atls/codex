@@ -1,4 +1,4 @@
-"Validate identifiers used by Model Fit local state and hook events."
+"""Validate identifiers used by Model Fit local state and hook events."""
 
 import re
 from typing import Any

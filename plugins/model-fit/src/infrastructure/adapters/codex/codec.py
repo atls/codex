@@ -1,4 +1,4 @@
-"Hash and inspect native input without reconstructing it."
+"""Hash and inspect native input without reconstructing it."""
 
 from __future__ import annotations
 

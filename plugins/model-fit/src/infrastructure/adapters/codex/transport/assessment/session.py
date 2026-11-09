@@ -1,4 +1,4 @@
-"Own the isolated Codex process, skill installation and private auth copy."
+"""Own the isolated Codex process, skill installation and private auth copy."""
 
 from __future__ import annotations
 

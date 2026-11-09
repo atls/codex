@@ -41,7 +41,7 @@ class EvaluationEnvironmentTests(unittest.TestCase):
                     self.assertNotEqual(
                         copy.stat().st_ino, (source / "auth.json").stat().st_ino
                     )
-                    self.assertEqual(copy.stat().st_mode & 0o777, 0o600)
+                    self.assertEqual(copy.stat().st_mode & 511, 384)
                     copy.write_text("provider changed its private copy")
                     self.assertEqual((source / "auth.json").read_text(), original)
                     self.assertTrue((workspace / ".git").exists())
@@ -95,8 +95,10 @@ class EvaluationEnvironmentTests(unittest.TestCase):
                         self.assertEqual(len(set(paths)), count)
                         self.assertTrue(
                             all(
-                                Path(path).is_relative_to(runtime["root"])
-                                for path in paths
+                                (
+                                    Path(path).is_relative_to(runtime["root"])
+                                    for path in paths
+                                )
                             )
                         )
                         if surface == "assessment":

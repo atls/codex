@@ -1,17 +1,19 @@
-"Render Model Fit outcomes as native hook responses."
-
 from __future__ import annotations
+
+from model_fit.autoswitch.control_message import CONTROL_PROMPTS
+
+"""Render Model Fit outcomes as native hook responses."""
+
 
 from typing import Any
 
 from model_fit.assessment.validation import RECOMMENDATIONS
-from model_fit.entrypoints.hooks.configuration import PROFILE_SWITCH_TOOLS
 from model_fit.entrypoints.hooks.instructions import (
-    CONTROL_PROMPT,
     UNKNOWN_CONTEXT,
     admission_unavailable_context,
     inactive_context,
 )
+from model_fit.entrypoints.hooks.native_contract import PROFILE_SWITCH_TOOLS
 
 
 def inactive_hook(
@@ -24,23 +26,23 @@ def inactive_hook(
             if admitted_tool:
                 return None
             return deny_tool(
-                "Model Fit: актуальное разрешение hooks недоступно; прежние ограничения не сняты. Автоматический перенос не выполнялся."
+                "Model Fit: current hook authorization is unavailable; previous restrictions remain in effect. No automatic handoff occurred."
             )
         if event.get("hook_event_name") == "Stop" and (
             not event.get("stop_hook_active")
         ):
             return {
-                "systemMessage": "Model Fit: актуальное разрешение hooks недоступно; пригодность текущего профиля не подтверждена."
+                "systemMessage": "Model Fit: current hook authorization is unavailable; suitability of the active profile is unconfirmed."
             }
     arguments = event.get("tool_input")
     if (
         event.get("hook_event_name") == "PreToolUse"
         and event.get("tool_name") in PROFILE_SWITCH_TOOLS
         and isinstance(arguments, dict)
-        and (arguments.get("prompt") == CONTROL_PROMPT)
+        and (arguments.get("prompt") in CONTROL_PROMPTS)
     ):
         return deny_tool(
-            "Model Fit: разрешение автоматического переноса отсутствует. Не повторяй техническую смену профиля при отключённом или неизвестном разрешении."
+            "Model Fit: automatic handoff is not authorized. Do not repeat technical profile switching while authorization is disabled or unknown."
         )
     return None
 
@@ -71,7 +73,7 @@ def hook_output(result: dict[str, Any]) -> dict[str, Any] | None:
         raise ValueError("Incomplete triage recommendation")
     return {
         "decision": "block",
-        "reason": f"Model Fit: переключи профиль на {model} / {effort} и повтори этот запрос. Рекомендация OpenAI: {guidance} Вывод для этой задачи: {inference} Источник: {source}",
+        "reason": f"Model Fit: switch the profile to {model} / {effort} and repeat this request. OpenAI guidance: {guidance} Task-specific conclusion: {inference} Source: {source}",
     }
 
 

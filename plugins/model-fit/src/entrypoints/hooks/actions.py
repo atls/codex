@@ -3,12 +3,13 @@ import sys
 from pathlib import Path
 from typing import Any, cast
 
-from model_fit.entrypoints.hooks.configuration import PROFILE_SWITCH_TOOLS
+from model_fit.autoswitch.control_message import CONTROL_PROMPTS
 from model_fit.entrypoints.hooks.instructions import (
     CONTROL_PROMPT,
     assessment_command,
     queue_command,
 )
+from model_fit.entrypoints.hooks.native_contract import PROFILE_SWITCH_TOOLS
 
 
 class NativeActions:
@@ -54,7 +55,7 @@ class NativeActions:
                     arguments.get("threadId") == request.thread_id,
                     arguments.get("model") == state["target_model"],
                     arguments.get("thinking") == state["target_effort"],
-                    arguments.get("prompt") == CONTROL_PROMPT,
+                    arguments.get("prompt") in CONTROL_PROMPTS,
                 )
             )
         )
@@ -80,7 +81,7 @@ class NativeActions:
             return None
         if (
             native.get("tool_name") in PROFILE_SWITCH_TOOLS
-            and arguments.get("prompt") == CONTROL_PROMPT
+            and arguments.get("prompt") in CONTROL_PROMPTS
             and (arguments.get("model") == state["target_model"])
             and (arguments.get("thinking") == state["target_effort"])
         ):
@@ -118,7 +119,7 @@ class NativeActions:
             return False
         if (
             native.get("tool_name") in PROFILE_SWITCH_TOOLS
-            and arguments.get("prompt") == CONTROL_PROMPT
+            and arguments.get("prompt") in CONTROL_PROMPTS
         ):
             return True
         if native.get("tool_name") != "Bash" or not isinstance(

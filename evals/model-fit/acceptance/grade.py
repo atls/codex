@@ -33,9 +33,9 @@ def image_color(item, retained_images=()):
         raise ValueError("Unexpected native input item")
     with Image.open(source) as image:
         red, green, blue = ImageStat.Stat(image.convert("RGB")).mean
-    if red > 230 and green < 25 and blue < 25:
+    if red > 230 and green < 25 and (blue < 25):
         return "red"
-    if blue > 230 and red < 25 and green < 25:
+    if blue > 230 and red < 25 and (green < 25):
         return "blue"
     return "other"
 
@@ -52,7 +52,7 @@ def get_assert(output, context):
         raw = context["providerResponse"]["raw"]
         raw = json.loads(raw) if isinstance(raw, str) else raw
         metadata = context["providerResponse"]["metadata"]["codexAppServer"]
-        thread_id, turn_id = metadata["threadId"], metadata["turnId"]
+        thread_id, turn_id = (metadata["threadId"], metadata["turnId"])
         notifications = raw.get("notifications", [])
         messages = [
             item
@@ -61,7 +61,7 @@ def get_assert(output, context):
         ]
         assert len(messages) == 1, "Original native user message is not unique"
         content = messages[0]["content"]
-        text = "".join(item["text"] for item in content if item["type"] == "text")
+        text = "".join((item["text"] for item in content if item["type"] == "text"))
         images = [item for item in content if item["type"] in {"image", "localImage"}]
         colors = [
             image_color(item, context["vars"].get("retained_images", []))
@@ -71,13 +71,13 @@ def get_assert(output, context):
             "Native input text/image order changed"
         )
         assert all(
-            item["type"] in {"text", "image", "localImage"} for item in content
+            (item["type"] in {"text", "image", "localImage"} for item in content)
         ), "Unexpected input item"
         result["checks"]["orderedNativeInput"] = True
         captures = [
             json.loads(line)
             for line in (
-                (home / "acceptance-hook-events.jsonl")
+                home / "acceptance-hook-events.jsonl"
                 if (home / "acceptance-hook-events.jsonl").is_file()
                 else evidence / "acceptance-hook-events.jsonl"
             )
@@ -89,7 +89,7 @@ def get_assert(output, context):
             for row in captures
             if row["event"].get("hook_event_name") == "UserPromptSubmit"
             and row["event"].get("session_id") == thread_id
-            and row["event"].get("turn_id") == turn_id
+            and (row["event"].get("turn_id") == turn_id)
         ]
         assert len(submits) == 1 and submits[0]["returncode"] == 0, (
             "Candidate hook submit execution is absent"
@@ -111,20 +111,27 @@ def get_assert(output, context):
             if event.get("method", "").startswith("hook/")
         ]
         assert any(
-            event.get("method") == "hook/completed"
-            and event.get("params", {}).get("threadId") == thread_id
-            and event["params"].get("turnId") == turn_id
-            and event["params"].get("run", {}).get("eventName") == "userPromptSubmit"
-            and event["params"]["run"].get("status") == "completed"
-            and Path(event["params"]["run"]["sourcePath"])
-            == Path(context["vars"]["plugin"]) / "hooks/hooks.json"
-            for event in native_hooks
+            (
+                event.get("method") == "hook/completed"
+                and event.get("params", {}).get("threadId") == thread_id
+                and (event["params"].get("turnId") == turn_id)
+                and (
+                    event["params"].get("run", {}).get("eventName")
+                    == "userPromptSubmit"
+                )
+                and (event["params"]["run"].get("status") == "completed")
+                and (
+                    Path(event["params"]["run"]["sourcePath"])
+                    == Path(context["vars"]["plugin"]) / "hooks/hooks.json"
+                )
+                for event in native_hooks
+            )
         ), "Exact native candidate hook completion is absent"
         result["checks"]["exactCandidateDeferredHook"] = True
         audit = [
             json.loads(line)
             for line in (
-                (home / ".tmp/model-fit-hook-audit" / (thread_id + ".jsonl"))
+                home / ".tmp/model-fit-hook-audit" / (thread_id + ".jsonl")
                 if home.exists()
                 else evidence / "audit" / (thread_id + ".jsonl")
             )
@@ -132,12 +139,15 @@ def get_assert(output, context):
             .splitlines()
         ]
         selected = [row for row in audit if row.get("turn_id") == turn_id]
-        assert any(row["outcome"] == "auto_session_unavailable" for row in selected), (
-            "Exact fallback audit is absent"
-        )
+        assert any(
+            (row["outcome"] == "auto_session_unavailable" for row in selected)
+        ), "Exact fallback audit is absent"
         assert not any(
-            row["outcome"].startswith("auto_queue") or row["outcome"] == "auto_handoff"
-            for row in selected
+            (
+                row["outcome"].startswith("auto_queue")
+                or row["outcome"] == "auto_handoff"
+                for row in selected
+            )
         ), "Unexpected handoff/queue"
         state_path = (
             home / ".tmp/model-fit-auto-switch" / (thread_id + ".json")
@@ -153,11 +163,13 @@ def get_assert(output, context):
         if state_path.is_file():
             snapshots.append(json.loads(state_path.read_text()))
         assert any(
-            state
-            and state.get("phase") == "passed"
-            and state.get("source_turn_id") == turn_id
-            and not state.get("pending_assessment")
-            for state in snapshots
+            (
+                state
+                and state.get("phase") == "passed"
+                and (state.get("source_turn_id") == turn_id)
+                and (not state.get("pending_assessment"))
+                for state in snapshots
+            )
         ), "Unknown assessment did not release original turn"
         result["checks"]["noQueueOrReconstruction"] = True
         assert raw["turn"]["id"] == turn_id and raw["turn"]["status"] == "completed", (
@@ -175,8 +187,8 @@ def get_assert(output, context):
         assert (
             settings
             and settings[-1]["model"] == "gpt-6-luna"
-            and settings[-1]["effort"] == "medium"
-            and settings[-1].get("serviceTier") is None
+            and (settings[-1]["effort"] == "medium")
+            and (settings[-1].get("serviceTier") is None)
         ), "Observed launch profile differs"
         result["checks"]["originalTurnCompletedWithImageAnswer"] = True
         result.update(

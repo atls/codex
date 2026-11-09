@@ -62,8 +62,8 @@ def evaluation_session(cases, *, install_skill=True, model="gpt-6.1-sol", effort
                 not isinstance(identifier, str)
                 or not identifier
                 or Path(identifier).name != identifier
-                or identifier in {".", ".."}
-                or identifier in workspaces
+                or (identifier in {".", ".."})
+                or (identifier in workspaces)
             ):
                 raise ValueError("Workspace IDs must be unique path components")
             workspace = root / identifier

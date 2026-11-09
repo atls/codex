@@ -83,7 +83,7 @@ class SpeedBoundaryTests(unittest.TestCase):
         with self.assertRaises(ValueError) as caught:
             validate(output, active, MagicMock())
         self.assertEqual(type(caught.exception).__name__, "UnknownSpeedChange")
-        stdout, stderr = io.StringIO(), io.StringIO()
+        stdout, stderr = (io.StringIO(), io.StringIO())
         with (
             patch.object(cli.sys, "argv", ["model-fit"]),
             patch.object(

@@ -1,11 +1,9 @@
 """Process and protocol regression checks for the shared stdio transport."""
 
-import sys
-from pathlib import Path
-
-
 import subprocess
+import sys
 import unittest
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 SCRIPTS = Path(__file__).resolve().parents[1]

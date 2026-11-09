@@ -1,4 +1,4 @@
-"Run an isolated Model Fit preflight and return one validated decision."
+"""Run an isolated Model Fit preflight and return one validated decision."""
 
 from __future__ import annotations
 
@@ -6,29 +6,29 @@ import hashlib
 import json
 from typing import Any, cast
 
-from model_fit.assessment.contracts.decision import Decision
-from model_fit.assessment.contracts.request import AssessmentRequest
-from model_fit.assessment.ports.catalog import Catalog
-from model_fit.assessment.ports.evaluator import Evaluator
-from model_fit.assessment.ports.sources import Sources
+from model_fit.assessment.interfaces.catalog import ProfileCatalog
+from model_fit.assessment.interfaces.decision import AssessmentDecision
+from model_fit.assessment.interfaces.evaluator import AssessmentEvaluator
+from model_fit.assessment.interfaces.request import ProfileAssessmentInput
+from model_fit.assessment.interfaces.sources import AssessmentSources
 from model_fit.assessment.prompt import assessment_prompt
 from model_fit.assessment.validation import empty_decision, validate, validated_request
 
 
 def assess(
-    request: AssessmentRequest,
+    request: ProfileAssessmentInput,
     evaluator_model: str,
     evaluator_effort: str,
     timeout: int,
-    source_bundle: tuple[str, Catalog] | None = None,
+    source_bundle: tuple[str, ProfileCatalog] | None = None,
     diagnostics: dict[str, Any] | None = None,
     *,
-    source_reader: Sources | None = None,
-    evaluator: Evaluator | None = None,
+    source_reader: AssessmentSources | None = None,
+    evaluator: AssessmentEvaluator | None = None,
     codex_path: str = "codex",
     runtime_factory=None,
     skill_directory=None,
-) -> Decision:
+) -> AssessmentDecision:
     task, active, context, prior = validated_request(request)
     if prior is not None:
         if diagnostics is not None:
@@ -46,11 +46,11 @@ def assess(
                 }
             )
         return cast(
-            Decision,
+            AssessmentDecision,
             empty_decision(
                 active,
                 "keep",
-                "Пользователь уже выбрал текущий профиль для той же работы",
+                "The user already selected the active profile for the same work",
             ),
         )
     if source_reader is None:
@@ -98,4 +98,4 @@ def assess(
             timeout,
             diagnostics,
         )
-    return cast(Decision, validate(output, active, models))
+    return cast(AssessmentDecision, validate(output, active, models))

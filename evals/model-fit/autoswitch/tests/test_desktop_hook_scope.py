@@ -1,17 +1,15 @@
 """Native hook discovery and process isolation without inference requests."""
 
-import sys
-from pathlib import Path
-
-
 import json
 import os
 import shlex
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -45,8 +43,10 @@ class DesktopHookScopeTests(unittest.TestCase):
         self.home.joinpath("config.toml").write_text(
             "[features]\nplugin_discovery_prefetch = false\n"
             + "\n".join(
-                f'[projects.{json.dumps(str(repo))}]\ntrust_level = "trusted"\n'
-                for repo in self.projects.values()
+                (
+                    f'[projects.{json.dumps(str(repo))}]\ntrust_level = "trusted"\n'
+                    for repo in self.projects.values()
+                )
             )
         )
         for name in ("first-project", "second-project"):
@@ -93,9 +93,7 @@ class DesktopHookScopeTests(unittest.TestCase):
                 **kwargs,
             ),
         ):
-            from model_fit.infrastructure.adapters.codex.history import (
-                AppServerReader,
-            )
+            from model_fit.infrastructure.adapters.codex.history import AppServerReader
 
             app = AppServerReader(str(self.root))
         return app
@@ -182,15 +180,19 @@ class DesktopHookScopeTests(unittest.TestCase):
                 turn_id = response["turn"]["id"]
                 deadline = time.monotonic() + 15
                 while not any(
-                    e.get("method") == "turn/completed"
-                    and e["params"]["turn"]["id"] == turn_id
-                    for e in notifications
+                    (
+                        e.get("method") == "turn/completed"
+                        and e["params"]["turn"]["id"] == turn_id
+                        for e in notifications
+                    )
                 ):
                     app.read(deadline)
                 self.assertFalse(
                     any(
-                        e.get("method") == "item/agentMessage/delta"
-                        for e in notifications
+                        (
+                            e.get("method") == "item/agentMessage/delta"
+                            for e in notifications
+                        )
                     )
                 )
                 return [
@@ -200,13 +202,13 @@ class DesktopHookScopeTests(unittest.TestCase):
                 ]
 
             first = turn()
-            self.assertFalse(any("No such file" in json.dumps(run) for run in first))
+            self.assertFalse(any(("No such file" in json.dumps(run) for run in first)))
             retired.unlink()
             path.write_text(
                 json.dumps({"hooks": {"UserPromptSubmit": [{"hooks": handlers[1:]}]}})
             )
             cached = turn()
-            self.assertTrue(any("No such file" in json.dumps(run) for run in cached))
+            self.assertTrue(any(("No such file" in json.dumps(run) for run in cached)))
             app.call("thread/archive", {"threadId": thread["id"]}, 15)
             app.call("thread/unarchive", {"threadId": thread["id"]}, 15)
             hooks = app.call("hooks/list", {"cwds": [cwd]}, 15)["data"][0]["hooks"]
@@ -342,12 +344,7 @@ class DesktopHookScopeTests(unittest.TestCase):
         for name in ("first-project", "second-project"):
             thread = name + "-thread"
             (state_dir / f"{thread}.json").write_text(
-                json.dumps(
-                    {
-                        "phase": "rejected",
-                        "source_turn_id": "control-turn",
-                    }
-                )
+                json.dumps({"phase": "rejected", "source_turn_id": "control-turn"})
             )
             result = subprocess.run(
                 [

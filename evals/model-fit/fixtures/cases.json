@@ -7,7 +7,7 @@
     "effort": "low",
     "speed": "standard",
     "fixture_directory": "fixtures/writer",
-    "prompt": "Предыдущий ход согласовал задачу из TASK.md и назначил её writer-агенту. Теперь запускай writer-агента на эту работу.",
+    "prompt": "The previous turn approved the task in TASK.md and assigned it to a writer agent. Now start that writer on the work.",
     "expected": "Before announcing or starting the writer, recommend a suitable stronger profile and end the turn."
   },
   {
@@ -18,7 +18,7 @@
     "effort": "low",
     "speed": "standard",
     "fixture_directory": "fixtures/writer",
-    "prompt": "Используй $model-fit перед запуском writer-агента. Предыдущий ход согласовал задачу из TASK.md и назначил её writer-агенту. Теперь запускай writer-агента на эту работу.",
+    "prompt": "Use $model-fit before starting the writer agent. The previous turn approved the task in TASK.md and assigned it to a writer agent. Now start that writer on the work.",
     "expected": "Explicit skill selection should yield a stronger root-profile recommendation for the root-owned contract decision and stop before starting the writer."
   },
   {
@@ -28,7 +28,7 @@
     "model": "gpt-6-luna",
     "effort": "low",
     "speed": "standard",
-    "prompt": "Предыдущий ход полностью согласовал независимую задачу для writer. Ближайшая работа корня — только запустить writer с этим поручением и сохранить ссылку на результат. Техническое решение и проверку результата выполняет отдельно назначенный reviewer; корень их в этой задаче не принимает. Оцени профиль корня перед запуском, но сам запуск сейчас не выполняй.",
+    "prompt": "The previous turn fully approved an independent writer task. The root's next work is only to start that writer with the assignment and retain a link to the result. A separately assigned reviewer owns the technical decision and result verification; the root does not decide those in this task. Assess the root profile before starting, but do not start the writer now.",
     "expected": "Keep the suitable root profile for bounded coordination; the writer's technical profile is a separate decision."
   },
   {
@@ -38,7 +38,7 @@
     "model": "gpt-6.1-sol",
     "effort": "medium",
     "speed": "standard",
-    "prompt": "Используй $model-fit. Ближайшая работа: изменить несколько уже найденных строк одного skill с известным владельцем, проверить diff и валидатор, затем открыть обычный PR. Оцени активный профиль до начала работы; саму правку сейчас не выполняй.",
+    "prompt": "Use $model-fit. The next work is to change a few already located lines in one skill with a known owner, check the diff and validator, then open an ordinary PR. Assess the active profile before work; do not make the edit now.",
     "expected": "Do not escalate to Astra because the change touches a skill or PR. Keep Sol/medium, or recommend a lighter supported profile when the fixed diff and validator make the required quality checkable."
   },
   {
@@ -48,7 +48,7 @@
     "model": "gpt-6.1-sol",
     "effort": "high",
     "speed": "standard",
-    "prompt": "Используй $model-fit. В проекте запланирована цепочка из четырнадцати последовательных PR. Ближайший ход ограничен одним обратимым срезом: проверить владельца одного механизма, изменить его и подготовить PR; остальные срезы будут отдельной работой. Оцени текущий профиль только для ближайшего хода, не начинай реализацию.",
+    "prompt": "Use $model-fit. The project has a chain of fourteen sequential PRs. The next turn is bounded to one reversible slice: verify the owner of one mechanism, change it and prepare a PR. The other slices are separate work. Assess the active profile only for this next turn; do not implement it.",
     "expected": "Do not recommend Astra/max merely because the full plan has fourteen PRs; evaluate the one bounded slice and the active profile."
   },
   {
@@ -58,7 +58,7 @@
     "model": "gpt-6.1-sol",
     "effort": "low",
     "speed": "standard",
-    "prompt": "Используй $model-fit. Активный профиль уже выбран. Следующий ограниченный шаг — написать короткий текст задачи по готовому решению. Нужна ли смена модели или reasoning? Только оцени профиль.",
+    "prompt": "Use $model-fit. The active profile is already selected. The next bounded step is to draft a short issue from an established solution. Is a model or reasoning change needed? Only assess the profile.",
     "expected": "Do not recommend the already active profile as a change. Keep it, or recommend a genuinely lighter supported profile when the task quality bar and useful gain are evidenced."
   },
   {
@@ -68,7 +68,7 @@
     "model": "gpt-6.1-sol",
     "effort": "low",
     "speed": "standard",
-    "prompt": "Используй $model-fit. Оцени активный профиль для короткой задачи по готовому решению. Только оцени профиль; работу не начинай.",
+    "prompt": "Use $model-fit. Assess the active profile for a short task based on an established solution. Only assess; do not start the work.",
     "expected": "State visibly that the required model catalog could not be read; do not invent a target profile."
   },
   {
@@ -78,7 +78,7 @@
     "model": "gpt-6-luna",
     "effort": "low",
     "speed": "standard",
-    "prompt": "Коротко объясни, что показывает команда git status --short.",
+    "prompt": "Briefly explain what git status --short shows.",
     "expected": "Answer the question without invoking Model Fit or recommending a profile."
   },
   {
@@ -89,7 +89,7 @@
     "effort": "medium",
     "speed": "standard",
     "prior_choice": "For this same bounded instruction edit, the user explicitly chose to continue with the active gpt-6.1-sol/medium profile after an earlier recommendation.",
-    "prompt": "Продолжи ту же ограниченную правку инструкции. Сначала оцени, требуется ли новая рекомендация по профилю; новых требований к работе нет.",
+    "prompt": "Continue the same bounded instruction edit. First assess whether a new profile recommendation is needed; requirements have not changed.",
     "expected": "Continue without repeating the previous profile recommendation or changing the user's choice."
   },
   {
@@ -99,7 +99,7 @@
     "model": "gpt-6-luna",
     "effort": "low",
     "speed": "standard",
-    "prompt": "Используй $model-fit. Нужно до начала реализации разрешить несколько противоречащих друг другу публичных контрактов и границ ответственности в большой миграции. Ошибка в решении повлияет на все зависимые изменения. Оцени текущий профиль; проектирование пока не начинай.",
+    "prompt": "Use $model-fit. Before implementation, resolve several conflicting public contracts and responsibility boundaries in a large migration. A wrong decision affects all dependent changes. Assess the active profile; do not start design yet.",
     "expected": "Recommend a supported stronger profile, explain the concrete mismatch, and stop before project work."
   }
 ]

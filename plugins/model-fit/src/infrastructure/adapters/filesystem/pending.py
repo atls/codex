@@ -39,7 +39,7 @@ def load_pending(path: Path) -> dict[str, Any] | None:
 
 
 def save_pending(path: Path, request: dict[str, Any], result: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=448)
     data = {
         "prompt_hash": prompt_hash(request["task"]),
         "active_profile": request["active_profile"],

@@ -1,12 +1,10 @@
 import importlib.util
-import sys
-from pathlib import Path
-
-
 import os
 import stat
+import sys
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -50,7 +48,7 @@ class AuthIsolationTests(unittest.TestCase):
                     try:
                         isolated = Path(app.home.name) / "auth.json"
                         self.assertFalse(isolated.is_symlink())
-                        self.assertEqual(stat.S_IMODE(isolated.stat().st_mode), 0o600)
+                        self.assertEqual(stat.S_IMODE(isolated.stat().st_mode), 384)
                         isolated.write_text('{"auth_mode":"fixture-replacement"}')
                         self.assertEqual(source.read_bytes(), original)
                     finally:
@@ -71,7 +69,7 @@ class AuthIsolationTests(unittest.TestCase):
             def execute(command, **kwargs):
                 isolated = Path(kwargs["env"]["CODEX_HOME"]) / "auth.json"
                 self.assertFalse(isolated.is_symlink())
-                self.assertEqual(stat.S_IMODE(isolated.stat().st_mode), 0o600)
+                self.assertEqual(stat.S_IMODE(isolated.stat().st_mode), 384)
                 isolated.write_text('{"auth_mode":"fixture-replacement"}')
                 Path(command[command.index("--output-last-message") + 1]).write_text(
                     '{"verdict":"relevant"}'

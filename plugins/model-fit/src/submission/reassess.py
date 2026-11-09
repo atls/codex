@@ -1,17 +1,22 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from contextlib import AbstractContextManager
 from typing import Any
 
 from model_fit.autoswitch import transitions
-from model_fit.autoswitch.failures.unavailable import SubmissionUnavailable
-from model_fit.autoswitch.ports.conversation import Conversation
-from model_fit.autoswitch.ports.inputs import Inputs
-from model_fit.autoswitch.ports.presentation import Presentation
-from model_fit.autoswitch.ports.recommendations import Recommendations
-from model_fit.autoswitch.ports.store import Store
-from model_fit.autoswitch.requests.prompt import Prompt
+from model_fit.autoswitch.exceptions.unavailable import SubmissionUnavailable
+from model_fit.autoswitch.interfaces.assessment_runner import AssessmentRunner
+from model_fit.autoswitch.interfaces.audit import AuditWriter
+from model_fit.autoswitch.interfaces.context_reader import AssessmentContextReader
+from model_fit.autoswitch.interfaces.conversation_factory import (
+    NativeConversationFactory,
+)
+from model_fit.autoswitch.interfaces.inputs import NativeInputReader
+from model_fit.autoswitch.interfaces.presentation import HookOutputRenderer
+from model_fit.autoswitch.interfaces.prompt import SubmissionInput
+from model_fit.autoswitch.interfaces.recommendations import RecommendationStore
+from model_fit.autoswitch.interfaces.store import TransferStateStore
+from model_fit.autoswitch.types.clock import Clock
 from model_fit.submission.assess import assess_submitted
 
 
@@ -19,25 +24,25 @@ def reassess(
     requirements: str,
     decode,
     *,
-    assessor: Callable[[dict[str, Any]], dict[str, Any]],
+    assessor: AssessmentRunner,
     assessment_failure: tuple[type[Exception], ...],
-    audit: Callable[..., Any],
-    recommendations: Recommendations,
+    audit: AuditWriter,
+    recommendations: RecommendationStore,
     caller_thread: str | None,
-    clock: Callable[[], float],
+    clock: Clock,
     context_failure: type[Exception],
     context_reason: Callable[[Exception, str], str | None],
-    inputs: Inputs,
-    conversation: Callable[[object], AbstractContextManager[Conversation]],
-    presentation: Presentation,
-    read_context: Callable[[Prompt], dict[str, Any]],
-    store: Store,
+    inputs: NativeInputReader,
+    conversation: NativeConversationFactory,
+    presentation: HookOutputRenderer,
+    read_context: AssessmentContextReader,
+    store: TransferStateStore,
     working_directory: Callable[[], str],
 ) -> dict[str, Any]:
     if not isinstance(requirements, str) or not requirements.strip():
         raise ValueError("Changed requirements must be nonempty")
     requirements_context = (
-        "Новые требования, обнаруженные исполнителем после чтения источников (не новое сообщение пользователя):\n"
+        "New requirements discovered by the executor after reading sources (not a new user message):\n"
         + requirements
         + "\n\n"
     )
@@ -72,7 +77,7 @@ def reassess(
         model, effort = app.profile(thread_id)
         parent_id = app.parent_thread_id(thread_id)
     source = inputs.hook_prompt(accepted.source_content)
-    event = Prompt(
+    event = SubmissionInput(
         thread_id,
         turn_id,
         source,

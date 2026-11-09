@@ -1,9 +1,6 @@
 def build(variables, case, entry, config, task, active, sources, rubric):
     assertions = [
-        {
-            "type": "python",
-            "value": "file://assessment/ordinary/assertions.py",
-        },
+        {"type": "python", "value": "file://assessment/ordinary/assertions.py"},
         {
             "type": "llm-rubric",
             "threshold": 1,
@@ -11,4 +8,4 @@ def build(variables, case, entry, config, task, active, sources, rubric):
             "provider": config["judge"],
         },
     ]
-    return variables, assertions
+    return (variables, assertions)

@@ -14,15 +14,15 @@ from model_fit.infrastructure.adapters.filesystem.state import read_state, state
 
 class TransferJourneyTests(unittest.TestCase):
     def test_transfer_preserves_input_replays_once_and_checks_completion(self):
-        thread, source, replay = "journey-thread", "source-turn", "replay-turn"
+        thread, source, replay = ("journey-thread", "source-turn", "replay-turn")
         content = [
-            {"type": "text", "text": "Разбери задачу", "text_elements": []},
+            {"type": "text", "text": "Analyze the task", "text_elements": []},
             {"type": "image", "url": "fixture-image", "detail": None},
         ]
         event = {
             "session_id": thread,
             "turn_id": source,
-            "prompt": "Разбери задачу",
+            "prompt": "Analyze the task",
             "cwd": "/tmp",
             "model": "gpt-6-luna",
         }
@@ -131,8 +131,8 @@ class TransferJourneyTests(unittest.TestCase):
                 native_factory=lambda cwd: reader,
             )
             self.assertIn(
-                "перенос Model Fit завершён",
-                output["hookSpecificOutput"]["additionalContext"],
+                "model fit handoff is complete",
+                output["hookSpecificOutput"]["additionalContext"].casefold(),
             )
             self.assertIsNone(
                 api.guard_tool(
@@ -145,7 +145,7 @@ class TransferJourneyTests(unittest.TestCase):
             )
             self.assertIsNone(
                 api.guard_replay_answer(
-                    {**replay_event, "last_assistant_message": "Ответ"},
+                    {**replay_event, "last_assistant_message": "Answer"},
                     native_factory=lambda cwd: reader,
                 )
             )
@@ -263,8 +263,10 @@ class TransferJourneyTests(unittest.TestCase):
 
     def test_only_lifecycle_persists_application_transfer_state(self):
         directory = (
-            Path(__file__).resolve().parents[4] / "plugins/model-fit"
-        ) / "src/application/handoff"
+            Path(__file__).resolve().parents[4]
+            / "plugins/model-fit"
+            / "src/application/handoff"
+        )
         for path in directory.glob("*.py"):
             if path.name == "lifecycle.py":
                 continue
@@ -274,6 +276,6 @@ class TransferJourneyTests(unittest.TestCase):
                     self.assertFalse(
                         isinstance(node.func.value, ast.Name)
                         and node.func.value.id == "slot"
-                        and node.func.attr in {"save", "clear"},
+                        and (node.func.attr in {"save", "clear"}),
                         str(path),
                     )

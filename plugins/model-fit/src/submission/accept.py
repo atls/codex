@@ -1,33 +1,38 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from contextlib import AbstractContextManager
 from typing import Any
 
 from model_fit.autoswitch import transitions
-from model_fit.autoswitch.ports.conversation import Conversation
-from model_fit.autoswitch.ports.inputs import Inputs
-from model_fit.autoswitch.ports.presentation import Presentation
-from model_fit.autoswitch.ports.recommendations import Recommendations
-from model_fit.autoswitch.ports.store import Store
-from model_fit.autoswitch.prepare import prepare
-from model_fit.autoswitch.requests.prompt import Prompt
+from model_fit.autoswitch.handoff_preparation import prepare
+from model_fit.autoswitch.interfaces.assessment_runner import AssessmentRunner
+from model_fit.autoswitch.interfaces.audit import AuditWriter
+from model_fit.autoswitch.interfaces.context_reader import AssessmentContextReader
+from model_fit.autoswitch.interfaces.conversation_factory import (
+    NativeConversationFactory,
+)
+from model_fit.autoswitch.interfaces.inputs import NativeInputReader
+from model_fit.autoswitch.interfaces.presentation import HookOutputRenderer
+from model_fit.autoswitch.interfaces.prompt import SubmissionInput
+from model_fit.autoswitch.interfaces.recommendations import RecommendationStore
+from model_fit.autoswitch.interfaces.store import TransferStateStore
+from model_fit.autoswitch.types.clock import Clock
 
 
 def submit(
-    event: Prompt,
+    event: SubmissionInput,
     *,
-    assessor: Callable[[dict[str, Any]], dict[str, Any]],
-    audit: Callable[..., Any],
-    recommendations: Recommendations,
-    clock: Callable[[], float],
+    assessor: AssessmentRunner,
+    audit: AuditWriter,
+    recommendations: RecommendationStore,
+    clock: Clock,
     context_failure: type[Exception],
     context_reason: Callable[[Exception, str], str | None],
-    inputs: Inputs,
-    conversation: Callable[[object], AbstractContextManager[Conversation]],
-    presentation: Presentation,
-    read_context: Callable[[Prompt], dict[str, Any]],
-    store: Store,
+    inputs: NativeInputReader,
+    conversation: NativeConversationFactory,
+    presentation: HookOutputRenderer,
+    read_context: AssessmentContextReader,
+    store: TransferStateStore,
 ) -> dict[str, Any] | None:
     audit(
         event.thread_id,
@@ -47,7 +52,7 @@ def submit(
         state = slot.load()
         if slot.unsafe():
             raise ValueError("Unsafe Model Fit state")
-        if event.text.strip() == presentation.control_prompt:
+        if event.text.strip() in presentation.control_prompts:
             if state is not None and state["phase"] == "queued":
                 transitions.continue_transfer(slot, state, event.turn_id)
                 return presentation.queued_context()
@@ -62,7 +67,7 @@ def submit(
                     event.thread_id, event.turn_id, state
                 )
             return presentation.block(
-                "Model Fit: служебный перенос не подготовлен либо новый ввод ещё ожидает оценки."
+                "Model Fit: the service handoff is not prepared, or new input is still awaiting assessment."
             )
         immediate = state is not None and (
             state["phase"] == "attempting"

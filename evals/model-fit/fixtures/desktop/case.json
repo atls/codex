@@ -5,12 +5,12 @@
     "model": "gpt-6.1-sol",
     "effort": "medium"
   },
-  "task": "Из нормализованного массива [{\"state\":\"open\",\"title\":\"Поиск\"},{\"state\":\"closed\",\"title\":\"Архив\"},{\"state\":\"open\",\"title\":\"Экспорт\"}] верни названия открытых задач в исходном порядке и цвет приложенного изображения. Только JSON с titles и color. Все данные приложены, инструменты и публикация не нужны.",
+  "task": "From the normalized array [{\"state\":\"open\",\"title\":\"Search\"},{\"state\":\"closed\",\"title\":\"Archive\"},{\"state\":\"open\",\"title\":\"Export\"}] return the open issue titles in original order and the attached image's color. Return only JSON with titles and color. All data is attached; no tools or publication are needed.",
   "image": "red.png",
   "expected": {
     "titles": [
-      "Поиск",
-      "Экспорт"
+      "Search",
+      "Export"
     ],
     "color": "red"
   },

@@ -13,19 +13,23 @@ def fixture_context(case):
         raise ValueError("Fixture path escapes eval directory")
     source = SUITE / relative
     if not source.resolve().is_relative_to(SUITE.resolve()) or any(
-        (SUITE / Path(*relative.parts[:index])).is_symlink()
-        for index in range(1, len(relative.parts) + 1)
+        (
+            (SUITE / Path(*relative.parts[:index])).is_symlink()
+            for index in range(1, len(relative.parts) + 1)
+        )
     ):
         raise ValueError("Fixture path escapes or contains a symlink")
     if (
         not source.is_dir()
         or source.is_symlink()
-        or any(path.is_symlink() for path in source.rglob("*"))
+        or any((path.is_symlink() for path in source.rglob("*")))
     ):
         raise ValueError("Fixture directory is missing or contains a symlink")
     context = "\n".join(
-        f"<{p.relative_to(source)}>\n{p.read_text()}\n</{p.relative_to(source)}>"
-        for p in sorted(source.rglob("*.md"))
+        (
+            f"<{p.relative_to(source)}>\n{p.read_text()}\n</{p.relative_to(source)}>"
+            for p in sorted(source.rglob("*.md"))
+        )
     )
     if len(context) > 20000:
         raise ValueError("Fixture context exceeds the preflight limit")
@@ -37,7 +41,7 @@ def prepare_workspace(root, identifier, case=None):
         not isinstance(identifier, str)
         or not identifier
         or Path(identifier).name != identifier
-        or identifier in {".", ".."}
+        or (identifier in {".", ".."})
     ):
         raise ValueError("Invalid workspace identity")
     root = Path(root).resolve(strict=True)
@@ -52,7 +56,7 @@ def prepare_workspace(root, identifier, case=None):
         return str(workspace)
     if case and case.get("fixture_directory"):
         fixture_context(case)
-    workspace.mkdir(mode=0o700)
+    workspace.mkdir(mode=448)
     if case and case.get("fixture_directory"):
         relative = Path(case.get("fixture_target", ""))
         if relative.is_absolute() or ".." in relative.parts:

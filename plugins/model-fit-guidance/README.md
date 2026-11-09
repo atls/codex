@@ -19,3 +19,5 @@ Exit codes: 0 for a validated decision, 1 for unavailable assessment (`unknown`)
 The archive includes its runtime and selection rules. Developer evals, benchmarks and the private corpus are not installed. Public Directory upload/review remains separate from a GitHub Release.
 
 When the current speed is unknown, the evaluator output schema permits only null for active and recommended speed. A speed change from unknown state is rejected as UnknownSpeedChange; the CLI does not infer Standard or Fast. Known-speed assessment does not imply automatic Desktop speed switching.
+
+Created by [Torin Asakura](https://github.com/TorinAsakura), published through ATLS. See the [product overview](https://github.com/atls/codex) and [contribution guide](https://github.com/atls/codex/blob/master/CONTRIBUTING.md).

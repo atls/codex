@@ -9,9 +9,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parents[1] / "plugins/model-fit/src"))
 import model_fit.assessment.assess as TRIAGE
 from assessment.scenarios import catalog_models, fixture_context, load_scenarios
-from model_fit.assessment.failures.source_unavailable import (
-    SourceUnavailable,
-)
+from model_fit.assessment.exceptions.source_unavailable import SourceUnavailable
 from model_fit.assessment.validation import empty_decision
 
 
@@ -55,7 +53,7 @@ def provider_evidence(diagnostics, request, prompt, error=None):
     metadata.update(
         {
             "model_turns": sum(
-                event.get("method") == "turn/started" for event in events
+                (event.get("method") == "turn/started" for event in events)
             )
             if isinstance(events, list)
             else 0

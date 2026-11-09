@@ -7,7 +7,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 from assessment import scenarios
-
 from assessment.scenarios import fixtures
 
 
@@ -38,7 +37,7 @@ class ScenarioDataTests(unittest.TestCase):
             (fixtures.SUITE / "fixtures/behavior-calibration.json").read_text()
         )
         self.assertEqual(len({x["id"] for x in controls}), len(controls))
-        self.assertTrue(all(x["case_id"] in cases for x in controls))
+        self.assertTrue(all((x["case_id"] in cases for x in controls)))
         self.assertEqual({x["expected_pass"] for x in controls}, {True, False})
 
     def test_observed_behavior_cases_do_not_whitelist_a_profile(self):

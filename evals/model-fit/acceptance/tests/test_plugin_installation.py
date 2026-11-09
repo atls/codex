@@ -90,9 +90,11 @@ class PluginInstallationTests(unittest.TestCase):
                 )
                 self.assertTrue(
                     all(
-                        hook["source"] == "plugin"
-                        and hook["trustStatus"] == "untrusted"
-                        for hook in hooks
+                        (
+                            hook["source"] == "plugin"
+                            and hook["trustStatus"] == "untrusted"
+                            for hook in hooks
+                        )
                     )
                 )
                 skills = app.call(
@@ -198,12 +200,17 @@ class PluginInstallationTests(unittest.TestCase):
                         }
                     )
                 edits.extend(
-                    {
-                        "keyPath": "hooks.state." + json.dumps(h["key"]),
-                        "value": {"enabled": True, "trusted_hash": h["currentHash"]},
-                        "mergeStrategy": "replace",
-                    }
-                    for h in hooks
+                    (
+                        {
+                            "keyPath": "hooks.state." + json.dumps(h["key"]),
+                            "value": {
+                                "enabled": True,
+                                "trusted_hash": h["currentHash"],
+                            },
+                            "mergeStrategy": "replace",
+                        }
+                        for h in hooks
+                    )
                 )
                 app.call(
                     "config/batchWrite", {"edits": edits, "reloadUserConfig": True}, 10
@@ -218,7 +225,7 @@ class PluginInstallationTests(unittest.TestCase):
                     check=True,
                 )
                 self.assertIn(
-                    "ещё не оценил",
+                    "has not assessed",
                     json.loads(active.stdout)["hookSpecificOutput"][
                         "additionalContext"
                     ],
@@ -312,7 +319,7 @@ class PluginInstallationTests(unittest.TestCase):
                         check=True,
                     )
                     if name == "UserPromptSubmit":
-                        self.assertIn("отключ", result.stdout)
+                        self.assertIn("disabled", result.stdout.casefold())
                     else:
                         self.assertEqual(result.stdout, "")
                 stale = subprocess.run(
@@ -328,7 +335,7 @@ class PluginInstallationTests(unittest.TestCase):
                     text=True,
                     check=True,
                 )
-                self.assertIn("отключ", stale.stdout)
+                self.assertIn("disabled", stale.stdout.casefold())
                 rejected = subprocess.run(
                     [
                         str(plugin_python),
@@ -356,12 +363,16 @@ class PluginInstallationTests(unittest.TestCase):
                     }
                 ]
                 feature_off.extend(
-                    {
-                        "keyPath": "hooks.state." + json.dumps(h["key"]) + ".enabled",
-                        "value": True,
-                        "mergeStrategy": "replace",
-                    }
-                    for h in hooks
+                    (
+                        {
+                            "keyPath": "hooks.state."
+                            + json.dumps(h["key"])
+                            + ".enabled",
+                            "value": True,
+                            "mergeStrategy": "replace",
+                        }
+                        for h in hooks
+                    )
                 )
                 app.call(
                     "config/batchWrite",
@@ -378,7 +389,7 @@ class PluginInstallationTests(unittest.TestCase):
                     text=True,
                     check=True,
                 )
-                self.assertIn("отключ", result.stdout)
+                self.assertIn("disabled", result.stdout.casefold())
                 for path, value in before.items():
                     self.assertEqual(
                         hashlib.sha256(path.read_bytes()).hexdigest(), value

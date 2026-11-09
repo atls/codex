@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable
-
-from model_fit.autoswitch.ports.presentation import Presentation
+from model_fit.autoswitch.interfaces.audit import AuditWriter
+from model_fit.autoswitch.interfaces.presentation import HookOutputRenderer
 
 
 def block_prompt(
@@ -12,8 +11,8 @@ def block_prompt(
     reason: str,
     phase: str,
     *,
-    audit: Callable[..., Any],
-    presentation: Presentation,
+    audit: AuditWriter,
+    presentation: HookOutputRenderer,
 ) -> dict[str, str]:
     audit(
         thread_id,

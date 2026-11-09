@@ -34,7 +34,7 @@ record = {
     "stderr": result.stderr,
 }
 fd = os.open(
-    home / "acceptance-hook-events.jsonl", os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600
+    home / "acceptance-hook-events.jsonl", os.O_WRONLY | os.O_CREAT | os.O_APPEND, 384
 )
 with os.fdopen(fd, "w") as output:
     output.write(json.dumps(record, ensure_ascii=False) + "\n")

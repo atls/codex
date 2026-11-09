@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Task-aware model selection and opt-in profile handoff for Codex Desktop.",
   "author": {
-    "name": "ATLS"
+    "name": "Torin Asakura"
   },
   "repository": "https://github.com/atls/codex",
   "skills": "./skills/",

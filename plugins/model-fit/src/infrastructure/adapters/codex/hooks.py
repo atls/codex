@@ -1,4 +1,4 @@
-"Read current hook admission from Codex without starting a turn."
+"""Read current hook admission from Codex without starting a turn."""
 
 import json
 import os

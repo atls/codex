@@ -48,3 +48,9 @@ uv run acceptance/verify.py
 The runner uses a temporary candidate home and scratch worktree.
 
 The handoff scenarios are in `evals/model-fit/autoswitch/tests/test_transfer_journey.py`. They check the public commands, persistent local state, queueing, and replay. Assessment and context are controlled, as are native RPC calls; these tests do not measure model execution. The suite also checks that an unknown queue outcome prevents a retry.
+
+## Language validation
+
+`fixtures/language-validation.json` records bounded English/Russian synthetic inputs and observations before and after translating the shared instructions. Russian text in those explicitly localized inputs is intentional. Both languages use one maintained assessment implementation; no duplicate runtime port is implied.
+
+The recorded times are elapsed assessment calls, including setup and provider variability, not task-completion or model-latency benchmarks. Reproduce a case by passing its input JSON to the installed explicit CLI with the recorded evaluator model/effort. Native evaluations require a local login and consume model usage. Decision-class preservation is an observation, not a universal correct-model label.

@@ -5,9 +5,11 @@ import time
 import model_fit.infrastructure.adapters.codex.answer as answer_relevance
 from model_fit.answer.check import guard_replay_answer as run_guard_replay_answer
 from model_fit.autoswitch.enqueue import enqueue as run_enqueue
-from model_fit.autoswitch.guards import guard_tool as run_guard_tool
-from model_fit.autoswitch.prepare import prepare as run_prepare
-from model_fit.autoswitch.replay import can_continue_admitted_tool as continue_tool
+from model_fit.autoswitch.handoff_preparation import prepare as run_prepare
+from model_fit.autoswitch.tool_admission import guard_tool as run_guard_tool
+from model_fit.autoswitch.tool_continuation import (
+    can_continue_admitted_tool as continue_tool,
+)
 from model_fit.entrypoints.hooks.actions import NativeActions
 from model_fit.entrypoints.hooks.input import (
     MISSING_DIRECTORY,

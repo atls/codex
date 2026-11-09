@@ -1,4 +1,4 @@
-"Apply automatic hook admission at the executable boundary."
+"""Apply automatic hook admission at the executable boundary."""
 
 import subprocess
 import sys

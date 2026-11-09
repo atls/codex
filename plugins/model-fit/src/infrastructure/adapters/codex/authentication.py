@@ -1,4 +1,4 @@
-"Private credential copy lifecycle for production evaluator subprocesses."
+"""Private credential copy lifecycle for production evaluator subprocesses."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ def authenticated_home(
             raise RuntimeError("Existing Codex login is unavailable")
         destination = Path(temporary.name) / "auth.json"
         shutil.copyfile(source, destination)
-        destination.chmod(0o600)
+        destination.chmod(384)
         return temporary
     except Exception:
         temporary.cleanup()

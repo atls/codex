@@ -1,11 +1,11 @@
-"Read native Desktop state, source messages and queue lifecycle."
+"""Read native Desktop state, source messages and queue lifecycle."""
 
 from __future__ import annotations
 
 import time
 from typing import Any, Iterator
 
-from model_fit.entrypoints.hooks.instructions import CONTROL_PROMPT
+from model_fit.autoswitch.control_message import CONTROL_PROMPTS
 from model_fit.infrastructure.adapters.codex.codec import (
     hook_prompt,
     input_digest,
@@ -89,7 +89,7 @@ def source_input(
     return [
         value
         for message in messages
-        if input_text(message["content"]).strip() != CONTROL_PROMPT
+        if input_text(message["content"]).strip() not in CONTROL_PROMPTS
         for value in message["content"]
     ]
 
@@ -362,10 +362,10 @@ def session_input(event: dict[str, Any]) -> dict[str, Any]:
             ] + turn.get("items", [])
     request = {
         "task": prompt
-        or "Запрос с вложениями без текстового описания; учитывай контекст текущей работы.",
+        or "Attachment-only request; account for the current work context.",
         "active_profile": {"model": model, "effort": effort, "speed": None},
     }
-    context = recent_context(prompt, turns, event.get("turn_id"), CONTROL_PROMPT)
+    context = recent_context(prompt, turns, event.get("turn_id"), CONTROL_PROMPTS)
     if context is not None:
         request["context"] = context
     return request

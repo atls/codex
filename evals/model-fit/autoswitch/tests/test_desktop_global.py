@@ -1,13 +1,11 @@
-import sys
-from pathlib import Path
-
-
 import io
 import json
 import os
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 SCRIPTS = Path(__file__).resolve().parents[1]
@@ -92,7 +90,7 @@ class GlobalHookTests(unittest.TestCase):
                 assess.assert_not_called()
                 queue.assert_not_called()
                 self.assertEqual(status, 1 if arguments[0] == "queue" else 0)
-                self.assertNotIn("пригодность подтверждена", output.getvalue())
+                self.assertNotIn("suitability is confirmed", output.getvalue())
 
     def test_dispatches_all_events_and_chat_paths_in_active_home(self):
         for home in ("/fixture/primary", "/fixture/secondary"):
@@ -186,7 +184,10 @@ class GlobalHookTests(unittest.TestCase):
             ):
                 self.assertEqual(CLI.assess_current(check_admission=True), 0)
             response = json.loads(output.getvalue())
-            self.assertIn("отключ", response["hookSpecificOutput"]["additionalContext"])
+            self.assertIn(
+                "disabled",
+                response["hookSpecificOutput"]["additionalContext"].casefold(),
+            )
             self.assertNotIn("old transfer", output.getvalue())
             audit = json.loads(
                 (
