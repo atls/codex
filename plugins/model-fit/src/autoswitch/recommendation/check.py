@@ -4,13 +4,17 @@ from typing import Any
 
 from model_fit.assessment.validation import validated_active_profile
 from model_fit.autoswitch.state import transitions
-from model_fit.autoswitch.recommendation.record import RecommendationRecord
-from model_fit.autoswitch.handoff.input_reader import NativeInputReader
-from model_fit.autoswitch.state.record import PendingAssessmentRecord
-from model_fit.autoswitch.output import HookOutputRenderer
-from model_fit.submission.input import SubmissionInput
-from model_fit.autoswitch.recommendation.storage import RecommendationStore
-from model_fit.autoswitch.state.storage import TransferStateStore
+from model_fit.autoswitch.recommendation.types.typed_dicts.record import (
+    RecommendationRecord,
+)
+from model_fit.autoswitch.handoff.types.protocols.input_reader import NativeInputReader
+from model_fit.autoswitch.state.types.typed_dicts.record import PendingAssessmentRecord
+from model_fit.autoswitch.types.protocols.output import HookOutputRenderer
+from model_fit.submission.types.dataclasses.input import SubmissionInput
+from model_fit.autoswitch.recommendation.types.protocols.storage import (
+    RecommendationStore,
+)
+from model_fit.autoswitch.state.types.protocols.storage import TransferStateStore
 
 
 def recommended_profile(pending: RecommendationRecord) -> dict[str, Any]:

@@ -5,11 +5,11 @@ from typing import Any, Callable
 
 from model_fit.answer.limits import MAX_REPLAY_EVAL_CHARS
 from model_fit.autoswitch.state import transitions
-from model_fit.answer.input import ReplayAnswerInput
-from model_fit.autoswitch.handoff.conversation import NativeConversation
-from model_fit.autoswitch.handoff.input_reader import NativeInputReader
-from model_fit.autoswitch.output import HookOutputRenderer
-from model_fit.autoswitch.state.storage import TransferStateStore
+from model_fit.answer.types.dataclasses.input import ReplayAnswerInput
+from model_fit.autoswitch.handoff.types.protocols.conversation import NativeConversation
+from model_fit.autoswitch.handoff.types.protocols.input_reader import NativeInputReader
+from model_fit.autoswitch.types.protocols.output import HookOutputRenderer
+from model_fit.autoswitch.state.types.protocols.storage import TransferStateStore
 
 
 def guard_replay_answer(

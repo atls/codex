@@ -1,7 +1,7 @@
 from typing import TypedDict
 
-from model_fit.assessment.decision import AssessmentDecision
-from model_fit.assessment.profile import ActiveProfile
+from model_fit.assessment.types.typed_dicts.decision import AssessmentDecision
+from model_fit.assessment.types.typed_dicts.profile import ActiveProfile
 
 
 class RecommendationRecord(TypedDict):

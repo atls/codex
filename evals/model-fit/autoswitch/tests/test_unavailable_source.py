@@ -1,4 +1,4 @@
-"""Exact capability fallback and protected handoff regression checks."""
+"""Unavailable native history and protected handoff behavior with simulated API failures."""
 
 import io
 import json
@@ -25,7 +25,7 @@ import model_fit.infrastructure.adapters.filesystem.state as HANDOFF_STATE
 from model_fit.entrypoints.hooks import lifecycle as CLI
 
 
-class SidechatFallbackTests(unittest.TestCase):
+class UnavailableSourceTests(unittest.TestCase):
     event = {
         "hook_event_name": "UserPromptSubmit",
         "session_id": "thread",

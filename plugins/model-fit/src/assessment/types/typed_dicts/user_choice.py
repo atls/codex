@@ -1,6 +1,6 @@
 from typing import Literal, TypedDict
 
-from model_fit.assessment.profile import ActiveProfile
+from model_fit.assessment.types.typed_dicts.profile import ActiveProfile
 
 
 class RetainedProfileChoice(TypedDict):

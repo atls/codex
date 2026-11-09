@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import Callable
 
 from model_fit.autoswitch.state import transitions
-from model_fit.autoswitch.handoff.conversation import (
+from model_fit.autoswitch.handoff.types.protocols.conversation import (
     NativeConversationFactory,
 )
-from model_fit.autoswitch.handoff.input_reader import NativeInputReader
-from model_fit.autoswitch.state.storage import TransferStateStore
+from model_fit.autoswitch.handoff.types.protocols.input_reader import NativeInputReader
+from model_fit.autoswitch.state.types.protocols.storage import TransferStateStore
 from model_fit.autoswitch.handoff.expiry import HANDOFF_TTL_SECONDS
-from model_fit.autoswitch.handoff.clock import Clock
+from model_fit.autoswitch.handoff.types.aliases.clock import Clock
 
 
 def enqueue(

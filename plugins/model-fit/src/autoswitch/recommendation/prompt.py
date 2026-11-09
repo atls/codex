@@ -3,8 +3,10 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from model_fit.assessment.validation import RECOMMENDATIONS
-from model_fit.autoswitch.recommendation.storage import RecommendationStore
-from model_fit.autoswitch.output import HookOutputRenderer
+from model_fit.autoswitch.recommendation.types.protocols.storage import (
+    RecommendationStore,
+)
+from model_fit.autoswitch.types.protocols.output import HookOutputRenderer
 from model_fit.autoswitch.recommendation.check import recommended_profile
 
 

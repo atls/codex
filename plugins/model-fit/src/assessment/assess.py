@@ -6,11 +6,11 @@ import hashlib
 import json
 from typing import Any, cast
 
-from model_fit.assessment.catalog import ProfileCatalog
-from model_fit.assessment.decision import AssessmentDecision
-from model_fit.assessment.evaluator import AssessmentEvaluator
-from model_fit.assessment.request import ProfileAssessmentInput
-from model_fit.assessment.sources import AssessmentSources
+from model_fit.assessment.types.protocols.catalog import ProfileCatalog
+from model_fit.assessment.types.typed_dicts.decision import AssessmentDecision
+from model_fit.assessment.types.protocols.evaluator import AssessmentEvaluator
+from model_fit.assessment.types.typed_dicts.request import ProfileAssessmentInput
+from model_fit.assessment.types.protocols.sources import AssessmentSources
 from model_fit.assessment.prompt import assessment_prompt
 from model_fit.assessment.validation import empty_decision, validate, validated_request
 

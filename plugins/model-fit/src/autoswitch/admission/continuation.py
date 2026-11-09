@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from model_fit.autoswitch.admission.tools import TransferTools
-from model_fit.autoswitch.audit import AuditWriter
-from model_fit.autoswitch.output import HookOutputRenderer
-from model_fit.autoswitch.admission.input import ToolAdmissionInput
+from model_fit.autoswitch.admission.types.protocols.tools import TransferTools
+from model_fit.autoswitch.types.protocols.audit import AuditWriter
+from model_fit.autoswitch.types.protocols.output import HookOutputRenderer
+from model_fit.autoswitch.admission.types.dataclasses.input import ToolAdmissionInput
 
 
 def can_continue_admitted_tool(

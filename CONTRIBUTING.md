@@ -46,6 +46,12 @@ Use English for public documentation, skill instructions, production prompts and
 
 Run the relevant deterministic checks for a change. The public test suite makes no model calls. Native model evaluations are separate, require an existing local login and can consume account limits; see the [evaluation guide](evals/model-fit/README.md). Test automatic behavior only in isolated homes and owned test chats, not another person's working conversation.
 
+## Python declaration layout
+
+Keep declarations under the scenario that owns their contract. Make the Python form visible in the path: `types/dataclasses/` for dataclasses, `types/protocols/` for Protocol contracts, `types/typed_dicts/` for dictionary declarations and `types/aliases/` for type aliases. Create only the categories the scenario actually uses. Executable scenario modules stay outside `types/`.
+
+For example, `answer/check.py` executes answer checking; `answer/types/dataclasses/input.py` declares its input. Closely related companion declarations can share a module, such as a conversation protocol and its opening callback. This does not turn data declarations into domain entities or change runtime behavior.
+
 ## Submit a change
 
 Start with an issue, keep the scope focused, and use the repository PR template. Explain the user-visible behavior, reproduction or usage steps, validation and remaining limitations. Wait for CI, review and maintainer acceptance; a green run is not permission to merge or release.

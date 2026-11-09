@@ -1,8 +1,12 @@
 from contextlib import AbstractContextManager
 from typing import Protocol
 from typing import Any
-from model_fit.autoswitch.handoff.accepted_input import AcceptedNativeInput
-from model_fit.autoswitch.handoff.queue_receipt import NativeQueueReceipt
+from model_fit.autoswitch.handoff.types.dataclasses.accepted_input import (
+    AcceptedNativeInput,
+)
+from model_fit.autoswitch.handoff.types.dataclasses.queue_receipt import (
+    NativeQueueReceipt,
+)
 
 
 class NativeConversation(Protocol):
