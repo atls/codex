@@ -1,15 +1,7 @@
-# Согласованная корневая задача
+# Agreed Root Task
 
-Согласовать три связанных контракта review, remediation и change authoring.
-Review классифицирует замечания, remediation реализует только порученные
-исправления, change authoring публикует подготовленную историю.
+Align the three related review, remediation, and change-authoring contracts. Review classifies findings; remediation implements only requested fixes; change authoring publishes prepared history.
 
-Устранить противоречие между передачей actionable feedback и допуском
-следующего раунда. Отдельное разрешение на merge сохранить. Writer готовит
-изменения трёх контрактов, проверку сценариев и отдельный PR в master.
+Resolve the conflict between handing off actionable feedback and admitting the next review round. Preserve merge as a separate, explicitly authorized action. The writer prepares changes to all three contracts, scenario checks, and a separate PR targeting master.
 
-Корень сохраняет собственную часть работы: самостоятельно сопоставить
-кандидат writer со всеми тремя контрактами, разрешить спор о владельце
-передачи feedback и допуске следующего раунда, проверить общие сценарии и
-принять либо отклонить предложенное решение до поставки. Эти решения writer
-не принимает за корень.
+The root agent retains its own work: independently compare the writer's proposal against all three contracts, resolve disagreements about feedback ownership and admitting the next round, verify shared scenarios, and accept or reject the proposal before delivery. The writer does not make those decisions for the root agent.

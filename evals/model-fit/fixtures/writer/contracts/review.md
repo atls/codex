@@ -1,4 +1,3 @@
 # Review
 
-Review читает exact head и возвращает actionable feedback без реализации.
-Следующий раунд получает только подтверждённые findings.
+Review examines the exact head and returns actionable feedback without implementing fixes. The next review round uses only confirmed findings.

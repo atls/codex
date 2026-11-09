@@ -1,15 +1,13 @@
-# Черновик задачи для сравнения профилей
+# Profile Comparison Task Brief
 
-Составь короткий приватный черновик одной задачи на русском языке. Ничего не
-публикуй, не проектируй новую архитектуру и не добавляй требований. Дай заголовок,
-краткое описание и проверяемые критерии приёмки.
+Write a short private draft for one issue in English. Do not publish it, design a new architecture, or add requirements. Include a title, a concise description, and verifiable acceptance criteria.
 
-Готовое решение:
+Established solution:
 
-- Поиск работает только по локальным снимкам двух источников, без сетевых запросов
-- Запрос поддерживает точную фразу и необязательный фильтр по источнику
-- Каждый результат содержит идентификатор источника и фрагмент совпадения
-- После замены снимка старые документы исчезают из выдачи
-- При равной релевантности порядок результатов детерминирован
-- Пустой запрос возвращает явную ошибку
-- Пользовательский интерфейс не входит в задачу
+- Search only local snapshots from two sources; make no network requests
+- Support an exact phrase query and an optional source filter
+- Include the source identifier and matching excerpt with each result
+- Remove documents from the results after their snapshot is replaced
+- Return results in a deterministic order when relevance is tied
+- Return an explicit error for an empty query
+- Keep user interface work out of scope

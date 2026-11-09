@@ -1,4 +1,3 @@
 # Change Authoring
 
-Change authoring публикует подготовленную ветку в PR и перечитывает head, body
-и task relation; merge остаётся отдельным действием.
+Change authoring publishes a prepared branch as a PR and verifies the head, body, and task relation. Merging remains a separate action.

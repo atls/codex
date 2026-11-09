@@ -1,4 +1,3 @@
 # Remediation
 
-Remediation исправляет подтверждённые findings после поручения пользователя и
-не выводит право на merge из права на исправление.
+Remediation fixes confirmed findings after the user authorizes the work. Authorization to fix does not imply authorization to merge.

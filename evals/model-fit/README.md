@@ -1,22 +1,19 @@
-# Эвалы Model Fit
+# Model Fit Evaluations
 
-## Подготовка
+## Setup
 
-Production runtime и hooks находятся в `plugins/model-fit`; skill содержит
-инструкции в `plugins/model-fit/skills/model-fit`.
+Production runtime and hooks live in `plugins/model-fit`; the skill instructions are in `plugins/model-fit/skills/model-fit`.
 
-Требуются Node из диапазона engines.node, проверенная пара Raijin/Yarn, uv и существующий ChatGPT login. Codex CLI закреплён в devDependencies и устанавливается вместе с зависимостями.
-`CODEX_EVAL_HOME` задаёт исходный login. При запуске eval auth копируется во
-временный home с mode 0600; API-key providers отключены.
+Requirements: Node within the package's `engines.node` range, the verified Raijin/Yarn pair, uv, and an existing ChatGPT login. Codex CLI is pinned in `devDependencies` and installed with the project dependencies. `CODEX_EVAL_HOME` selects the source login. Evaluation copies its authentication file into a temporary home with mode 0600; API-key providers are disabled.
 
 ```sh
 yarn install --immutable
 uv sync --locked
 ```
 
-## Запуск
+## Run evaluations
 
-Запускай команды из `evals/model-fit`:
+Run commands from `evals/model-fit`:
 
 ```sh
 yarn run test
@@ -24,23 +21,22 @@ CODEX_EVAL_HOME="$HOME/.codex" yarn validate
 CODEX_EVAL_HOME="$HOME/.codex" yarn eval --no-table --output results/native.json
 ```
 
-| Команда | Назначение |
+| Command | Purpose |
 | --- | --- |
-| `yarn eval` | Native preflight по сценариям |
-| `yarn eval:assessment` | Оценка профиля через production-сценарий |
-| `yarn eval:ordinary` | Обычный диалог без автоматической оценки |
-| `yarn calibrate` | Оценка зафиксированных calibration-примеров |
-| `yarn eval:tasks` | Выполнение фиксированных задач |
-| `yarn regrade` | Повторная оценка сохранённого результата оценки |
+| `yarn eval` | Native preflight against the assessment scenarios |
+| `yarn eval:assessment` | Assess a profile through the production assessment scenario |
+| `yarn eval:ordinary` | Ordinary dialogue without automatic assessment |
+| `yarn calibrate` | Evaluate the saved calibration examples |
+| `yarn eval:tasks` | Execute the defined tasks |
+| `yarn regrade` | Regrade a saved evaluation result |
 
-`MODEL_FIT_REGRADE_FILE` задаёт файл для повторной оценки сохранённого результата.
+Set `MODEL_FIT_REGRADE_FILE` to select the result to regrade.
 
-`yarn run test` запускает публичные проверки без model inference и без приватного корпуса. Fixtures проверяются отдельно от сборки пакетов. Инструменты импорта корпуса, snapshots и анализа SQLite-трасс в публичный репозиторий не входят.
+`yarn run test` runs the public checks without model inference or a private corpus. Fixture validation runs independently of package construction. The public repository does not contain tools for importing private corpus data, managing snapshots, or analyzing SQLite traces.
 
-## Приёмка native media
+## Native media acceptance
 
-`yarn test:acceptance` проверяет native установку и допуск тестового plugin, grader и Promptfoo bridge через echo-provider,
-без model inference. Для отдельного запуска native-host сценария выполни:
+`yarn test:acceptance` checks native installation, test-plugin admission, the grader, and the Promptfoo bridge through the echo provider. It makes no model calls. To run the separate native-host scenario:
 
 ```sh
 MODEL_FIT_ACCEPTANCE_OUTPUT=<private-output-directory> \
@@ -49,11 +45,6 @@ CODEX_EVAL_HOME=<existing-chatgpt-login> \
 uv run acceptance/verify.py
 ```
 
-Runner использует временный candidate home и scratch worktree.
+The runner uses a temporary candidate home and scratch worktree.
 
-
-Сквозные сценарии переноса находятся в
-`evals/model-fit/autoswitch/tests/test_transfer_journey.py`: публичные команды
-проходят оценку, реальное файловое состояние, очередь и replay. Подменяются
-только context/assessment и native RPC; это не проверка исполнения моделей.
-Отдельно проверяется, что неизвестный исход очереди запрещает повтор.
+The handoff scenarios are in `evals/model-fit/autoswitch/tests/test_transfer_journey.py`. They check the public commands, persistent local state, queueing, and replay. Assessment and context are controlled, as are native RPC calls; these tests do not measure model execution. The suite also checks that an unknown queue outcome prevents a retry.

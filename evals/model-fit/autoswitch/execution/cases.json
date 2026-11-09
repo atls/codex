@@ -14,7 +14,7 @@
     "id": "draft-search-issue",
     "source_file": "fixtures/issue-draft/BRIEF.md",
     "prompt": "Выполни поручение из приложенного brief. Верни только JSON с title, context и acceptance (массив строк). Никаких публикаций и инструментов.",
-    "rubric": "The draft preserves all supplied requirements: local snapshots of BOTH sources, no network, exact phrase search, optional source filter, source identifier and matching fragment in each result, replacement removes old documents, deterministic ties, explicit empty-query error, and UI excluded. Do not introduce mandatory test infrastructure, deployment, extra features or approval gates. Grade the drafted task itself, not whether it promises future work. All requirements must be present and no invented deliverables added."
+    "rubric": "The draft is written in English and preserves all supplied requirements: local snapshots of BOTH sources, no network, exact phrase search, optional source filter, source identifier and matching fragment in each result, replacement removes old documents, deterministic ties, explicit empty-query error, and UI excluded. Do not introduce mandatory test infrastructure, deployment, extra features or approval gates. Grade the drafted task itself, not whether it promises future work. All requirements must be present and no invented deliverables added."
   },
   {
     "id": "stale-writer-counterexample",
