@@ -27,6 +27,9 @@ class PluginInstallationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="model-fit-plugin-test-") as directory:
             home = Path(directory) / "home"
             home.mkdir()
+            (home / "config.toml").write_text(
+                "[features]\nplugin_discovery_prefetch = false\n"
+            )
             marketplace_root = Path(directory) / "marketplace"
             index = marketplace_root / ".agents/plugins/marketplace.json"
             index.parent.mkdir(parents=True)
@@ -82,6 +85,10 @@ class PluginInstallationTests(unittest.TestCase):
             with AppServerConnection(
                 process, {"name": "model_fit_plugin_test", "version": "1"}
             ) as app:
+                effective = app.call("config/read", {"includeLayers": False}, 10)[
+                    "config"
+                ]
+                self.assertFalse(effective["features"]["plugin_discovery_prefetch"])
                 groups = app.call("hooks/list", {"cwds": [directory]}, 10)["data"]
                 hooks = [hook for group in groups for hook in group["hooks"]]
                 self.assertEqual(
