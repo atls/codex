@@ -1,6 +1,6 @@
-from model_fit.autoswitch.interfaces.answer_check import ReplayAnswerInput
-from model_fit.autoswitch.interfaces.prompt import SubmissionInput
-from model_fit.autoswitch.interfaces.tool_check import ToolAdmissionInput
+from model_fit.answer.input import ReplayAnswerInput
+from model_fit.submission.input import SubmissionInput
+from model_fit.autoswitch.admission.input import ToolAdmissionInput
 from model_fit.infrastructure.adapters.codex.identity import executor_thread_id
 
 MISSING_DIRECTORY = object()

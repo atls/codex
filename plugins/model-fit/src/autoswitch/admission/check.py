@@ -2,30 +2,30 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from model_fit.autoswitch import transitions
-from model_fit.autoswitch.interfaces.actions import NativeToolMatcher
-from model_fit.autoswitch.interfaces.audit import AuditWriter
-from model_fit.autoswitch.interfaces.conversation_factory import (
+from model_fit.autoswitch.state import transitions
+from model_fit.autoswitch.admission.tools import TransferTools
+from model_fit.autoswitch.audit import AuditWriter
+from model_fit.autoswitch.handoff.conversation import (
     NativeConversationFactory,
 )
-from model_fit.autoswitch.interfaces.presentation import HookOutputRenderer
-from model_fit.autoswitch.interfaces.recommendations import RecommendationStore
-from model_fit.autoswitch.interfaces.store import TransferStateStore
-from model_fit.autoswitch.interfaces.tool_check import ToolAdmissionInput
-from model_fit.autoswitch.recommendation import load_blocking_recommendation
-from model_fit.autoswitch.tool_continuation import (
+from model_fit.autoswitch.output import HookOutputRenderer
+from model_fit.autoswitch.recommendation.storage import RecommendationStore
+from model_fit.autoswitch.state.storage import TransferStateStore
+from model_fit.autoswitch.admission.input import ToolAdmissionInput
+from model_fit.autoswitch.recommendation.check import load_blocking_recommendation
+from model_fit.autoswitch.admission.continuation import (
     can_continue_failed_assessment,
     guard_replay_transfer,
 )
-from model_fit.autoswitch.transfer_authorization import authorize_transfer
-from model_fit.autoswitch.types.clock import Clock
+from model_fit.autoswitch.admission.authorization import authorize_transfer
+from model_fit.autoswitch.handoff.clock import Clock
 
 
 def guard_unprepared_transfer(
     event: ToolAdmissionInput,
     state: dict[str, Any] | None,
     *,
-    actions: NativeToolMatcher,
+    actions: TransferTools,
     audit: AuditWriter,
     presentation: HookOutputRenderer,
 ) -> dict[str, Any] | None:
@@ -49,7 +49,7 @@ def guard_unprepared_transfer(
 def guard_tool(
     event: ToolAdmissionInput,
     *,
-    actions: NativeToolMatcher,
+    actions: TransferTools,
     audit: AuditWriter,
     recommendations: RecommendationStore,
     clock: Clock,

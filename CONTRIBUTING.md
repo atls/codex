@@ -40,7 +40,7 @@ The builder reads plugin sources, manifests and LICENSE. It does not require eva
 
 ## Change behavior carefully
 
-Keep scenarios focused on a user's next task. Data interfaces, technical types, exceptions and adapters should communicate their actual responsibility. Preserve manual profile choice, opaque native input, generation cancellation, one queue/replay cycle and conservative handling of unknown outcomes.
+Keep scenarios focused on a user's next task. Data declarations, protocols, exceptions and adapters should communicate their actual responsibility. Preserve manual profile choice, opaque native input, generation cancellation, one queue/replay cycle and conservative handling of unknown outcomes.
 
 Use English for public documentation, skill instructions, production prompts and explanatory evaluation material. Support for users' other languages is a behavioral requirement to verify, not a reason to duplicate the runtime.
 

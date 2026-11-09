@@ -3,23 +3,23 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from model_fit.autoswitch import transitions
+from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.exceptions.superseded import AssessmentSuperseded
 from model_fit.autoswitch.exceptions.unavailable import SubmissionUnavailable
-from model_fit.autoswitch.handoff_preparation import prepare
-from model_fit.autoswitch.interfaces.assessment_runner import AssessmentRunner
-from model_fit.autoswitch.interfaces.audit import AuditWriter
-from model_fit.autoswitch.interfaces.context_reader import AssessmentContextReader
-from model_fit.autoswitch.interfaces.conversation_factory import (
+from model_fit.autoswitch.handoff.prepare import prepare
+from model_fit.submission.evaluation import AssessmentRunner
+from model_fit.autoswitch.audit import AuditWriter
+from model_fit.submission.evaluation import AssessmentContextReader
+from model_fit.autoswitch.handoff.conversation import (
     NativeConversationFactory,
 )
-from model_fit.autoswitch.interfaces.inputs import NativeInputReader
-from model_fit.autoswitch.interfaces.presentation import HookOutputRenderer
-from model_fit.autoswitch.interfaces.prompt import SubmissionInput
-from model_fit.autoswitch.interfaces.recommendations import RecommendationStore
-from model_fit.autoswitch.interfaces.store import TransferStateStore
-from model_fit.autoswitch.recommendation import blocking_recommendation
-from model_fit.autoswitch.types.clock import Clock
+from model_fit.autoswitch.handoff.input_reader import NativeInputReader
+from model_fit.autoswitch.output import HookOutputRenderer
+from model_fit.submission.input import SubmissionInput
+from model_fit.autoswitch.recommendation.storage import RecommendationStore
+from model_fit.autoswitch.state.storage import TransferStateStore
+from model_fit.autoswitch.recommendation.check import blocking_recommendation
+from model_fit.autoswitch.handoff.clock import Clock
 
 
 def assess_submitted(

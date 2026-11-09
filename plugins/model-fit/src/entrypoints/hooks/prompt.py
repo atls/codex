@@ -7,14 +7,16 @@ import os
 import subprocess
 import sys
 
-from model_fit.autoswitch.prompt_recommendation import decide as decide_prompt
+from model_fit.autoswitch.recommendation.prompt import decide as decide_prompt
 from model_fit.entrypoints.hooks.presentation import HookPresentation
 from model_fit.infrastructure.adapters.codex.assessment import triage
 from model_fit.infrastructure.adapters.codex.codec import prompt_digest as prompt_hash
 from model_fit.infrastructure.adapters.codex.history import session_input
 from model_fit.infrastructure.adapters.codex.identity import executor_thread_id
 from model_fit.infrastructure.adapters.filesystem.audit import record_audit
-from model_fit.infrastructure.adapters.filesystem.bound import FilePending
+from model_fit.infrastructure.adapters.filesystem.recommendations import (
+    FileRecommendations,
+)
 from model_fit.infrastructure.adapters.filesystem.pending import pending_path
 
 PILOT_THREAD_ENV = "MODEL_FIT_PILOT_THREAD"
@@ -23,7 +25,8 @@ PILOT_THREAD_ENV = "MODEL_FIT_PILOT_THREAD"
 def decide(request, path, observe=None):
     return decide_prompt(
         request,
-        recommendation=FilePending(path),
+        thread_id=path.stem,
+        recommendations=FileRecommendations(lambda thread_id: path),
         assessor=triage,
         presentation=HookPresentation(),
         digest=prompt_hash,

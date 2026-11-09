@@ -3,24 +3,25 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from model_fit.assessment.validation import RECOMMENDATIONS
-from model_fit.autoswitch.interfaces.pending import PendingRecommendation
-from model_fit.autoswitch.interfaces.presentation import HookOutputRenderer
-from model_fit.autoswitch.recommendation import recommended_profile
+from model_fit.autoswitch.recommendation.storage import RecommendationStore
+from model_fit.autoswitch.output import HookOutputRenderer
+from model_fit.autoswitch.recommendation.check import recommended_profile
 
 
 def decide(
     request: dict[str, Any],
     *,
-    recommendation: PendingRecommendation,
+    thread_id: str,
+    recommendations: RecommendationStore,
     assessor: Callable,
     presentation: HookOutputRenderer,
     digest: Callable[[str], str],
     observe: Callable[[str], None] | None = None,
 ):
-    pending = recommendation.load()
+    pending = recommendations.load(thread_id)
     if pending is not None and pending["prompt_hash"] != digest(request["task"]):
         try:
-            recommendation.clear()
+            recommendations.clear(thread_id)
         except OSError:
             if observe is not None:
                 observe("blocked_state_error")
@@ -34,7 +35,7 @@ def decide(
                 observe("cached_" + pending["result"]["decision"])
             return presentation.hook_output(pending["result"])
         if recommended_profile(pending) == request["active_profile"]:
-            recommendation.clear(missing_ok=True)
+            recommendations.clear(thread_id, missing_ok=True)
             if observe is not None:
                 observe("selected")
             return None
@@ -44,7 +45,7 @@ def decide(
     output = presentation.hook_output(result)
     if result["decision"] in RECOMMENDATIONS:
         try:
-            recommendation.save(request, result)
+            recommendations.save(thread_id, request, result)
         except OSError:
             if observe is not None:
                 observe("pending_save_error")
@@ -54,5 +55,5 @@ def decide(
                 " The pause state could not be saved; a retry will start assessment again.",
             )
     elif result["decision"] == "keep":
-        recommendation.clear(missing_ok=True)
+        recommendations.clear(thread_id, missing_ok=True)
     return output

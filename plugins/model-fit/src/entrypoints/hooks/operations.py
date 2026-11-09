@@ -4,13 +4,13 @@ import time
 
 import model_fit.infrastructure.adapters.codex.answer as answer_relevance
 from model_fit.answer.check import guard_replay_answer as run_guard_replay_answer
-from model_fit.autoswitch.enqueue import enqueue as run_enqueue
-from model_fit.autoswitch.handoff_preparation import prepare as run_prepare
-from model_fit.autoswitch.tool_admission import guard_tool as run_guard_tool
-from model_fit.autoswitch.tool_continuation import (
+from model_fit.autoswitch.handoff.enqueue import enqueue as run_enqueue
+from model_fit.autoswitch.handoff.prepare import prepare as run_prepare
+from model_fit.autoswitch.admission.check import guard_tool as run_guard_tool
+from model_fit.autoswitch.admission.continuation import (
     can_continue_admitted_tool as continue_tool,
 )
-from model_fit.entrypoints.hooks.actions import NativeActions
+from model_fit.infrastructure.adapters.hooks.tools import NativeTransferTools
 from model_fit.entrypoints.hooks.input import (
     MISSING_DIRECTORY,
     answer_input,
@@ -87,7 +87,7 @@ def enqueue_handoff(thread_id, turn_id, *, native_factory=None):
 def guard_tool(event):
     return run_guard_tool(
         tool_input(event),
-        actions=NativeActions(),
+        actions=NativeTransferTools(),
         audit=record_audit,
         recommendations=FileRecommendations(),
         clock=time.time,
@@ -189,5 +189,5 @@ def can_continue_admitted_tool(event):
     return continue_tool(
         tool_input(event),
         FileStore().snapshot(tool_input(event).thread_id),
-        actions=NativeActions(),
+        actions=NativeTransferTools(),
     )

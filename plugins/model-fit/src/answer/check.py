@@ -4,12 +4,12 @@ from contextlib import AbstractContextManager
 from typing import Any, Callable
 
 from model_fit.answer.limits import MAX_REPLAY_EVAL_CHARS
-from model_fit.autoswitch import transitions
-from model_fit.autoswitch.interfaces.answer_check import ReplayAnswerInput
-from model_fit.autoswitch.interfaces.conversation import NativeConversation
-from model_fit.autoswitch.interfaces.inputs import NativeInputReader
-from model_fit.autoswitch.interfaces.presentation import HookOutputRenderer
-from model_fit.autoswitch.interfaces.store import TransferStateStore
+from model_fit.autoswitch.state import transitions
+from model_fit.answer.input import ReplayAnswerInput
+from model_fit.autoswitch.handoff.conversation import NativeConversation
+from model_fit.autoswitch.handoff.input_reader import NativeInputReader
+from model_fit.autoswitch.output import HookOutputRenderer
+from model_fit.autoswitch.state.storage import TransferStateStore
 
 
 def guard_replay_answer(

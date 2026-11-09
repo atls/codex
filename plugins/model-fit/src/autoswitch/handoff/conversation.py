@@ -1,7 +1,8 @@
-from typing import Any, Protocol
-
-from model_fit.autoswitch.interfaces.accepted_input import AcceptedNativeInput
-from model_fit.autoswitch.interfaces.receipt import NativeQueueReceipt
+from contextlib import AbstractContextManager
+from typing import Protocol
+from typing import Any
+from model_fit.autoswitch.handoff.accepted_input import AcceptedNativeInput
+from model_fit.autoswitch.handoff.queue_receipt import NativeQueueReceipt
 
 
 class NativeConversation(Protocol):
@@ -42,3 +43,9 @@ class NativeConversation(Protocol):
     def unsubmitted_successor(
         self, thread_id: str, source_turn_id: str, current_turn_id: str
     ) -> bool: ...
+
+
+class NativeConversationFactory(Protocol):
+    def __call__(
+        self, cwd: object, /
+    ) -> AbstractContextManager[NativeConversation]: ...

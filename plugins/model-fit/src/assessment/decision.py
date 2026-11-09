@@ -1,6 +1,10 @@
+from typing import Literal, TypeAlias
 from typing import TypedDict
 
-from model_fit.assessment.types.decision_kind import DecisionKind
+
+DecisionKind: TypeAlias = Literal[
+    "keep", "unknown", "recommend_lighter", "recommend_stronger", "recommend_faster"
+]
 
 
 class AssessmentDecision(TypedDict):

@@ -2,29 +2,29 @@ from __future__ import annotations
 
 from typing import Any
 
-from model_fit.assessment.interfaces.decision import AssessmentDecision
-from model_fit.assessment.interfaces.request import ProfileAssessmentInput
+from model_fit.assessment.decision import AssessmentDecision
+from model_fit.assessment.request import ProfileAssessmentInput
 from model_fit.assessment.validation import RECOMMENDATIONS
-from model_fit.autoswitch import transitions
+from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.denial import block_prompt
-from model_fit.autoswitch.interfaces.audit import AuditWriter
-from model_fit.autoswitch.interfaces.conversation_factory import (
+from model_fit.autoswitch.audit import AuditWriter
+from model_fit.autoswitch.handoff.conversation import (
     NativeConversationFactory,
 )
-from model_fit.autoswitch.interfaces.handoff_state import HandoffStateRecord
-from model_fit.autoswitch.interfaces.inputs import NativeInputReader
-from model_fit.autoswitch.interfaces.pending_assessment import PendingAssessmentRecord
-from model_fit.autoswitch.interfaces.presentation import HookOutputRenderer
-from model_fit.autoswitch.interfaces.prompt import SubmissionInput
-from model_fit.autoswitch.interfaces.recommendation_record import RecommendationRecord
-from model_fit.autoswitch.interfaces.recommendations import RecommendationStore
-from model_fit.autoswitch.interfaces.store import TransferStateStore
-from model_fit.autoswitch.recommendation import (
+from model_fit.autoswitch.state.record import HandoffStateRecord
+from model_fit.autoswitch.handoff.input_reader import NativeInputReader
+from model_fit.autoswitch.state.record import PendingAssessmentRecord
+from model_fit.autoswitch.output import HookOutputRenderer
+from model_fit.submission.input import SubmissionInput
+from model_fit.autoswitch.recommendation.record import RecommendationRecord
+from model_fit.autoswitch.recommendation.storage import RecommendationStore
+from model_fit.autoswitch.state.storage import TransferStateStore
+from model_fit.autoswitch.recommendation.check import (
     blocking_recommendation,
     load_blocking_recommendation,
     retain_manual_recommendation,
 )
-from model_fit.autoswitch.types.clock import Clock
+from model_fit.autoswitch.handoff.clock import Clock
 
 
 def apply_assessment(

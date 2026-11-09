@@ -5,17 +5,21 @@
 | Responsibility | Implementation |
 | --- | --- |
 | Assess a task and profile | `assessment/assess.py`, `prompt.py`, `validation.py` |
-| Assessment input/output interfaces | `assessment/interfaces/` |
+| Assessment inputs, decisions and dependencies | `assessment/request.py`, `decision.py`, `profile.py`, `user_choice.py`, `evaluator.py`, `sources.py`, `catalog.py` |
 | Typed assessment stop conditions | `assessment/exceptions/` |
 | Register, assess or reassess accepted input | `submission/accept.py`, `assess.py`, `reassess.py` |
 | Read relevant prior work | `submission/context.py` |
-| Prepare profile handoff | `autoswitch/handoff_preparation.py`, `assessment_outcome.py` |
-| Admit tools | `autoswitch/tool_admission.py`, `tool_continuation.py` |
-| Authorize a prepared transfer | `autoswitch/transfer_authorization.py` |
-| Retain prompt-hook recommendations | `autoswitch/prompt_recommendation.py` |
-| Enqueue the accepted native input once | `autoswitch/enqueue.py`, `queue_expiry.py` |
-| Own durable handoff transitions | `autoswitch/transitions.py` |
-| Data and callback interfaces | `autoswitch/interfaces/` |
+| Prepare profile handoff | `autoswitch/handoff/prepare.py`, `assessment_outcome.py` |
+| Admit tools | `autoswitch/admission/check.py`, `autoswitch/admission/continuation.py` |
+| Authorize a prepared transfer | `autoswitch/admission/authorization.py` |
+| Retain prompt-hook recommendations | `autoswitch/recommendation/prompt.py` |
+| Enqueue the accepted native input once | `autoswitch/handoff/enqueue.py`, `autoswitch/handoff/expiry.py` |
+| Own durable handoff transitions | `autoswitch/state/transitions.py` |
+| Accepted submission and assessment callbacks | `submission/input.py`, `evaluation.py` |
+| Native conversation and its opening contract | `autoswitch/handoff/conversation.py` |
+| Recommendation persistence contract and record | `autoswitch/recommendation/storage.py`, `record.py` |
+| Transaction storage and companion slot | `autoswitch/state/storage.py` |
+| Handoff state and pending assessment | `autoswitch/state/record.py` |
 | Typed submission stop conditions | `autoswitch/exceptions/` |
 | Check a bound replay answer | `answer/check.py`, `limits.py`, `relevance.schema.json` |
 | Native Codex profile/history/input and assessment IO | `infrastructure/adapters/codex/` |
@@ -23,11 +27,11 @@
 | Explicit assessment CLI | `entrypoints/cli/assess.py` |
 | Hook and technical CLI composition | `entrypoints/hooks/` |
 
-Interfaces describe data or callable contracts, not domain entities. `TypedDict`, dataclass and Protocol are Python representations of those established roles. The scenarios receive explicit dependencies; there is no global Dependencies container or forwarding Lifecycle class. The original native event reaches the context reader without discarding unknown fields. Media remains opaque native input.
+Declarations live with the scenario that consumes them. `TypedDict` describes dictionary data, dataclass describes runtime data values, and Protocol describes required dependency behavior. Conversation and its opener share one contract module; transaction storage and its slot share another. Recommendation handling uses one thread-keyed storage contract. The scenarios receive explicit dependencies; there is no global Dependencies container or forwarding Lifecycle class. The original native event reaches the context reader without discarding unknown fields. Media remains opaque native input.
 
 ## State ownership
 
-`autoswitch/transitions.py` owns changes for one actual Codex executor; parent session ID is provenance. The filesystem implementation owns locking and atomic persistence. Assessment generation survives removal of pending state. A superseded assessment cannot modify newer input.
+`autoswitch/state/transitions.py` owns changes for one actual Codex executor; parent session ID is provenance. The filesystem implementation owns locking and atomic persistence. Assessment generation survives removal of pending state. A superseded assessment cannot modify newer input.
 
 | State | Meaning |
 | --- | --- |

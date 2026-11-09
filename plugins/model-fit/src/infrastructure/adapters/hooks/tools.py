@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from typing import Any, cast
 
-from model_fit.autoswitch.control_message import CONTROL_PROMPTS
+from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPTS
 from model_fit.entrypoints.hooks.instructions import (
     CONTROL_PROMPT,
     assessment_command,
@@ -12,7 +12,7 @@ from model_fit.entrypoints.hooks.instructions import (
 from model_fit.entrypoints.hooks.native_contract import PROFILE_SWITCH_TOOLS
 
 
-class NativeActions:
+class NativeTransferTools:
     @staticmethod
     def _command_arguments(value: object) -> list[str] | None:
         if not isinstance(value, str):

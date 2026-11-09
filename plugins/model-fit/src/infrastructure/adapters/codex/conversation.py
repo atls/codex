@@ -1,7 +1,7 @@
 import model_fit.infrastructure.adapters.codex.chat_profile as native_settings
 import model_fit.infrastructure.adapters.codex.history as conversation
-from model_fit.autoswitch.interfaces.accepted_input import AcceptedNativeInput
-from model_fit.autoswitch.interfaces.receipt import NativeQueueReceipt
+from model_fit.autoswitch.handoff.accepted_input import AcceptedNativeInput
+from model_fit.autoswitch.handoff.queue_receipt import NativeQueueReceipt
 
 
 class ConversationGateway:

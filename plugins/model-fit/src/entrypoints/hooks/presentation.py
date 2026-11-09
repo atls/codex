@@ -1,4 +1,4 @@
-from model_fit.autoswitch.control_message import CONTROL_PROMPT, CONTROL_PROMPTS
+from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPT, CONTROL_PROMPTS
 from model_fit.entrypoints.hooks import instructions, response
 
 

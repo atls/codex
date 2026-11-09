@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from typing import Any, Iterator
 
-from model_fit.autoswitch.control_message import CONTROL_PROMPTS
+from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPTS
 from model_fit.infrastructure.adapters.codex.codec import (
     hook_prompt,
     input_digest,

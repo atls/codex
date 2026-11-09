@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from model_fit.autoswitch.interfaces.audit import AuditWriter
-from model_fit.autoswitch.interfaces.presentation import HookOutputRenderer
+from model_fit.autoswitch.audit import AuditWriter
+from model_fit.autoswitch.output import HookOutputRenderer
 
 
 def block_prompt(

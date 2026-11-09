@@ -1295,7 +1295,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             return True
 
         with patch.object(
-            HANDOFF_GUARDS.NativeActions, "matches_queue", side_effect=changed
+            HANDOFF_GUARDS.NativeTransferTools, "matches_queue", side_effect=changed
         ):
             result = HANDOFF_GUARDS.guard_tool(
                 {

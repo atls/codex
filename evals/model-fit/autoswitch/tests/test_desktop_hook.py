@@ -417,6 +417,47 @@ class DesktopHookTests(unittest.TestCase):
         )
         triage.assert_not_called()
 
+    def test_selected_profile_clears_only_its_thread_through_shared_storage(self):
+        from model_fit.infrastructure.adapters.filesystem.recommendations import (
+            FileRecommendations,
+        )
+
+        request = {"task": self.event["prompt"], "active_profile": self.active}
+        decision = {
+            "decision": "recommend_stronger",
+            "active_model": "gpt-6-luna",
+            "active_effort": "low",
+            "recommended_model": "gpt-6.1-sol",
+            "recommended_effort": "medium",
+            "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+            "official_guidance": "Select the profile for the next task.",
+            "task_inference": "The next task needs a stronger profile.",
+            "reason": "The next task needs a stronger profile.",
+        }
+        with tempfile.TemporaryDirectory() as home:
+            with patch.dict(os.environ, {"CODEX_HOME": home}):
+                store = FileRecommendations()
+                store.save("thread-a", request, decision)
+                store.save("thread-b", request, decision)
+                other_before = HOOK.pending_path("thread-b").read_bytes()
+                selected = {
+                    **request,
+                    "active_profile": {
+                        "model": "gpt-6.1-sol",
+                        "effort": "medium",
+                        "speed": None,
+                    },
+                }
+                with patch.object(HOOK, "triage") as triage:
+                    self.assertIsNone(
+                        HOOK.decide(selected, HOOK.pending_path("thread-a"))
+                    )
+                    triage.assert_not_called()
+                self.assertIsNone(store.load("thread-a"))
+                self.assertEqual(
+                    HOOK.pending_path("thread-b").read_bytes(), other_before
+                )
+
     def test_pending_mismatch_blocks_retry_without_another_model_call(self):
         request = {"task": self.event["prompt"], "active_profile": self.active}
         decision = {

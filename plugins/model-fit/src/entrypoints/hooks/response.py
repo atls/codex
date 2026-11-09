@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from model_fit.autoswitch.control_message import CONTROL_PROMPTS
+from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPTS
 
 """Render Model Fit outcomes as native hook responses."""
 

@@ -1,9 +1,9 @@
 from typing import Any, Protocol
 
-from model_fit.autoswitch.interfaces.tool_check import ToolAdmissionInput
+from model_fit.autoswitch.admission.input import ToolAdmissionInput
 
 
-class NativeToolMatcher(Protocol):
+class TransferTools(Protocol):
     def matches_assessment(self, request: ToolAdmissionInput) -> bool: ...
 
     def bound_transfer_input(

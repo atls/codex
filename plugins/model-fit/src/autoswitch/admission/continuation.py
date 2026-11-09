@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from model_fit.autoswitch.interfaces.actions import NativeToolMatcher
-from model_fit.autoswitch.interfaces.audit import AuditWriter
-from model_fit.autoswitch.interfaces.presentation import HookOutputRenderer
-from model_fit.autoswitch.interfaces.tool_check import ToolAdmissionInput
+from model_fit.autoswitch.admission.tools import TransferTools
+from model_fit.autoswitch.audit import AuditWriter
+from model_fit.autoswitch.output import HookOutputRenderer
+from model_fit.autoswitch.admission.input import ToolAdmissionInput
 
 
 def can_continue_admitted_tool(
     event: ToolAdmissionInput,
     state: dict[str, Any] | None,
     *,
-    actions: NativeToolMatcher,
+    actions: TransferTools,
 ) -> bool:
     if can_continue_failed_assessment(event, state, actions=actions):
         return True
@@ -35,7 +35,7 @@ def guard_replay_transfer(
     event: ToolAdmissionInput,
     state: dict[str, Any] | None,
     *,
-    actions: NativeToolMatcher,
+    actions: TransferTools,
     audit: AuditWriter,
     presentation: HookOutputRenderer,
 ) -> dict[str, Any] | None:
@@ -63,7 +63,7 @@ def can_continue_failed_assessment(
     event: ToolAdmissionInput,
     state: dict[str, Any] | None,
     *,
-    actions: NativeToolMatcher,
+    actions: TransferTools,
 ) -> bool:
     pending = state.get("pending_assessment") if state else None
     return bool(

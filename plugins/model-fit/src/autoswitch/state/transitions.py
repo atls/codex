@@ -4,9 +4,9 @@ from typing import Any
 from uuid import uuid4
 
 from model_fit.autoswitch.exceptions.superseded import AssessmentSuperseded
-from model_fit.autoswitch.interfaces.pending_assessment import PendingAssessmentRecord
-from model_fit.autoswitch.interfaces.prompt import SubmissionInput
-from model_fit.autoswitch.interfaces.state import TransferStateSlot
+from model_fit.autoswitch.state.record import PendingAssessmentRecord
+from model_fit.submission.input import SubmissionInput
+from model_fit.autoswitch.state.storage import TransferStateSlot
 
 
 def require_submission(

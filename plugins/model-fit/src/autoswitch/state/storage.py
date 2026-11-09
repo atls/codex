@@ -1,7 +1,15 @@
-from contextlib import AbstractContextManager
 from typing import Any, Protocol
+from contextlib import AbstractContextManager
 
-from model_fit.autoswitch.interfaces.state import TransferStateSlot
+
+class TransferStateSlot(Protocol):
+    def load(self) -> dict[str, Any] | None: ...
+
+    def save(self, value: dict[str, Any]) -> None: ...
+
+    def clear(self) -> None: ...
+
+    def unsafe(self) -> bool: ...
 
 
 class TransferStateStore(Protocol):

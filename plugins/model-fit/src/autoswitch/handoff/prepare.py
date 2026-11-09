@@ -2,26 +2,26 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from model_fit.autoswitch import transitions
+from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.assessment_outcome import apply_assessment
 from model_fit.autoswitch.denial import block_prompt
-from model_fit.autoswitch.interfaces.assessment_runner import AssessmentRunner
-from model_fit.autoswitch.interfaces.audit import AuditWriter
-from model_fit.autoswitch.interfaces.context_reader import AssessmentContextReader
-from model_fit.autoswitch.interfaces.conversation_factory import (
+from model_fit.submission.evaluation import AssessmentRunner
+from model_fit.autoswitch.audit import AuditWriter
+from model_fit.submission.evaluation import AssessmentContextReader
+from model_fit.autoswitch.handoff.conversation import (
     NativeConversationFactory,
 )
-from model_fit.autoswitch.interfaces.inputs import NativeInputReader
-from model_fit.autoswitch.interfaces.pending_assessment import PendingAssessmentRecord
-from model_fit.autoswitch.interfaces.presentation import HookOutputRenderer
-from model_fit.autoswitch.interfaces.prompt import SubmissionInput
-from model_fit.autoswitch.interfaces.recommendations import RecommendationStore
-from model_fit.autoswitch.interfaces.store import TransferStateStore
-from model_fit.autoswitch.recommendation import (
+from model_fit.autoswitch.handoff.input_reader import NativeInputReader
+from model_fit.autoswitch.state.record import PendingAssessmentRecord
+from model_fit.autoswitch.output import HookOutputRenderer
+from model_fit.submission.input import SubmissionInput
+from model_fit.autoswitch.recommendation.storage import RecommendationStore
+from model_fit.autoswitch.state.storage import TransferStateStore
+from model_fit.autoswitch.recommendation.check import (
     blocking_recommendation,
     load_blocking_recommendation,
 )
-from model_fit.autoswitch.types.clock import Clock
+from model_fit.autoswitch.handoff.clock import Clock
 
 
 def prepare(

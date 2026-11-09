@@ -2,7 +2,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from model_fit.assessment.exceptions.unknown_speed_change import UnknownSpeedChange
-from model_fit.assessment.interfaces.catalog import ProfileCatalog
+from model_fit.assessment.catalog import ProfileCatalog
 
 
 def validated_active_profile(request: Any) -> dict[str, Any]:

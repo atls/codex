@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from model_fit.autoswitch import transitions
-from model_fit.autoswitch.interfaces.audit import AuditWriter
-from model_fit.autoswitch.interfaces.presentation import HookOutputRenderer
-from model_fit.autoswitch.interfaces.store import TransferStateStore
-from model_fit.autoswitch.interfaces.tool_check import ToolAdmissionInput
-from model_fit.autoswitch.types.clock import Clock
+from model_fit.autoswitch.state import transitions
+from model_fit.autoswitch.audit import AuditWriter
+from model_fit.autoswitch.output import HookOutputRenderer
+from model_fit.autoswitch.state.storage import TransferStateStore
+from model_fit.autoswitch.admission.input import ToolAdmissionInput
+from model_fit.autoswitch.handoff.clock import Clock
 
 
 def authorize_transfer(
