@@ -24,7 +24,8 @@ The verified environment is macOS. Live config, authentication and `.tmp/` are l
 Once the user authorizes automatic handoff, the hook determines whether a profile change is needed. Follow the exact `additionalContext` instruction:
 
 1. Run the supplied `assess` command. It reads the complete message accepted by Codex; UserPromptSubmit does not yet supply that native body. Task tools and the answer are guarded until assessment completes
-2. For a recommendation, call native `send_message_to_thread` for the same chat with the specified model/effort and service message
+2. For a recommendation, call the `codex_app` MCP server tool `mcp__codex_app__send_message_to_thread` (`codex_app.send_message_to_thread`), not its same-named dynamic app route for the same chat with the specified model/effort and service message
+An explicit rejection of the dynamic route with “Use the codex_app MCP server” is not a failed MCP capability. Make one call through the MCP tool with the same prepared arguments. Do not retry a successful or uncertain switch, and do not queue after a rejected call.
 3. Run the supplied `queue` command with unchanged arguments
 4. End the technical turn. Perform the original task only in the confirmed continuation after the profile change
 
