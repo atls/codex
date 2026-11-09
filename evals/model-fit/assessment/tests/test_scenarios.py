@@ -50,3 +50,16 @@ class ScenarioDataTests(unittest.TestCase):
         source = '<codex_catalog>{"models":[{"slug":"same"},{"slug":"same"}]}</codex_catalog>'
         with self.assertRaises(ValueError):
             scenarios.catalog_models(source)
+
+
+class BoundedStackContractTests(unittest.TestCase):
+    def test_bounded_slice_allows_retention_or_reduction_not_aggregate_escalation(self):
+        from assessment.scenarios import load_scenarios
+        from assessment.scenarios.expectations import assert_expected_decision
+
+        case = load_scenarios(["bounded-stack-step"])[0]
+        active = {key: case[key] for key in ("model", "effort", "speed")}
+        for decision in ("keep", "recommend_lighter"):
+            assert_expected_decision({"decision": decision}, active, case)
+        with self.assertRaises(ValueError):
+            assert_expected_decision({"decision": "recommend_stronger"}, active, case)

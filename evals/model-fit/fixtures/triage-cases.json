@@ -45,7 +45,11 @@
   {
     "id": "bounded-stack-step",
     "base_case_id": "aggregate-stack-length",
-    "expected_decision": "keep"
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter"
+    ],
+    "expected": "Assess the one bounded reversible slice. Keeping a justified profile or reducing model/effort with source-grounded reasons is acceptable; do not escalate from the total fourteen-PR chain. Model and effort are independent and no exact target is prescribed."
   },
   {
     "id": "already-active-web",
