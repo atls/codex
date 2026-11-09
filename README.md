@@ -2,11 +2,7 @@
 
 **Choose a model for the work you are about to do, and keep your own choice in control.**
 
-<img src="plugins/model-fit/assets/icon.png" alt="ATLS mark" width="80" />
-
 Model Fit helps Codex decide when a task needs a more capable model, when a lighter profile is enough, and how much reasoning effort the next step warrants. You can ask for a recommendation explicitly or enable automatic assessment before work starts.
-
-Created by [Torin Asakura](https://github.com/TorinAsakura), published through [ATLS](https://github.com/atls).
 
 ## Why it exists
 
@@ -75,6 +71,6 @@ The verified local baseline is documented in the [automatic integration guide](p
 
 ## Help improve it
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, tests, bug reports and the PR workflow. Public synthetic evaluations are included for reproducibility. Private conversation corpora, credentials and real attachment payloads are not published or installed with either package.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, tests, bug reports and the PR workflow. Public synthetic evaluations are included for reproducibility.
 
 Releases attach both versioned plugin archives. See [LICENSE](LICENSE) for the BSD-3-Clause terms.
