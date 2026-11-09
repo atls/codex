@@ -2,33 +2,33 @@ from __future__ import annotations
 
 from typing import Any
 
-from model_fit.assessment.types.typed_dicts.decision import AssessmentDecision
-from model_fit.assessment.types.typed_dicts.request import ProfileAssessmentInput
+from model_fit.assessment.types.decision import AssessmentDecision
+from model_fit.assessment.types.request import ProfileAssessmentInput
 from model_fit.assessment.validation import RECOMMENDATIONS
 from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.denial import block_prompt
-from model_fit.autoswitch.types.protocols.audit import AuditWriter
-from model_fit.autoswitch.handoff.types.protocols.conversation import (
+from model_fit.autoswitch.types.audit import AuditWriter
+from model_fit.autoswitch.handoff.types.conversation import (
     NativeConversationFactory,
 )
-from model_fit.autoswitch.state.types.typed_dicts.record import HandoffStateRecord
-from model_fit.autoswitch.handoff.types.protocols.input_reader import NativeInputReader
-from model_fit.autoswitch.state.types.typed_dicts.record import PendingAssessmentRecord
-from model_fit.autoswitch.types.protocols.output import HookOutputRenderer
-from model_fit.submission.types.dataclasses.input import SubmissionInput
-from model_fit.autoswitch.recommendation.types.typed_dicts.record import (
+from model_fit.autoswitch.state.types.record import HandoffStateRecord
+from model_fit.autoswitch.handoff.types.input_reader import NativeInputReader
+from model_fit.autoswitch.state.types.record import PendingAssessmentRecord
+from model_fit.autoswitch.types.output import HookOutputRenderer
+from model_fit.submission.types.input import SubmissionInput
+from model_fit.autoswitch.recommendation.types.record import (
     RecommendationRecord,
 )
-from model_fit.autoswitch.recommendation.types.protocols.storage import (
+from model_fit.autoswitch.recommendation.types.storage import (
     RecommendationStore,
 )
-from model_fit.autoswitch.state.types.protocols.storage import TransferStateStore
+from model_fit.autoswitch.state.types.storage import TransferStateStore
 from model_fit.autoswitch.recommendation.check import (
     blocking_recommendation,
     load_blocking_recommendation,
     retain_manual_recommendation,
 )
-from model_fit.autoswitch.handoff.types.aliases.clock import Clock
+from model_fit.autoswitch.handoff.types.clock import Clock
 
 
 def apply_assessment(

@@ -1,6 +1,6 @@
 from typing import Any, Protocol
 
-from model_fit.autoswitch.admission.types.dataclasses.input import ToolAdmissionInput
+from model_fit.autoswitch.admission.types.input import ToolAdmissionInput
 
 
 class TransferTools(Protocol):

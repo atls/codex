@@ -1,7 +1,7 @@
 from typing import Any, NotRequired, TypedDict
 
-from model_fit.assessment.types.typed_dicts.profile import ActiveProfile
-from model_fit.assessment.types.typed_dicts.user_choice import RetainedProfileChoice
+from model_fit.assessment.types.profile import ActiveProfile
+from model_fit.assessment.types.user_choice import RetainedProfileChoice
 
 
 class ProfileAssessmentInput(TypedDict):

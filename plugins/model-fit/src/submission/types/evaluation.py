@@ -1,7 +1,7 @@
 from typing import Protocol
-from model_fit.assessment.types.typed_dicts.decision import AssessmentDecision
-from model_fit.assessment.types.typed_dicts.request import ProfileAssessmentInput
-from model_fit.submission.types.dataclasses.input import SubmissionInput
+from model_fit.assessment.types.decision import AssessmentDecision
+from model_fit.assessment.types.request import ProfileAssessmentInput
+from model_fit.submission.types.input import SubmissionInput
 
 
 class AssessmentContextReader(Protocol):

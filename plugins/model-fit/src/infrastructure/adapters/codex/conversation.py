@@ -1,9 +1,9 @@
 import model_fit.infrastructure.adapters.codex.chat_profile as native_settings
 import model_fit.infrastructure.adapters.codex.history as conversation
-from model_fit.autoswitch.handoff.types.dataclasses.accepted_input import (
+from model_fit.autoswitch.handoff.types.accepted_input import (
     AcceptedNativeInput,
 )
-from model_fit.autoswitch.handoff.types.dataclasses.queue_receipt import (
+from model_fit.autoswitch.handoff.types.queue_receipt import (
     NativeQueueReceipt,
 )
 

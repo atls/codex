@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from model_fit.assessment.types.protocols.catalog import ProfileCatalog
+from model_fit.assessment.types.catalog import ProfileCatalog
 
 
 class AssessmentSources(Protocol):

@@ -5,9 +5,7 @@
 | Responsibility | Implementation |
 | --- | --- |
 | Assess a task and profile | `assessment/assess.py`, `prompt.py`, `validation.py` |
-| Assessment dictionary declarations | `assessment/types/typed_dicts/` |
-| Assessment dependency protocols | `assessment/types/protocols/` |
-| Decision variants | `assessment/types/aliases/decision_kind.py` |
+| Assessment data and dependency declarations | `assessment/types/` |
 | Typed assessment stop conditions | `assessment/exceptions/` |
 | Register, assess or reassess accepted input | `submission/accept.py`, `assess.py`, `reassess.py` |
 | Read relevant prior work | `submission/context.py` |
@@ -17,13 +15,13 @@
 | Retain prompt-hook recommendations | `autoswitch/recommendation/prompt.py` |
 | Enqueue the accepted native input once | `autoswitch/handoff/enqueue.py`, `autoswitch/handoff/expiry.py` |
 | Own durable handoff transitions | `autoswitch/state/transitions.py` |
-| Accepted submission data | `submission/types/dataclasses/input.py` |
-| Assessment callbacks | `submission/types/protocols/evaluation.py` |
-| Native conversation and its opening contract | `autoswitch/handoff/types/protocols/conversation.py` |
-| Recommendation persistence contract | `autoswitch/recommendation/types/protocols/storage.py` |
-| Recommendation dictionary declaration | `autoswitch/recommendation/types/typed_dicts/record.py` |
-| Transaction storage and companion slot | `autoswitch/state/types/protocols/storage.py` |
-| Handoff state and pending assessment | `autoswitch/state/types/typed_dicts/record.py` |
+| Accepted submission data | `submission/types/input.py` |
+| Assessment callbacks | `submission/types/evaluation.py` |
+| Native conversation and its opening contract | `autoswitch/handoff/types/conversation.py` |
+| Recommendation persistence contract | `autoswitch/recommendation/types/storage.py` |
+| Recommendation dictionary declaration | `autoswitch/recommendation/types/record.py` |
+| Transaction storage and companion slot | `autoswitch/state/types/storage.py` |
+| Handoff state and pending assessment | `autoswitch/state/types/record.py` |
 | Typed submission stop conditions | `autoswitch/exceptions/` |
 | Check a bound replay answer | `answer/check.py`, `limits.py`, `relevance.schema.json` |
 | Native Codex profile/history/input and assessment IO | `infrastructure/adapters/codex/` |

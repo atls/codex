@@ -3,11 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 from model_fit.autoswitch.state import transitions
-from model_fit.autoswitch.types.protocols.audit import AuditWriter
-from model_fit.autoswitch.types.protocols.output import HookOutputRenderer
-from model_fit.autoswitch.state.types.protocols.storage import TransferStateStore
-from model_fit.autoswitch.admission.types.dataclasses.input import ToolAdmissionInput
-from model_fit.autoswitch.handoff.types.aliases.clock import Clock
+from model_fit.autoswitch.types.audit import AuditWriter
+from model_fit.autoswitch.types.output import HookOutputRenderer
+from model_fit.autoswitch.state.types.storage import TransferStateStore
+from model_fit.autoswitch.admission.types.input import ToolAdmissionInput
+from model_fit.autoswitch.handoff.types.clock import Clock
 
 
 def authorize_transfer(

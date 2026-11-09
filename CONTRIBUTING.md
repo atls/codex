@@ -48,9 +48,9 @@ Run the relevant deterministic checks for a change. The public test suite makes 
 
 ## Python declaration layout
 
-Keep declarations under the scenario that owns their contract. Make the Python form visible in the path: `types/dataclasses/` for dataclasses, `types/protocols/` for Protocol contracts, `types/typed_dicts/` for dictionary declarations and `types/aliases/` for type aliases. Create only the categories the scenario actually uses. Executable scenario modules stay outside `types/`.
+Keep declarations in a single `types/` directory under the scenario that owns their contract. Do not add subdirectories for dataclasses, protocols, dictionary declarations or aliases. The declaration itself shows its Python form; the path distinguishes declarations from executable logic. Create only the types actually consumed by that scenario.
 
-For example, `answer/check.py` executes answer checking; `answer/types/dataclasses/input.py` declares its input. Closely related companion declarations can share a module, such as a conversation protocol and its opening callback. This does not turn data declarations into domain entities or change runtime behavior.
+For example, `answer/check.py` executes answer checking; `answer/types/input.py` declares its input. Closely related companion declarations can share a module, such as a conversation protocol and its opening callback, or a decision dictionary and its Literal alias.
 
 ## Submit a change
 

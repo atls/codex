@@ -3,24 +3,24 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from model_fit.autoswitch.state import transitions
-from model_fit.autoswitch.admission.types.protocols.tools import TransferTools
-from model_fit.autoswitch.types.protocols.audit import AuditWriter
-from model_fit.autoswitch.handoff.types.protocols.conversation import (
+from model_fit.autoswitch.admission.types.tools import TransferTools
+from model_fit.autoswitch.types.audit import AuditWriter
+from model_fit.autoswitch.handoff.types.conversation import (
     NativeConversationFactory,
 )
-from model_fit.autoswitch.types.protocols.output import HookOutputRenderer
-from model_fit.autoswitch.recommendation.types.protocols.storage import (
+from model_fit.autoswitch.types.output import HookOutputRenderer
+from model_fit.autoswitch.recommendation.types.storage import (
     RecommendationStore,
 )
-from model_fit.autoswitch.state.types.protocols.storage import TransferStateStore
-from model_fit.autoswitch.admission.types.dataclasses.input import ToolAdmissionInput
+from model_fit.autoswitch.state.types.storage import TransferStateStore
+from model_fit.autoswitch.admission.types.input import ToolAdmissionInput
 from model_fit.autoswitch.recommendation.check import load_blocking_recommendation
 from model_fit.autoswitch.admission.continuation import (
     can_continue_failed_assessment,
     guard_replay_transfer,
 )
 from model_fit.autoswitch.admission.authorization import authorize_transfer
-from model_fit.autoswitch.handoff.types.aliases.clock import Clock
+from model_fit.autoswitch.handoff.types.clock import Clock
 
 
 def guard_unprepared_transfer(
