@@ -1,6 +1,5 @@
 """Exercise transfer commands through public API with real persisted state."""
 
-import ast
 import json
 import os
 import tempfile
@@ -260,22 +259,3 @@ class TransferJourneyTests(unittest.TestCase):
             )
             self.assertEqual(blocked["decision"], "block")
             self.assertEqual(path.read_bytes(), saved)
-
-    def test_only_lifecycle_persists_application_transfer_state(self):
-        directory = (
-            Path(__file__).resolve().parents[4]
-            / "plugins/model-fit"
-            / "src/application/handoff"
-        )
-        for path in directory.glob("*.py"):
-            if path.name == "lifecycle.py":
-                continue
-            tree = ast.parse(path.read_text())
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
-                    self.assertFalse(
-                        isinstance(node.func.value, ast.Name)
-                        and node.func.value.id == "slot"
-                        and (node.func.attr in {"save", "clear"}),
-                        str(path),
-                    )

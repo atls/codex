@@ -7,7 +7,6 @@ import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(HERE.parents[1] / "plugins/model-fit/src"))
 from model_fit.infrastructure.adapters.codex.answer import classify_answer
 
 

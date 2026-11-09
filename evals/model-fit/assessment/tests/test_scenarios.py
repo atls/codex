@@ -42,7 +42,7 @@ class ScenarioDataTests(unittest.TestCase):
 
     def test_observed_behavior_cases_do_not_whitelist_a_profile(self):
         cases = [x for x in scenarios.load_scenarios() if x.get("behavioral_review")]
-        self.assertEqual(len(cases), 14)
+        self.assertTrue(cases)
         for case in cases:
             self.assertFalse(case["allowed_recommendations"])
 

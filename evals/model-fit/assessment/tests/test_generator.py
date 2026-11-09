@@ -23,70 +23,98 @@ class NativeGeneratorTests(unittest.TestCase):
             }
         )
 
-    def test_native_assessment_and_ordinary_preserve_ids_context_and_provider_refs(
-        self,
-    ):
-        cases = scenarios.load_scenarios()
-        with tempfile.TemporaryDirectory() as root:
-            for surface in ["native", "assessment", "ordinary"]:
+    def test_surfaces_select_explicit_case_kinds_and_preserve_context(self):
+        import copy
+        from assessment.scenarios import generation
+
+        original = scenarios.load_scenarios(["writer-preflight"])[0]
+        normal = {
+            **original,
+            "id": "normal",
+            "source_failure": None,
+            "prior_choice": None,
+            "implicit_selection_control": False,
+        }
+        cases = [
+            normal,
+            {**normal, "id": "source-error", "source_failure": "catalog"},
+            {**normal, "id": "retained", "prior_choice": True},
+            {**normal, "id": "dialogue", "implicit_selection_control": True},
+        ]
+        expected = {
+            "native": ["normal"],
+            "assessment": ["normal", "source-error", "retained"],
+            "ordinary": ["dialogue"],
+        }
+        with (
+            tempfile.TemporaryDirectory() as root,
+            patch.object(
+                generation,
+                "load_scenarios",
+                side_effect=lambda selected: copy.deepcopy(cases),
+            ),
+        ):
+            for surface, identifiers in expected.items():
                 rows = self.generate(surface, root)
-                selected = [
-                    case
-                    for case in cases
-                    if (
-                        bool(case.get("implicit_selection_control"))
-                        if surface == "ordinary"
-                        else not case.get("implicit_selection_control")
-                    )
-                    and (
-                        surface != "native"
-                        or (
-                            not case.get("source_failure")
-                            and (not case.get("prior_choice"))
-                        )
-                    )
-                ]
-                self.assertEqual(
-                    [row["description"] for row in rows],
-                    [case["id"] for case in selected],
-                )
-                for row, case in zip(rows, selected):
+                self.assertEqual([row["description"] for row in rows], identifiers)
+                for row in rows:
                     self.assertEqual(
                         row["vars"]["task_context"],
-                        scenarios.fixture_context(case) or "",
+                        scenarios.fixture_context(normal) or "",
                     )
-                    self.assertTrue(Path(row["vars"]["workspace"], ".git").is_dir())
+                    workspace = Path(row["vars"]["workspace"])
+                    self.assertTrue((workspace / ".git").is_dir())
                     for assertion in row["assert"]:
                         if "llm-rubric" in assertion["type"]:
                             self.assertEqual(
                                 assertion["provider"]["id"], "openai:codex-app-server"
                             )
-                    if case.get("fixture_directory"):
-                        source = fixtures.SUITE / case["fixture_directory"]
-                        for file in source.rglob("*"):
-                            if file.is_file():
-                                self.assertEqual(
-                                    (
-                                        Path(row["vars"]["workspace"])
-                                        / case.get("fixture_target", "")
-                                        / file.relative_to(source)
-                                    ).read_bytes(),
-                                    file.read_bytes(),
-                                )
+                    for file in (fixtures.SUITE / normal["fixture_directory"]).rglob(
+                        "*"
+                    ):
+                        if file.is_file():
+                            self.assertEqual(
+                                (
+                                    workspace
+                                    / normal.get("fixture_target", "")
+                                    / file.relative_to(
+                                        fixtures.SUITE / normal["fixture_directory"]
+                                    )
+                                ).read_bytes(),
+                                file.read_bytes(),
+                            )
 
-    def test_calibration_labels_are_not_leaked_to_judge(self):
-        with tempfile.TemporaryDirectory() as root:
-            rows = self.generate("calibration", root)
-            self.assertEqual(len(rows), 25)
-            self.assertEqual(len({row["description"] for row in rows}), 25)
-            self.assertEqual(rows[-3]["description"], "fabricated-official-policy")
-            self.assertEqual(rows[-2]["assert"][0]["type"], "llm-rubric")
-            self.assertEqual(rows[-1]["assert"][0]["type"], "not-llm-rubric")
-            self.assertTrue(all(("expected_pass" not in row["vars"] for row in rows)))
-            self.assertIn(
-                "resolving ownership conflicts",
-                json.loads(rows[-2]["vars"]["answer"])["task_inference"],
-            )
+    def test_calibration_labels_control_scoring_without_leaking_to_judge(self):
+        from assessment.scenarios import generation
+
+        controls = [
+            {
+                "id": "positive",
+                "case_id": "bounded-read-only-list",
+                "answer": {"reason": "valid answer"},
+                "expected_pass": True,
+            },
+            {
+                "id": "negative",
+                "case_id": "bounded-read-only-list",
+                "answer": {"reason": "invalid answer"},
+                "expected_pass": False,
+            },
+        ]
+        with (
+            tempfile.TemporaryDirectory() as root,
+            patch.object(generation, "calibration_controls", return_value=controls),
+        ):
+            rows = {
+                row["description"]: row for row in self.generate("calibration", root)
+            }
+        self.assertEqual(set(rows), {"positive", "negative"})
+        self.assertEqual(rows["positive"]["assert"][0]["type"], "llm-rubric")
+        self.assertEqual(rows["negative"]["assert"][0]["type"], "not-llm-rubric")
+        for control in controls:
+            row = rows[control["id"]]
+            self.assertNotIn("expected_pass", row["vars"])
+            self.assertEqual(json.loads(row["vars"]["answer"]), control["answer"])
 
     def test_regrade_preserves_retained_answers_and_excludes_no_model_controls(self):
         with tempfile.TemporaryDirectory() as root:

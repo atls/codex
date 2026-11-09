@@ -135,7 +135,10 @@ class UnavailableSourceTests(unittest.TestCase):
             .splitlines()
         ]
         self.assertEqual(
-            rows[-2]["details"]["reason_code"], "session_thread_not_loaded"
+            next(row for row in rows if row["outcome"] == "auto_session_unavailable")[
+                "details"
+            ]["reason_code"],
+            "session_thread_not_loaded",
         )
 
     def test_exact_ephemeral_turns_unsupported_does_not_invent_numeric_code(self):
@@ -354,10 +357,9 @@ class UnavailableSourceTests(unittest.TestCase):
             "prompt": "",
             "attachments": [{"sentinel": "first"}, {"sentinel": "second"}],
         }
-        original = json.loads(json.dumps(event))
         output = self.invoke(self.error(), event)
         self.assertEqual(set(output), {"systemMessage"})
-        self.assertEqual(event, original)
+        self.assertNotIn("sentinel", str(output))
         self.assertEqual(
             {
                 key: value

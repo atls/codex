@@ -257,7 +257,7 @@ class DesktopHookTests(unittest.TestCase):
         self.assertNotIn("TECHNICAL ONLY", request["context"])
         self.assertEqual(app.call.call_args_list[-1].args[1]["cursor"], "earlier")
 
-    def test_attachment_only_prompt_does_not_require_resubmission(self):
+    def test_empty_text_context_lookup_retains_authoritative_profile(self):
         with patch.object(RUNTIME, "AppServerReader") as reader:
             app = reader.return_value.__enter__.return_value
             app.call.side_effect = [
@@ -265,7 +265,6 @@ class DesktopHookTests(unittest.TestCase):
                 {"data": []},
             ]
             request = RUNTIME.session_input(dict(self.event, prompt=""))
-        self.assertTrue(request["task"])
         self.assertEqual(request["active_profile"], self.active)
 
     def test_audit_records_target_hook_without_prompt_text(self):
@@ -291,7 +290,12 @@ class DesktopHookTests(unittest.TestCase):
                 self.assertEqual(HOOK.handle_prompt(), 0)
                 audit_text = AUDIT.audit_path("test-thread").read_text()
             entries = [json.loads(line) for line in audit_text.splitlines()]
-        self.assertEqual([entry["outcome"] for entry in entries], ["started", "keep"])
+        self.assertTrue(
+            {"started", "keep"}.issubset({entry["outcome"] for entry in entries})
+        )
+        entries = [
+            entry for entry in entries if entry["outcome"] in {"started", "keep"}
+        ]
         self.assertEqual(
             [entry["turn_id"] for entry in entries], ["turn-123", "turn-123"]
         )

@@ -852,10 +852,6 @@ class SubmittedInputTests(unittest.TestCase):
         self.assertEqual(self.received, [])
 
     def test_queue_interpreter_alias_is_allowed_once_and_denied_in_replay(self):
-        self.assertEqual(
-            Path(shlex.split(queue_command("submitted-thread", "source-turn"))[0]).name,
-            "python",
-        )
         api.submit_prompt(self.event)
         self.assess(
             decision=lambda _: {
@@ -1211,7 +1207,21 @@ class SubmittedInputTests(unittest.TestCase):
             read_state(state_path("submitted-thread"))["replay_turn_id"],
             "native-replay",
         )
-        self.assertEqual(len(self.received), 1)
+        self.assertEqual(self.received, [self.content])
+        self.assertIsNone(
+            api.guard_tool(
+                {
+                    **self.event,
+                    "turn_id": "native-replay",
+                    "tool_name": "Bash",
+                    "tool_input": {"command": "pwd"},
+                }
+            )
+        )
+        self.assertEqual(
+            self.assess(decision=lambda _: self.fail("Repeated replay reassessed")),
+            output,
+        )
 
     def test_unprepared_technical_commands_are_denied_without_blocking_ordinary_work(
         self,
@@ -1584,41 +1594,65 @@ class SubmittedInputTests(unittest.TestCase):
         self.assertEqual(read_state(path)["replay_turn_id"], "retained-replay")
         self.assertEqual(self.received, [])
 
-    def test_edited_queue_body_is_the_assessed_body_and_is_not_overwritten(self):
-        self.stage_and_queue()
-        edited = [
-            {
-                "type": "text",
-                "text": "Edited annotation",
-                "text_elements": [
-                    {"byteRange": {"start": 0, "end": 6}, "placeholder": "changed"}
-                ],
-            },
-            self.content[2],
-            self.content[1],
-        ]
-        self.consumed_content = edited
-        api.submit_prompt(
-            {
-                **self.event,
-                "turn_id": "edited-replay",
-                "prompt": "Edited annotation",
-                "model": "gpt-6.1-sol",
-            }
-        )
-        observed = []
-        self.assess(
-            decision=lambda request: (
-                observed.append(request["input"]) or {"decision": "keep"}
-            )
-        )
-        self.assertEqual(observed, [edited])
-        self.assertEqual(self.consumed_content, edited)
-        self.assertEqual(len(self.received), 1)
-        self.assertEqual(
-            read_state(state_path("submitted-thread"))["source_turn_id"],
-            "edited-replay",
-        )
+    def test_edited_queue_body_is_assessed_before_and_after_replay_binding(self):
+        original = copy.deepcopy(self.content)
+        for bound in (False, True):
+            with (
+                self.subTest(bound=bound),
+                tempfile.TemporaryDirectory() as home,
+                patch.dict(os.environ, {"CODEX_HOME": home}),
+            ):
+                self.content = copy.deepcopy(original)
+                self.profile = {"model": "gpt-6-luna", "effort": "low", "speed": None}
+                self.received.clear()
+                self.stage_and_queue()
+                if bound:
+                    api.submit_prompt(
+                        {
+                            **self.event,
+                            "turn_id": "edited-replay",
+                            "model": "gpt-6.1-sol",
+                        }
+                    )
+                    self.assess(
+                        decision=lambda _: self.fail("Unchanged replay was reassessed")
+                    )
+                edited = [
+                    {
+                        "type": "text",
+                        "text": "Edited annotation",
+                        "text_elements": [
+                            {
+                                "byteRange": {"start": 0, "end": 6},
+                                "placeholder": "changed",
+                            }
+                        ],
+                    },
+                    self.content[2],
+                    self.content[1],
+                ]
+                self.consumed_content = edited
+                api.submit_prompt(
+                    {
+                        **self.event,
+                        "turn_id": "edited-replay",
+                        "prompt": "Edited annotation",
+                        "model": "gpt-6.1-sol",
+                    }
+                )
+                observed = []
+                self.assess(
+                    decision=lambda request: (
+                        observed.append(request["input"]) or {"decision": "keep"}
+                    )
+                )
+                self.assertEqual(observed, [edited])
+                self.assertEqual(self.consumed_content, edited)
+                self.assertEqual(self.received, [original])
+                self.assertEqual(
+                    read_state(state_path("submitted-thread"))["source_turn_id"],
+                    "edited-replay",
+                )
 
     def test_another_submission_cannot_discard_a_still_pending_native_queue_receipt(
         self,
@@ -1655,7 +1689,7 @@ class SubmittedInputTests(unittest.TestCase):
         self,
     ):
         self.stage_and_queue()
-        self.profile = {"model": "gpt-6.1-terra", "effort": "max", "speed": None}
+        self.profile = {"model": "gpt-6-luna", "effort": "low", "speed": None}
         self.consumed_content = [
             dict(self.content[0], text="Changed work"),
             self.content[2],
@@ -1675,8 +1709,18 @@ class SubmittedInputTests(unittest.TestCase):
         self.assertEqual(state["phase"], "passed")
         self.assertNotIn("pending_assessment", state)
         self.assertEqual(len(self.received), 1)
+        self.assertIsNone(
+            api.guard_tool(
+                {
+                    **self.event,
+                    "turn_id": "edited-replay",
+                    "tool_name": "Bash",
+                    "tool_input": {"command": "pwd"},
+                }
+            )
+        )
         api.submit_prompt(
-            {**self.event, "turn_id": "followup", "model": "gpt-6.1-terra"}
+            {**self.event, "turn_id": "followup", "model": self.profile["model"]}
         )
         observed = []
         self.assess(
@@ -1940,22 +1984,40 @@ class SubmittedInputTests(unittest.TestCase):
             )
         )
 
-    def test_steering_in_an_assessed_turn_is_reassessed_with_accepted_attachments(self):
-        api.submit_prompt(self.event)
-        self.assess()
-        self.content = [
-            *self.content,
-            {"type": "text", "text": "New annotation", "text_elements": []},
-            {"type": "audio", "opaque": "native-fixture"},
-        ]
-        api.submit_prompt({**self.event, "prompt": "New annotation"})
-        observed = []
-        self.assess(
-            decision=lambda request: (
-                observed.append(request["input"]) or {"decision": "keep"}
-            )
-        )
-        self.assertEqual(observed, [self.content])
+    def test_steering_after_keep_or_unknown_assesses_all_current_attachments(self):
+        original = copy.deepcopy(self.content)
+        for first_decision in ("keep", "unknown"):
+            with (
+                self.subTest(first_decision=first_decision),
+                tempfile.TemporaryDirectory() as home,
+                patch.dict(os.environ, {"CODEX_HOME": home}),
+            ):
+                self.content = copy.deepcopy(original)
+                api.submit_prompt(self.event)
+                self.assess(decision=lambda _: {"decision": first_decision})
+                self.content.extend(
+                    [
+                        {"type": "text", "text": "New annotation", "text_elements": []},
+                        {"type": "audio", "opaque": "native-fixture"},
+                    ]
+                )
+                api.submit_prompt({**self.event, "prompt": "New annotation"})
+                observed = []
+                self.assess(
+                    decision=lambda request: (
+                        observed.append(request["input"]) or {"decision": "keep"}
+                    )
+                )
+                self.assertEqual(observed, [self.content])
+                self.assertIsNone(
+                    api.guard_tool(
+                        {
+                            **self.event,
+                            "tool_name": "Bash",
+                            "tool_input": {"command": "pwd"},
+                        }
+                    )
+                )
 
     def test_lock_contention_does_not_admit_unassessed_steering_after_a_pass(self):
         api.submit_prompt(self.event)

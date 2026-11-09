@@ -198,13 +198,34 @@ class TriageContractTest(unittest.TestCase):
                 self.assertEqual(result["recommended_model"], model)
                 self.assertEqual(result["recommended_effort"], "medium")
 
-    def test_recommendation_rejects_catalog_target_absent_from_same_snapshot(
-        self,
-    ) -> None:
-        active, output = self.saved_output("mail-to-search-design")
-        output["recommended_model"] = "unlisted-model"
-        with self.assertRaisesRegex(ValueError, "catalog"):
-            validate(output, active, self.models)
+    def test_recommendation_rejects_unsupported_catalog_profile_dimensions(self):
+        for model, effort, speed, active_speed in (
+            ("unlisted-model", "medium", None, None),
+            ("fixture-target", "unsupported", None, None),
+            ("fixture-target", "medium", "fast", "standard"),
+        ):
+            with self.subTest(model=model, effort=effort, speed=speed):
+                active, output = self.saved_output("mail-to-search-design")
+                active["speed"] = active_speed
+                output.update(
+                    active_speed=active_speed,
+                    recommended_model=model,
+                    recommended_effort=effort,
+                    recommended_speed=speed,
+                )
+                models = NativeCatalog(
+                    {
+                        **self.models.entries,
+                        "fixture-target": {
+                            "slug": "fixture-target",
+                            "visibility": "list",
+                            "supported_reasoning_levels": [{"effort": "medium"}],
+                            "additional_speed_tiers": [],
+                        },
+                    }
+                )
+                with self.assertRaisesRegex(ValueError, "catalog"):
+                    validate(output, active, models)
 
     def test_unknown_speed_cannot_be_changed(self) -> None:
         active, output = self.saved_output("speed-only-fast")

@@ -23,6 +23,7 @@ result = subprocess.run(
     input=raw,
     capture_output=True,
     text=True,
+    timeout=60,
 )
 snapshot = home / ".tmp/model-fit-auto-switch" / (event["session_id"] + ".json")
 state = json.loads(snapshot.read_text()) if snapshot.is_file() else None

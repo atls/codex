@@ -14,7 +14,6 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[3]
 SUITE = ROOT / "evals/model-fit"
-sys.path.insert(0, str(ROOT / "plugins/model-fit/src"))
 sys.path.insert(0, str(SUITE))
 from model_fit.infrastructure.adapters.codex.authentication import authenticated_home
 from model_fit.infrastructure.adapters.codex.history import unavailable_session_input
@@ -239,9 +238,7 @@ def capability_preflight(home, workspace, codex):
                 if reason is not None:
                     return {"reasonCode": reason, "zeroTurnControl": True}
                 raise
-    raise RuntimeError(
-        "Expected capability boundary absent; no media inference allowed"
-    )
+    return {"zeroTurnControl": False}
 
 
 def main():
@@ -292,7 +289,9 @@ def main():
                         tempfile.TemporaryDirectory(prefix="model-fit-media-work-")
                     )
                 ).resolve()
-                subprocess.run(["git", "init", "-q", str(workspace)], check=True)
+                subprocess.run(
+                    ["git", "init", "-q", str(workspace)], check=True, timeout=30
+                )
                 plugin, command = install_candidate(home, codex)
                 subprocess.run(
                     [
@@ -301,6 +300,7 @@ def main():
                         str(workspace),
                     ],
                     check=True,
+                    timeout=60,
                 )
                 stage = "trust:" + identifier
                 if (
@@ -315,6 +315,16 @@ def main():
                     raise RuntimeError("Private auth copy invariant failed")
                 readback = trust(home, workspace, codex, command, plugin)
                 capability = capability_preflight(home, workspace, codex)
+                if capability["zeroTurnControl"] is not True:
+                    report["rows"].append(
+                        {
+                            "id": identifier,
+                            "status": "not_applicable",
+                            "pass": None,
+                            "reason": "source_unavailable_control_not_observed",
+                        }
+                    )
+                    continue
                 output = evidence / identifier
                 output.mkdir(mode=448)
                 retained_images = []
@@ -347,11 +357,11 @@ def main():
                         {"type": "localImage", "path": str(workspace / "second.png")},
                     ],
                     "codexVersion": subprocess.check_output(
-                        [codex, "--version"], text=True
+                        [codex, "--version"], text=True, timeout=30
                     ).strip(),
                     "hookPythonVersion": sys.version.split()[0],
                     "candidateCommit": subprocess.check_output(
-                        ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
+                        ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True, timeout=30
                     ).strip(),
                 }
                 path = output / "manifest.json"
@@ -379,6 +389,7 @@ def main():
                     env=env,
                     capture_output=True,
                     text=True,
+                    timeout=60,
                 )
                 (output / "validation.log").write_text(check.stdout + check.stderr)
                 if check.returncode:
@@ -463,11 +474,13 @@ def main():
                 raise RuntimeError("Source login changed during acceptance")
             report["sourceAuthUnchanged"] = True
             report["completedRows"] = len(manifests)
+            report["status"] = "completed" if manifests else "not_applicable"
             (evidence / "safe-report.json").write_text(json.dumps(report, indent=2))
             (evidence / "completion.json").write_text(
                 json.dumps(
                     {
                         "completedRows": len(manifests),
+                        "status": report["status"],
                         "sourceAuthUnchanged": True,
                         "scope": "native ephemeral host, not Desktop sidebar or full switch/replay",
                     }

@@ -18,7 +18,9 @@ class AssessmentProviderTests(unittest.TestCase):
             / "infrastructure/adapters/promptfoo/provider.py"
         )
         code = (
-            "import importlib.util,json;spec=importlib.util.spec_from_file_location('fresh_provider',"
+            "import importlib.util,json,sys;sys.path.insert(0,"
+            + repr(str(provider.parents[3]))
+            + ");from infrastructure.adapters.codex.session import evaluation_session;import answer.evaluate;spec=importlib.util.spec_from_file_location('fresh_provider',"
             + repr(str(provider))
             + ");module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);result=module.call_api(json.dumps({'case_id':'user-choice-preserved'}),{},{});assert json.loads(result['output'])['decision']=='keep';assert result['metadata']['user_choice_bypass'] is True"
         )

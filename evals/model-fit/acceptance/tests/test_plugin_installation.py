@@ -8,6 +8,8 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+import sys
+import zipfile
 from pathlib import Path
 
 from model_fit.infrastructure.adapters.codex.transport.connection import (
@@ -39,15 +41,80 @@ class PluginInstallationTests(unittest.TestCase):
             definition["name"] = marketplace
             definition["plugins"][0]["source"]["path"] = "./plugins/model-fit"
             index.write_text(json.dumps(definition))
+            authoring = Path(directory) / "authoring"
+            subprocess.run(
+                ["git", "init", "-q", str(authoring)],
+                check=True,
+                capture_output=True,
+                timeout=30,
+            )
             shutil.copytree(
-                repository / "plugins/model-fit",
-                marketplace_root / "plugins/model-fit",
+                repository / "plugins",
+                authoring / "plugins",
                 ignore=shutil.ignore_patterns(
                     ".venv", "__pycache__", "*.egg-info", ".ruff_cache", "dist"
                 ),
             )
+            (authoring / "tools").mkdir()
+            shutil.copyfile(repository / "tools/build.py", authoring / "tools/build.py")
+            shutil.copyfile(repository / "LICENSE", authoring / "LICENSE")
+            (authoring / ".gitignore").write_text("dist/\n")
+            subprocess.run(
+                ["git", "-C", str(authoring), "add", "."],
+                check=True,
+                capture_output=True,
+                timeout=30,
+            )
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(authoring),
+                    "-c",
+                    "user.name=Fixture",
+                    "-c",
+                    "user.email=fixture@example.invalid",
+                    "commit",
+                    "-qm",
+                    "fixture",
+                ],
+                check=True,
+                capture_output=True,
+                timeout=30,
+            )
+            candidate = Path(directory) / "candidate-worktree"
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(authoring),
+                    "worktree",
+                    "add",
+                    "--detach",
+                    str(candidate),
+                    "HEAD",
+                ],
+                check=True,
+                capture_output=True,
+                timeout=30,
+            )
+            subprocess.run(
+                [sys.executable, str(candidate / "tools/build.py")],
+                cwd=candidate,
+                check=True,
+                capture_output=True,
+                timeout=30,
+            )
+            archive = next(
+                path
+                for path in (candidate / "dist").glob("model-fit-*.zip")
+                if not path.name.startswith("model-fit-guidance-")
+            )
+            with zipfile.ZipFile(archive) as built:
+                built.extractall(marketplace_root / "plugins")
             plugin_id = "model-fit@" + marketplace
             environment = {**os.environ, "CODEX_HOME": str(home)}
+            environment.pop("PYTHONPATH", None)
             for command in (
                 [
                     "codex",
@@ -65,6 +132,7 @@ class PluginInstallationTests(unittest.TestCase):
                     capture_output=True,
                     text=True,
                     check=False,
+                    timeout=60,
                 )
                 self.assertEqual(installed.returncode, 0, installed.stderr)
             process = subprocess.Popen(
@@ -118,8 +186,31 @@ class PluginInstallationTests(unittest.TestCase):
             plugin = next(
                 (home / "plugins/cache" / marketplace / "model-fit").glob("*")
             )
+            clean = subprocess.run(
+                ["git", "-C", str(candidate), "status", "--porcelain"],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            self.assertEqual(clean.stdout, "")
+            subprocess.run(
+                ["git", "-C", str(authoring), "worktree", "remove", str(candidate)],
+                check=True,
+                capture_output=True,
+                timeout=30,
+            )
+            remaining = subprocess.run(
+                ["git", "-C", str(authoring), "worktree", "list", "--porcelain"],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            self.assertNotIn(str(candidate), remaining.stdout)
+            self.assertFalse(candidate.exists())
+            self.assertTrue(plugin.is_dir())
             environment["CODEX_PLUGIN_ROOT"] = str(plugin)
-            self.assertFalse((plugin / "skills/model-fit/src").exists())
             manifest = json.loads((plugin / ".codex-plugin/plugin.json").read_text())
             self.assertEqual(manifest["hooks"], "./hooks/hooks.json")
             subprocess.run(
@@ -127,6 +218,7 @@ class PluginInstallationTests(unittest.TestCase):
                 env=environment,
                 check=True,
                 capture_output=True,
+                timeout=60,
             )
             result = subprocess.run(
                 [
@@ -143,6 +235,7 @@ class PluginInstallationTests(unittest.TestCase):
                 check=True,
                 capture_output=True,
                 text=True,
+                timeout=60,
             )
             self.assertIn("queue", result.stdout)
             plugin_python = plugin / ".venv/bin/python3"
@@ -230,6 +323,7 @@ class PluginInstallationTests(unittest.TestCase):
                     capture_output=True,
                     text=True,
                     check=True,
+                    timeout=60,
                 )
                 self.assertIn(
                     "has not assessed",
@@ -254,6 +348,7 @@ class PluginInstallationTests(unittest.TestCase):
                             capture_output=True,
                             text=True,
                             check=True,
+                            timeout=60,
                         )
                         command = shlex.join(
                             [
@@ -289,6 +384,7 @@ class PluginInstallationTests(unittest.TestCase):
                             capture_output=True,
                             text=True,
                             check=True,
+                            timeout=60,
                         )
                         self.assertEqual(permitted.stdout, "")
                 state = home / ".tmp/model-fit-auto-switch/fixture-thread.json"
@@ -324,6 +420,7 @@ class PluginInstallationTests(unittest.TestCase):
                         capture_output=True,
                         text=True,
                         check=True,
+                        timeout=60,
                     )
                     if name == "UserPromptSubmit":
                         self.assertIn("disabled", result.stdout.casefold())
@@ -341,6 +438,7 @@ class PluginInstallationTests(unittest.TestCase):
                     capture_output=True,
                     text=True,
                     check=True,
+                    timeout=60,
                 )
                 self.assertIn("disabled", stale.stdout.casefold())
                 rejected = subprocess.run(
@@ -359,6 +457,7 @@ class PluginInstallationTests(unittest.TestCase):
                     capture_output=True,
                     text=True,
                     check=False,
+                    timeout=60,
                 )
                 self.assertNotEqual(rejected.returncode, 0)
                 self.assertEqual(json.loads(rejected.stdout)["status"], "disabled")
@@ -395,6 +494,7 @@ class PluginInstallationTests(unittest.TestCase):
                     capture_output=True,
                     text=True,
                     check=True,
+                    timeout=60,
                 )
                 self.assertIn("disabled", result.stdout.casefold())
                 for path, value in before.items():

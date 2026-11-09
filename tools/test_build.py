@@ -135,3 +135,21 @@ class DistributionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SourceBoundaryTests(unittest.TestCase):
+    def test_assembly_rejects_private_text_and_symlink_sources(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            package = root / "package"
+            package.mkdir()
+            note = package / "note.md"
+            note.write_text("Private local path: /Users/synthetic/private.json")
+            with self.assertRaises(ValueError):
+                build.source_files(package)
+            note.unlink()
+            outside = root / "outside.txt"
+            outside.write_text("outside the distribution source")
+            (package / "linked.txt").symlink_to(outside)
+            with self.assertRaises(ValueError):
+                build.source_files(package)

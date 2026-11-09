@@ -104,17 +104,43 @@ class AppServerTransportTests(unittest.TestCase):
             AppServerConnection(process, {"name": "fixture", "version": "1"})
         close.assert_called_once()
 
-    def test_close_reaps_process_after_timeout_and_kill(self):
+    def test_close_reaps_a_real_process_after_termination_timeout(self):
+        import select
+        import signal
+
         app = self.connection()
-        app.process = Mock()
-        app.process.poll.return_value = None
-        app.process.wait.side_effect = [subprocess.TimeoutExpired("fixture", 3), 0]
-        app.close()
-        app.process.terminate.assert_called_once()
-        app.process.kill.assert_called_once()
-        self.assertEqual(app.process.wait.call_count, 2)
-        for stream in (app.process.stdin, app.process.stdout, app.process.stderr):
-            stream.close.assert_called_once()
+        app.close_timeout = 0.05
+        app.process = subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                "import signal,sys,time; signal.signal(signal.SIGTERM, signal.SIG_IGN); print('ready',flush=True); time.sleep(30)",
+            ],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        try:
+            self.assertTrue(select.select([app.process.stdout], [], [], 5)[0])
+            self.assertEqual(app.process.stdout.readline().strip(), b"ready")
+            app.close()
+            self.assertEqual(app.process.poll(), -signal.SIGKILL)
+            self.assertTrue(
+                all(
+                    stream.closed
+                    for stream in (
+                        app.process.stdin,
+                        app.process.stdout,
+                        app.process.stderr,
+                    )
+                )
+            )
+        finally:
+            if app.process.poll() is None:
+                app.process.kill()
+                app.process.wait(timeout=5)
+            for stream in (app.process.stdin, app.process.stdout, app.process.stderr):
+                stream.close()
 
     def test_real_process_fragmented_lines_and_eof(self):
         script = "import sys,time; sys.stdout.write('{\\\"id\\\":'); sys.stdout.flush(); time.sleep(.03); print('7}'); print('{\\\"id\\\":8}')"

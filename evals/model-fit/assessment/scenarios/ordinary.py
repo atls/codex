@@ -4,7 +4,7 @@ def build(variables, case, entry, config, task, active, sources, rubric):
         {
             "type": "llm-rubric",
             "threshold": 1,
-            "value": "Explain git status --short: it is the compact status of changed/untracked files. Answer the question without profile-selection advice, invoking a skill or tools.",
+            "value": "Answer the supplied ordinary question correctly, without unsolicited model/profile-selection advice, invoking a skill or tools. Proper names and quoted model names alone are not profile-selection advice. Task: {{task}}",
             "provider": config["judge"],
         },
     ]

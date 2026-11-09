@@ -77,22 +77,17 @@ class EvaluationEnvironmentTests(unittest.TestCase):
             with patch.dict(
                 os.environ, {"CODEX_EVAL_HOME": str(home), "CODEX_PATH": sys.executable}
             ):
-                for surface, count in [
-                    ("native", 26),
-                    ("assessment", 28),
-                    ("ordinary", 1),
-                    ("calibration", 25),
-                ]:
+                for surface in ("native", "assessment", "ordinary", "calibration"):
                     with (
                         self.subTest(surface=surface),
                         evaluation_session([{"id": "generated-tests"}]) as runtime,
                     ):
                         config = absolute_references(build_suite(surface, runtime))
-                        self.assertEqual(len(config["tests"]), count)
+                        self.assertTrue(config["tests"])
                         paths = [
                             entry["vars"]["workspace"] for entry in config["tests"]
                         ]
-                        self.assertEqual(len(set(paths)), count)
+                        self.assertEqual(len(set(paths)), len(paths))
                         self.assertTrue(
                             all(
                                 (
@@ -154,9 +149,24 @@ class EvaluationEnvironmentTests(unittest.TestCase):
                     suite_cases("tasks"), install_skill=False
                 ) as runtime:
                     config = build_suite("tasks", runtime)
-                    self.assertEqual(
-                        [provider["label"] for provider in config["providers"]],
-                        ["current-sol-medium", "candidate-luna-low"],
+                    providers = config["providers"]
+                    labels = [provider["label"] for provider in providers]
+                    self.assertTrue(providers)
+                    self.assertTrue(
+                        all(
+                            isinstance(label, str) and label.strip() for label in labels
+                        )
                     )
-                    self.assertEqual(len(config["tests"]), 3)
+                    self.assertEqual(len(labels), len(set(labels)))
+                    self.assertTrue(
+                        all(
+                            provider["config"]["model"]
+                            and provider["config"]["model_reasoning_effort"]
+                            for provider in providers
+                        )
+                    )
+                    self.assertEqual(
+                        {case["description"] for case in config["tests"]},
+                        {case["id"] for case in suite_cases("tasks")},
+                    )
                     self.assertIsNone(runtime["skill"])

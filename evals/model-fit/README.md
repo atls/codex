@@ -32,6 +32,8 @@ CODEX_EVAL_HOME="$HOME/.codex" yarn eval --no-table --output results/native.json
 
 Set `MODEL_FIT_REGRADE_FILE` to select the result to regrade.
 
+The ordinary-dialogue trace assertion requires available native events without tool activity. The existing semantic rubric grades the answer and unsolicited profile advice separately.
+
 `yarn run test` runs the public checks without model inference or a private corpus. Fixture validation runs independently of package construction. The public repository does not contain tools for importing private corpus data, managing snapshots, or analyzing SQLite traces.
 
 ## Native media acceptance
@@ -45,7 +47,7 @@ CODEX_EVAL_HOME=<existing-chatgpt-login> \
 uv run acceptance/verify.py
 ```
 
-The runner uses a temporary candidate home and scratch worktree.
+The runner uses a temporary candidate home and scratch worktree. It exercises the unavailable-source fallback only when the zero-turn capability probe observes that boundary. If the boundary is absent, it records not_applicable without model execution or a passing acceptance claim. The deterministic suite also sends a complete synthetic provider record through the real Promptfoo Python-grade bridge; that validates the bridge, not native model execution.
 
 The handoff scenarios are in `evals/model-fit/autoswitch/tests/test_transfer_journey.py`. They check the public commands, persistent local state, queueing, and replay. Assessment and context are controlled, as are native RPC calls; these tests do not measure model execution. The suite also checks that an unknown queue outcome prevents a retry.
 

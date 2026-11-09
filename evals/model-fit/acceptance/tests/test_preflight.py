@@ -204,6 +204,7 @@ class NativeTrustTests(unittest.TestCase):
                 },
                 capture_output=True,
                 text=True,
+                timeout=60,
             )
             self.assertEqual(result.returncode, 100, result.stderr)
             grade = json.loads((root / "grade.json").read_text())
@@ -217,3 +218,139 @@ class NativeTrustTests(unittest.TestCase):
             )
             self.assertEqual(rows[0]["provider"]["id"], "echo")
             self.assertNotIn("error", rows[0]["response"])
+
+
+class RetainedProviderBridgeTests(unittest.TestCase):
+    def test_complete_synthetic_record_passes_real_promptfoo_grade(self):
+        import sys
+        from acceptance.tests.media_fixture import media_context
+
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            context = media_context(root)
+            provider = {
+                "output": '{"colors":["red","blue"],"imageCount":2}',
+                **context["providerResponse"],
+            }
+            config = {
+                "prompts": [json.dumps(provider)],
+                "providers": [
+                    "file://" + str(PATH.parent / "tests/retained_provider.py")
+                ],
+                "tests": [
+                    {
+                        "vars": context["vars"],
+                        "assert": [
+                            {
+                                "type": "python",
+                                "value": "file://" + str(PATH.parent / "grade.py"),
+                            }
+                        ],
+                    }
+                ],
+            }
+            config_path = root / "config.json"
+            config_path.write_text(json.dumps(config))
+            result = subprocess.run(
+                [
+                    "yarn",
+                    "exec",
+                    "promptfoo",
+                    "eval",
+                    "--config",
+                    str(config_path),
+                    "--no-cache",
+                    "--max-concurrency",
+                    "1",
+                    "--output",
+                    str(root / "result.json"),
+                ],
+                cwd=RUN.SUITE,
+                env=os.environ
+                | {
+                    "PROMPTFOO_PYTHON": sys.executable,
+                    "PROMPTFOO_CONFIG_DIR": str(root / "promptfoo"),
+                    "PROMPTFOO_DISABLE_TELEMETRY": "1",
+                    "LOG_LEVEL": "warn",
+                },
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertTrue(
+                json.loads((root / "evidence/grade.json").read_text())["pass"]
+            )
+
+    def test_source_failure_control_does_not_require_an_upstream_bug(self):
+        from unittest.mock import MagicMock
+
+        for unsupported in (False, True):
+            owner, reader = MagicMock(), MagicMock()
+            owner.__enter__.return_value.call.return_value = {"thread": {"id": "probe"}}
+            if unsupported:
+                reader.__enter__.return_value.call.side_effect = RUN.AppServerRPCError(
+                    "thread not loaded: probe",
+                    method="thread/read",
+                    code=-32600,
+                    thread_id="probe",
+                )
+            else:
+                reader.__enter__.return_value.call.return_value = {"data": []}
+            with (
+                self.subTest(unsupported=unsupported),
+                patch.object(RUN, "connect", side_effect=[owner, reader]),
+            ):
+                result = RUN.capability_preflight(
+                    Path("/fixture"), Path("/fixture/work"), "codex"
+                )
+            self.assertIs(result["zeroTurnControl"], unsupported)
+
+
+class InapplicableControlTests(unittest.TestCase):
+    def test_absent_failure_boundary_does_not_start_model_rows_or_claim_pass(self):
+        import sys
+
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            source = root / "source-home"
+            source.mkdir()
+            original = '{"auth_mode":"chatgpt","fixture":true}'
+            (source / "auth.json").write_text(original)
+            evidence = root / "evidence"
+            env = {
+                "CODEX_EVAL_HOME": str(source),
+                "MODEL_FIT_IMAGE_PYTHON": sys.executable,
+                "MODEL_FIT_ACCEPTANCE_OUTPUT": str(evidence),
+                "MODEL_FIT_ACCEPTANCE_ROWS": "text-two-images,empty-two-images",
+            }
+            with (
+                patch.dict(os.environ, env),
+                patch.object(RUN.shutil, "which", return_value=sys.executable),
+                patch.object(
+                    RUN,
+                    "install_candidate",
+                    return_value=(root / "plugin", "fixture-command"),
+                ),
+                patch.object(RUN, "trust", return_value=[]),
+                patch.object(
+                    RUN, "capability_preflight", return_value={"zeroTurnControl": False}
+                ),
+                patch.object(
+                    RUN,
+                    "build_config",
+                    side_effect=AssertionError("Model evaluation was constructed"),
+                ),
+            ):
+                RUN.main()
+            report = json.loads((evidence / "safe-report.json").read_text())
+            self.assertEqual(report["status"], "not_applicable")
+            self.assertEqual(report["completedRows"], 0)
+            self.assertTrue(report["rows"])
+            self.assertTrue(
+                all(
+                    row["pass"] is None and row["status"] == "not_applicable"
+                    for row in report["rows"]
+                )
+            )
+            self.assertEqual((source / "auth.json").read_text(), original)

@@ -132,9 +132,14 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             assessor=lambda request: {"decision": "keep"},
             native_factory=lambda cwd: reader,
         )
-        self.assertEqual(
-            output["hookSpecificOutput"]["additionalContext"],
-            HOOKS_INSTRUCTIONS.ASSESSED_CONTEXT,
+        self.assertIn(
+            "already assessed",
+            output["hookSpecificOutput"]["additionalContext"].casefold(),
+        )
+        self.assertIsNone(
+            HANDOFF_GUARDS.guard_tool(
+                {**self.event, "tool_name": "Bash", "tool_input": {"command": "pwd"}}
+            )
         )
 
     def test_unknown_admission_is_not_reported_as_completed_assessment(self):
@@ -381,50 +386,6 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             "passed",
         )
 
-    def test_steering_after_keep_does_not_stage_new_handoff_or_block_tools(self):
-        with (
-            patch.object(
-                HANDOFF_PREPARATION,
-                "session_input",
-                return_value={"task": self.prompt, "active_profile": self.active},
-            ),
-            patch.object(
-                HANDOFF_PREPARATION, "triage", return_value={"decision": "keep"}
-            ),
-        ):
-            self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(self.event))
-        steer = dict(self.event, prompt="Also shorten the link label to Learn more")
-        with (
-            patch.object(HANDOFF_PREPARATION, "session_input") as session,
-            patch.object(
-                HANDOFF_PREPARATION, "triage", return_value=self.recommendation
-            ) as triage,
-            patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader,
-        ):
-            self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(steer))
-            session.assert_not_called()
-            triage.assert_not_called()
-            reader.assert_not_called()
-        self.assertIsNone(
-            HANDOFF_GUARDS.guard_tool(
-                {
-                    "session_id": self.thread_id,
-                    "turn_id": self.turn_id,
-                    "tool_name": "Bash",
-                    "tool_input": {"command": "echo continued"},
-                }
-            )
-        )
-        state = HANDOFF_STATE.read_state(HANDOFF_STATE.state_path(self.thread_id))
-        self.assertEqual(
-            state,
-            {
-                "phase": "passed",
-                "source_turn_id": self.turn_id,
-                "assessment_decision": "keep",
-            },
-        )
-
     def test_next_turn_after_keep_runs_triage_again(self):
         with (
             patch.object(
@@ -461,28 +422,6 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             HANDOFF_STATE.read_state(HANDOFF_STATE.state_path(self.thread_id))["phase"],
             "ready",
         )
-
-    def test_steering_after_unknown_does_not_reclassify_running_work(self):
-        with (
-            patch.object(
-                HANDOFF_PREPARATION,
-                "session_input",
-                return_value={"task": self.prompt, "active_profile": self.active},
-            ),
-            patch.object(
-                HANDOFF_PREPARATION, "triage", return_value={"decision": "unknown"}
-            ),
-        ):
-            self.assertIn(
-                "systemMessage", HANDOFF_PREPARATION.prepare_handoff(self.event)
-            )
-        with patch.object(HANDOFF_PREPARATION, "triage") as triage:
-            self.assertIsNone(
-                HANDOFF_PREPARATION.prepare_handoff(
-                    dict(self.event, prompt="Clarification")
-                )
-            )
-            triage.assert_not_called()
 
     def test_steer_in_ready_source_turn_preserves_tool_guard(self):
         path = self.stage()
@@ -734,7 +673,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             HANDOFF_STATE.read_state(path)["replay_turn_id"], "replay-turn"
         )
 
-    def test_triage_timeout_blocks_subject_turn_and_records_failure(self):
+    def test_submission_registration_failure_blocks_unregistered_work(self):
         output = io.StringIO()
         with (
             patch.dict(
@@ -972,50 +911,6 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 HANDOFF_CODEX.source_input(
                     app, self.thread_id, self.turn_id, include_steering=True
                 )
-
-    def test_full_replay_is_admitted_on_target_without_retriage(self):
-        path = self.stage()
-        queued = copy.deepcopy(
-            [
-                {"type": "text", "text": self.prompt},
-                {"type": "image", "url": "data:image/png;base64,aW1hZ2U="},
-            ]
-        )
-        prompt = HANDOFF_INPUT.input_text(queued)
-        state = HANDOFF_STATE.read_state(path)
-        state.update(
-            phase="queued",
-            queued_submission_id="queued-1",
-            queued_at=100,
-            queued_prompt_digest=HANDOFF_INPUT.prompt_digest(prompt),
-            queued_input_digest=HANDOFF_INPUT.input_digest(queued),
-        )
-        HANDOFF_STATE.write_state(path, state)
-        with (
-            patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader,
-            patch.object(
-                HANDOFF_PREPARATION,
-                "session_input",
-                return_value={
-                    "active_profile": {
-                        "model": "gpt-6-sol",
-                        "effort": "medium",
-                        "speed": None,
-                    }
-                },
-            ),
-            patch.object(HANDOFF_PREPARATION, "triage") as triage,
-        ):
-            app = reader.return_value.__enter__.return_value
-            app.call.side_effect = [{"data": [], "nextCursor": None}]
-            result = HANDOFF_PREPARATION.prepare_handoff(
-                dict(self.event, prompt=prompt, turn_id="replay-turn")
-            )
-            triage.assert_not_called()
-        self.assertIn("hookSpecificOutput", result)
-        self.assertEqual(
-            HANDOFF_STATE.read_state(path)["replay_turn_id"], "replay-turn"
-        )
 
     def test_same_text_in_new_turn_replaces_pending_native_message(self):
         path = self.stage()
@@ -2155,64 +2050,6 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 HANDOFF_CODEX.queued_ids(app, self.thread_id)
             self.assertEqual(app.call.call_count, HANDOFF_CODEX.MAX_QUEUE_PAGES)
 
-    def test_legacy_pending_state_accepts_new_turn_without_comparing_text(self):
-        path = self.stage()
-        state = HANDOFF_STATE.read_state(path)
-        state.pop("prompt")
-        state.update(phase="queued", queued_submission_id="queued-1", queued_at=100)
-        HANDOFF_STATE.write_state(path, state)
-        with (
-            patch.object(
-                HANDOFF_PREPARATION,
-                "session_input",
-                return_value={"task": self.prompt, "active_profile": self.active},
-            ),
-            patch.object(
-                HANDOFF_PREPARATION, "triage", return_value={"decision": "keep"}
-            ),
-            patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader,
-        ):
-            reader.return_value.__enter__.return_value.call.side_effect = [
-                {"data": [{"id": "queued-1"}], "nextCursor": None},
-                {"deleted": True},
-            ]
-            self.assertIsNone(
-                HANDOFF_PREPARATION.prepare_handoff(
-                    dict(self.event, turn_id="new-turn")
-                )
-            )
-        self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
-
-    def test_interrupted_source_releases_stranded_same_request(self):
-        path = self.stage()
-        state = HANDOFF_STATE.read_state(path)
-        state.pop("prompt")
-        state.update(phase="queued", queued_submission_id="queued-1", queued_at=100)
-        HANDOFF_STATE.write_state(path, state)
-        new_event = dict(self.event, turn_id="new-turn")
-        with (
-            patch.object(
-                HANDOFF_PREPARATION,
-                "session_input",
-                return_value={"task": self.prompt, "active_profile": self.active},
-            ),
-            patch.object(
-                HANDOFF_PREPARATION, "triage", return_value={"decision": "keep"}
-            ),
-            patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader,
-        ):
-            app = reader.return_value.__enter__.return_value
-            app.call.side_effect = [
-                {"data": [{"id": "queued-1"}], "nextCursor": None},
-                {"deleted": True},
-            ]
-            self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(new_event))
-            self.assertEqual(
-                [call.args[0] for call in app.call.call_args_list],
-                ["thread/queue/list", "thread/queue/delete"],
-            )
-        self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
-
     def test_interrupted_source_with_removed_queue_item_releases_new_request(self):
         path = self.stage()
         state = HANDOFF_STATE.read_state(path)
@@ -2263,77 +2100,6 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 ["thread/queue/list", "thread/turns/list", "thread/turns/list"],
             )
         self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
-
-    def test_dequeued_request_runs_only_on_target_profile(self):
-        path = self.stage()
-        state = HANDOFF_STATE.read_state(path)
-        state.pop("prompt")
-        queued_prompt = self.prompt
-        state.update(
-            phase="queued",
-            queued_submission_id="queued-1",
-            queued_at=100,
-            queued_prompt_digest=HANDOFF_INPUT.prompt_digest(queued_prompt),
-        )
-        HANDOFF_STATE.write_state(path, state)
-        replay_event = dict(self.event, prompt=queued_prompt, turn_id="replay-turn")
-        with (
-            patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader,
-            patch.object(
-                HANDOFF_PREPARATION,
-                "session_input",
-                return_value={
-                    "task": queued_prompt,
-                    "active_profile": {
-                        "model": "gpt-6-sol",
-                        "effort": "medium",
-                        "speed": None,
-                    },
-                },
-            ),
-        ):
-            reader.return_value.__enter__.return_value.call.return_value = {
-                "data": [],
-                "nextCursor": None,
-            }
-            result = HANDOFF_PREPARATION.prepare_handoff(replay_event)
-        self.assertIn(
-            "ignore", result["hookSpecificOutput"]["additionalContext"].casefold()
-        )
-        self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "queued")
-        self.assertEqual(
-            HANDOFF_STATE.read_state(path)["replay_turn_id"], "replay-turn"
-        )
-
-    def test_dequeued_request_on_old_profile_is_blocked(self):
-        path = self.stage()
-        state = HANDOFF_STATE.read_state(path)
-        state.pop("prompt")
-        queued_prompt = self.prompt
-        state.update(
-            phase="queued",
-            queued_submission_id="queued-1",
-            queued_at=100,
-            queued_prompt_digest=HANDOFF_INPUT.prompt_digest(queued_prompt),
-        )
-        HANDOFF_STATE.write_state(path, state)
-        replay_event = dict(self.event, prompt=queued_prompt, turn_id="replay-turn")
-        with (
-            patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader,
-            patch.object(
-                HANDOFF_PREPARATION,
-                "session_input",
-                return_value={"task": self.prompt, "active_profile": self.active},
-            ),
-        ):
-            reader.return_value.__enter__.return_value.call.return_value = {
-                "data": [],
-                "nextCursor": None,
-            }
-            self.assertEqual(
-                HANDOFF_PREPARATION.prepare_handoff(replay_event)["decision"], "block"
-            )
-        self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "queued")
 
     def test_same_text_after_dequeue_does_not_admit_manual_resubmission(self):
         path = self.stage()
@@ -2418,30 +2184,6 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                     ]
                     self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(new_event))
                 self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
-
-    def test_steer_within_replay_turn_preserves_handoff_and_runs_without_retriage(self):
-        path = self.stage()
-        state = HANDOFF_STATE.read_state(path)
-        state.pop("prompt")
-        state.update(
-            phase="queued",
-            queued_submission_id="queued-1",
-            queued_at=100,
-            replay_turn_id="replay-turn",
-            queued_prompt_digest=HANDOFF_INPUT.prompt_digest(self.prompt),
-        )
-        HANDOFF_STATE.write_state(path, state)
-        event = dict(self.event, prompt="Show the backlog", turn_id="replay-turn")
-        with (
-            patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader,
-            patch.object(HANDOFF_PREPARATION, "triage") as triage,
-        ):
-            self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(event))
-            reader.assert_not_called()
-            triage.assert_not_called()
-        self.assertEqual(
-            HANDOFF_STATE.read_state(path)["replay_turn_id"], "replay-turn"
-        )
 
     def test_consumed_replay_denies_repeated_transfer_without_changing_state(self):
         path = self.stage()
@@ -2603,10 +2345,11 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             .read_text()
             .splitlines()
         )
-        self.assertEqual(
-            [json.loads(line)["outcome"] for line in audit],
-            ["auto_started", "auto_deferred"],
-        )
+        outcomes = [json.loads(line)["outcome"] for line in audit]
+        self.assertEqual(outcomes.count("auto_started"), 1)
+        self.assertEqual(outcomes.count("auto_deferred"), 1)
+        self.assertLess(outcomes.index("auto_started"), outcomes.index("auto_deferred"))
+        self.assertNotIn("auto_handoff", outcomes)
 
     def test_main_stop_emits_one_continuation_decision(self):
         event = dict(

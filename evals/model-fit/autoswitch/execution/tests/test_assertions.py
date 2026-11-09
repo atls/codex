@@ -39,11 +39,13 @@ class TaskResultTests(unittest.TestCase):
             ("true", 1, False),
             ("1", True, False),
             ("1.0", 1, True),
+            ("9007199254740993", 9007199254740992, False),
+            ("9007199254740993", 9007199254740993, True),
             ('{"a":[true]}', {"a": [1]}, False),
             ('{"b":2,"a":1}', {"a": 1, "b": 2}, True),
             ("[1,2]", [2, 1], False),
             ('{"a":1,"extra":2}', {"a": 1}, False),
-            ("-0", 0, False),
+            ("-0", 0, True),
         ]:
             with self.subTest(answer=answer):
                 self.assertEqual(
@@ -62,9 +64,27 @@ class TaskResultTests(unittest.TestCase):
         context = {"vars": {"expected_outputs": []}}
         answer = {"title": "task", "context": "why", "acceptance": ["check"]}
         self.assertTrue(get_assert(json.dumps(answer), context)["pass"])
-        for acceptance in [[], [True], "check"]:
+        for acceptance in [[], [True], "check", [""], ["   "]]:
             self.assertFalse(
                 get_assert(json.dumps(answer | {"acceptance": acceptance}), context)[
                     "pass"
                 ]
             )
+
+
+class DraftFieldTests(unittest.TestCase):
+    def test_blank_title_and_context_fail_before_semantic_grading(self):
+        valid = {
+            "title": "Search",
+            "context": "Use local snapshots",
+            "acceptance": ["Exact phrase search"],
+        }
+        for field in ("title", "context"):
+            for blank in ("", "   "):
+                with self.subTest(field=field, blank=blank):
+                    self.assertFalse(
+                        get_assert(
+                            json.dumps(valid | {field: blank}),
+                            {"vars": {"expected_outputs": []}},
+                        )["pass"]
+                    )

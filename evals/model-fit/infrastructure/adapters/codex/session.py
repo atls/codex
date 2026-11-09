@@ -4,14 +4,12 @@ import json
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
 SUITE = Path(__file__).resolve().parents[3]
 REPOSITORY = SUITE.parents[1]
-sys.path.insert(0, str(REPOSITORY / "plugins/model-fit/src"))
 from model_fit.infrastructure.adapters.codex.authentication import authenticated_home
 
 from infrastructure.adapters.codex.configuration import (
@@ -68,7 +66,9 @@ def evaluation_session(cases, *, install_skill=True, model="gpt-6.1-sol", effort
                 raise ValueError("Workspace IDs must be unique path components")
             workspace = root / identifier
             workspace.mkdir()
-            subprocess.run(["git", "init", "-q", str(workspace)], check=True)
+            subprocess.run(
+                ["git", "init", "-q", str(workspace)], check=True, timeout=30
+            )
             workspaces[identifier] = str(workspace)
         config, judge = provider_configuration(
             executable, home, shell_path, model, effort
@@ -78,7 +78,7 @@ def evaluation_session(cases, *, install_skill=True, model="gpt-6.1-sol", effort
             "judge": judge,
             "providerEnv": PROVIDER_ENV,
             "version": subprocess.check_output(
-                [executable, "--version"], text=True
+                [executable, "--version"], text=True, timeout=30
             ).strip(),
             "skill": str(skill / "SKILL.md") if install_skill else None,
             "workspaces": workspaces,

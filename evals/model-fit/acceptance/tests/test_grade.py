@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from PIL import Image
+from acceptance.tests.media_fixture import media_context
 
 PATH = Path(__file__).resolve().parents[1] / "grade.py"
 SPEC = importlib.util.spec_from_file_location("media_acceptance_grade", PATH)
@@ -13,106 +13,10 @@ SPEC.loader.exec_module(GRADE)
 
 
 class NativeMediaGradeTests(unittest.TestCase):
-    def fixture(self, root, empty=False):
-        home = root / "home"
-        home.mkdir()
-        evidence = root / "evidence"
-        evidence.mkdir()
-        Image.new("RGB", (8, 8), "red").save(root / "first.png")
-        Image.new("RGB", (8, 8), "blue").save(root / "second.png")
-        prompt = "" if empty else "name colors"
-        content = [
-            {"type": "text", "text": prompt},
-            {"type": "localImage", "path": str(root / "first.png")},
-            {"type": "localImage", "path": str(root / "second.png")},
-        ]
-        warning = json.dumps(
-            {
-                "hookSpecificOutput": {
-                    "hookEventName": "UserPromptSubmit",
-                    "additionalContext": "assess",
-                }
-            }
-        )
-        (home / "acceptance-hook-events.jsonl").write_text(
-            json.dumps(
-                {
-                    "event": {
-                        "hook_event_name": "UserPromptSubmit",
-                        "session_id": "thread",
-                        "turn_id": "turn",
-                        "prompt": prompt,
-                    },
-                    "state_snapshot": {
-                        "phase": "submitted",
-                        "pending_assessment": {"generation": "fixture"},
-                    },
-                    "returncode": 0,
-                    "stdout": warning,
-                }
-            )
-            + "\n"
-        )
-        audit = home / ".tmp/model-fit-hook-audit"
-        audit.mkdir(parents=True)
-        (audit / "thread.jsonl").write_text(
-            json.dumps({"turn_id": "turn", "outcome": "auto_session_unavailable"})
-            + "\n"
-        )
-        state = home / ".tmp/model-fit-auto-switch"
-        state.mkdir()
-        (state / "thread.json").write_text(
-            json.dumps({"phase": "passed", "source_turn_id": "turn"})
-        )
-        raw = {
-            "items": [{"type": "user_message", "content": content}],
-            "turn": {"id": "turn", "status": "completed"},
-            "notifications": [
-                {
-                    "method": "hook/completed",
-                    "params": {
-                        "threadId": "thread",
-                        "turnId": "turn",
-                        "run": {
-                            "eventName": "userPromptSubmit",
-                            "status": "completed",
-                            "sourcePath": str(home / "hooks/hooks.json"),
-                            "entries": ["[...]"],
-                        },
-                    },
-                },
-                {
-                    "method": "thread/settings/updated",
-                    "params": {
-                        "threadSettings": {
-                            "model": "gpt-6-luna",
-                            "effort": "medium",
-                            "serviceTier": None,
-                        }
-                    },
-                },
-            ],
-        }
-        context = {
-            "vars": {
-                "home": str(home),
-                "evidence": str(evidence),
-                "prompt": prompt,
-                "plugin": str(home),
-            },
-            "providerResponse": {
-                "raw": raw,
-                "metadata": {
-                    "codexAppServer": {"threadId": "thread", "turnId": "turn"}
-                },
-            },
-        }
-        return context
-
     def test_two_media_rows_require_original_native_order_and_hook_proof(self):
         for empty in [False, True]:
             with self.subTest(empty=empty), tempfile.TemporaryDirectory() as name:
-                context = self.fixture(Path(name), empty)
+                context = media_context(Path(name), empty)
                 self.assertTrue(
                     GRADE.get_assert(
                         '{"colors":["red","blue"],"imageCount":2}', context
@@ -133,7 +37,7 @@ class NativeMediaGradeTests(unittest.TestCase):
         for defect in ("inactive", "no-assessment"):
             with self.subTest(defect=defect), tempfile.TemporaryDirectory() as name:
                 root = Path(name)
-                context = self.fixture(root)
+                context = media_context(root)
                 if defect == "inactive":
                     path = root / "home/acceptance-hook-events.jsonl"
                     row = json.loads(path.read_text())
@@ -151,14 +55,38 @@ class NativeMediaGradeTests(unittest.TestCase):
                 )
 
     def test_missing_native_hook_or_wrong_state_cannot_claim_acceptance(self):
-        with tempfile.TemporaryDirectory() as name:
-            context = self.fixture(Path(name))
-            context["providerResponse"]["raw"]["notifications"] = []
-            self.assertFalse(
-                GRADE.get_assert('{"colors":["red","blue"],"imageCount":2}', context)[
-                    "pass"
-                ]
-            )
+        for defect in ("missing-hook", "wrong-phase", "foreign-turn"):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as name:
+                root = Path(name)
+                context = media_context(root)
+                if defect == "missing-hook":
+                    context["providerResponse"]["raw"]["notifications"] = []
+                else:
+                    state = root / "home/.tmp/model-fit-auto-switch/thread.json"
+                    state.write_text(
+                        json.dumps(
+                            {
+                                "phase": "ready"
+                                if defect == "wrong-phase"
+                                else "passed",
+                                "source_turn_id": "foreign"
+                                if defect == "foreign-turn"
+                                else "turn",
+                            }
+                        )
+                    )
+                self.assertFalse(
+                    GRADE.get_assert(
+                        '{"colors":["red","blue"],"imageCount":2}', context
+                    )["pass"]
+                )
+                result = json.loads((root / "evidence/grade.json").read_text())
+                self.assertIn(
+                    "hook completion"
+                    if defect == "missing-hook"
+                    else "did not release",
+                    result["reason"],
+                )
 
     def test_retained_images_hashes_state_and_audit_allow_offline_grade_after_cleanup(
         self,
@@ -168,7 +96,7 @@ class NativeMediaGradeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
-            context = self.fixture(root)
+            context = media_context(root)
             evidence = root / "evidence"
             retained = []
             for filename in ["first.png", "second.png"]:
