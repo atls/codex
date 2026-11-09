@@ -1,7 +1,7 @@
 import unittest
 
 from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPT, CONTROL_PROMPTS
-from model_fit.autoswitch.admission.input import ToolAdmissionInput
+from model_fit.autoswitch.admission.types.dataclasses.input import ToolAdmissionInput
 from model_fit.infrastructure.adapters.hooks.tools import NativeTransferTools
 from model_fit.submission.context import recent_context
 
