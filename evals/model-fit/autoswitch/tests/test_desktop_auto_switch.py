@@ -21,7 +21,7 @@ import model_fit.entrypoints.hooks.native_contract as DESKTOP_CONFIGURATION
 import model_fit.entrypoints.hooks.operations as HANDOFF_GUARDS
 import model_fit.entrypoints.hooks.operations as HANDOFF_PREPARATION
 import model_fit.entrypoints.hooks.operations as HANDOFF_QUEUE
-import model_fit.infrastructure.adapters.codex.codec as HANDOFF_INPUT
+import model_fit.native_input.codec as HANDOFF_INPUT
 import model_fit.infrastructure.adapters.codex.history as HANDOFF_CODEX
 import model_fit.infrastructure.adapters.codex.transport.connection as CODEX_CONNECTION
 import model_fit.infrastructure.adapters.filesystem.state as HANDOFF_STATE

@@ -10,7 +10,7 @@ import sys
 from model_fit.autoswitch.recommendation.prompt import decide as decide_prompt
 from model_fit.entrypoints.hooks.presentation import HookPresentation
 from model_fit.infrastructure.adapters.codex.assessment import triage
-from model_fit.infrastructure.adapters.codex.codec import prompt_digest as prompt_hash
+from model_fit.native_input.codec import prompt_digest as prompt_hash
 from model_fit.infrastructure.adapters.codex.history import session_input
 from model_fit.infrastructure.adapters.codex.identity import executor_thread_id
 from model_fit.infrastructure.adapters.filesystem.audit import record_audit

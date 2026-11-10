@@ -19,7 +19,7 @@ from model_fit.entrypoints.hooks.instructions import (
     queue_command,
 )
 from model_fit.entrypoints.hooks.presentation import HookPresentation
-from model_fit.infrastructure.adapters.codex.codec import input_digest
+from model_fit.native_input.codec import input_digest
 from model_fit.infrastructure.adapters.codex.transport.connection import (
     AppServerRPCError,
 )

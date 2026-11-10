@@ -13,7 +13,7 @@ from model_fit.submission.types.evaluation import AssessmentContextReader
 from model_fit.autoswitch.handoff.types.conversation import (
     NativeConversationFactory,
 )
-from model_fit.autoswitch.handoff.types.input_reader import NativeInputReader
+from model_fit.native_input import codec
 from model_fit.autoswitch.types.output import HookOutputRenderer
 from model_fit.submission.types.input import SubmissionInput
 from model_fit.autoswitch.recommendation.types.storage import (
@@ -35,7 +35,6 @@ def assess_submitted(
     clock: Clock,
     context_failure: type[Exception],
     context_reason: Callable[[Exception, str], str | None],
-    inputs: NativeInputReader,
     conversation: NativeConversationFactory,
     presentation: HookOutputRenderer,
     read_context: AssessmentContextReader,
@@ -96,7 +95,6 @@ def assess_submitted(
                         prompt_hash=pending["prompt_hash"],
                         empty_input=pending["empty_text"],
                         recommendations=recommendations,
-                        inputs=inputs,
                         presentation=presentation,
                     )
                     if blocked is not None:
@@ -126,10 +124,10 @@ def assess_submitted(
                         if state["phase"] == "queued"
                         else set()
                     )
-                event = decode(pending, inputs.hook_prompt(accepted.source_content))
+                event = decode(pending, codec.hook_prompt(accepted.source_content))
                 request = {
                     **request,
-                    "task": inputs.hook_prompt(accepted.content) or request["task"],
+                    "task": codec.hook_prompt(accepted.content) or request["task"],
                 }
                 if (
                     state["phase"] == "passed"
@@ -169,7 +167,7 @@ def assess_submitted(
                             raise RuntimeError(
                                 "Previous native submission is still queued"
                             )
-                        unchanged = inputs.input_digest(accepted.content) == state.get(
+                        unchanged = codec.input_digest(accepted.content) == state.get(
                             "queued_input_digest"
                         )
                         if matches and (
@@ -233,7 +231,6 @@ def assess_submitted(
                     clock=clock,
                     context_failure=context_failure,
                     context_reason=context_reason,
-                    inputs=inputs,
                     conversation=conversation,
                     presentation=presentation,
                     read_context=lambda _: request,
@@ -275,8 +272,7 @@ def assess_submitted(
                             cached is not None
                             and cached["active_profile"] == request["active_profile"]
                             and (
-                                cached["prompt_hash"]
-                                == inputs.prompt_digest(event.text)
+                                cached["prompt_hash"] == codec.prompt_digest(event.text)
                             )
                         ):
                             recommendations.clear(thread_id)

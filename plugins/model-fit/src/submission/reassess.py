@@ -11,7 +11,7 @@ from model_fit.submission.types.evaluation import AssessmentContextReader
 from model_fit.autoswitch.handoff.types.conversation import (
     NativeConversationFactory,
 )
-from model_fit.autoswitch.handoff.types.input_reader import NativeInputReader
+from model_fit.native_input import codec
 from model_fit.autoswitch.types.output import HookOutputRenderer
 from model_fit.submission.types.input import SubmissionInput
 from model_fit.autoswitch.recommendation.types.storage import (
@@ -34,7 +34,6 @@ def reassess(
     clock: Clock,
     context_failure: type[Exception],
     context_reason: Callable[[Exception, str], str | None],
-    inputs: NativeInputReader,
     conversation: NativeConversationFactory,
     presentation: HookOutputRenderer,
     read_context: AssessmentContextReader,
@@ -78,7 +77,7 @@ def reassess(
         accepted = app.accepted_input(thread_id, turn_id)
         model, effort = app.profile(thread_id)
         parent_id = app.parent_thread_id(thread_id)
-    source = inputs.hook_prompt(accepted.source_content)
+    source = codec.hook_prompt(accepted.source_content)
     event = SubmissionInput(
         thread_id,
         turn_id,
@@ -111,7 +110,7 @@ def reassess(
     ) as slot:
         if slot.load() != snapshot:
             raise SubmissionUnavailable(thread_id, "reassessment_turn_changed")
-        transitions.register_submission(slot, event, inputs.prompt_digest(source))
+        transitions.register_submission(slot, event, codec.prompt_digest(source))
         if snapshot["phase"] == "queued":
             transitions.consume_submission(
                 slot, turn_id, slot.load()["pending_assessment"]
@@ -134,7 +133,6 @@ def reassess(
         clock=clock,
         context_failure=context_failure,
         context_reason=context_reason,
-        inputs=inputs,
         conversation=conversation,
         presentation=presentation,
         read_context=lambda _: request,

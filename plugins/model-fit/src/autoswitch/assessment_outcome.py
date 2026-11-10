@@ -12,7 +12,7 @@ from model_fit.autoswitch.handoff.types.conversation import (
     NativeConversationFactory,
 )
 from model_fit.autoswitch.state.types.record import HandoffStateRecord
-from model_fit.autoswitch.handoff.types.input_reader import NativeInputReader
+from model_fit.native_input import codec
 from model_fit.autoswitch.state.types.record import PendingAssessmentRecord
 from model_fit.autoswitch.types.output import HookOutputRenderer
 from model_fit.submission.types.input import SubmissionInput
@@ -45,7 +45,6 @@ def apply_assessment(
     audit: AuditWriter,
     recommendations: RecommendationStore,
     clock: Clock,
-    inputs: NativeInputReader,
     conversation: NativeConversationFactory,
     presentation: HookOutputRenderer,
     store: TransferStateStore,
@@ -111,16 +110,15 @@ def apply_assessment(
                 blocked = blocking_recommendation(
                     event,
                     recommendations=recommendations,
-                    inputs=inputs,
                     presentation=presentation,
                 )
                 if blocked is not None and result["decision"] == "keep":
                     if not prompt.strip() or current_manual[
                         "prompt_hash"
-                    ] == inputs.prompt_digest(""):
+                    ] == codec.prompt_digest(""):
                         return blocked
                     if (
-                        current_manual["prompt_hash"] == inputs.prompt_digest(prompt)
+                        current_manual["prompt_hash"] == codec.prompt_digest(prompt)
                         and current_manual["active_profile"]
                         == request["active_profile"]
                     ):
@@ -310,7 +308,7 @@ def apply_assessment(
         "created_at": int(clock()),
         "source_turn_id": turn_id,
         "prompt": prompt,
-        "prompt_digest": inputs.prompt_digest(prompt),
+        "prompt_digest": codec.prompt_digest(prompt),
         "target_model": target_model,
         "target_effort": target_effort,
         "official_source_url": result["official_source_url"],

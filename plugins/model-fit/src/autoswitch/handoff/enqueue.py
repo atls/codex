@@ -6,7 +6,7 @@ from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.handoff.types.conversation import (
     NativeConversationFactory,
 )
-from model_fit.autoswitch.handoff.types.input_reader import NativeInputReader
+from model_fit.native_input import codec
 from model_fit.autoswitch.state.types.storage import TransferStateStore
 from model_fit.autoswitch.handoff.expiry import HANDOFF_TTL_SECONDS
 from model_fit.autoswitch.handoff.types.clock import Clock
@@ -18,7 +18,6 @@ def enqueue(
     *,
     caller_thread: str | None,
     clock: Clock,
-    inputs: NativeInputReader,
     conversation: NativeConversationFactory,
     queue_rejection: type[Exception],
     store: TransferStateStore,
@@ -57,13 +56,13 @@ def enqueue(
             queued_input = content
             state["queued_client_message_id"] = turn_id
             state.pop("prompt")
-            state["source_input_digest"] = inputs.input_digest(content)
-            state["queued_input_digest"] = inputs.input_digest(queued_input)
-            state["queued_prompt_digest"] = inputs.prompt_digest(
-                inputs.input_text(queued_input)
+            state["source_input_digest"] = codec.input_digest(content)
+            state["queued_input_digest"] = codec.input_digest(queued_input)
+            state["queued_prompt_digest"] = codec.prompt_digest(
+                codec.input_text(queued_input)
             )
-            state["queued_hook_prompt_digest"] = inputs.prompt_digest(
-                inputs.hook_prompt(queued_input)
+            state["queued_hook_prompt_digest"] = codec.prompt_digest(
+                codec.hook_prompt(queued_input)
             )
             transitions.begin_queue(slot, state)
             try:
@@ -82,9 +81,7 @@ def enqueue(
                 )
             ):
                 raise ValueError("Native queue receipt input is unavailable")
-            state["queued_input_digest"] = inputs.input_digest(
-                submission.accepted_input
-            )
+            state["queued_input_digest"] = codec.input_digest(submission.accepted_input)
         transitions.confirm_queue(slot, state, clock())
         return {
             "queued_submission_id": state["queued_submission_id"],

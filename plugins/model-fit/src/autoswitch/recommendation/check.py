@@ -8,7 +8,7 @@ from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.recommendation.types.record import (
     RecommendationRecord,
 )
-from model_fit.autoswitch.handoff.types.input_reader import NativeInputReader
+from model_fit.native_input import codec
 from model_fit.autoswitch.state.types.record import PendingAssessmentRecord
 from model_fit.autoswitch.types.output import HookOutputRenderer
 from model_fit.submission.types.input import SubmissionInput
@@ -66,7 +66,6 @@ def blocking_recommendation(
     prompt_hash: str | None = None,
     empty_input: bool | None = None,
     recommendations: RecommendationStore,
-    inputs: NativeInputReader,
     presentation: HookOutputRenderer,
 ) -> dict[str, Any] | None:
     cached = load_blocking_recommendation(
@@ -78,9 +77,9 @@ def blocking_recommendation(
     output = presentation.hook_output(cached["result"])
     unknown_input = (
         not event.text.strip() if empty_input is None else empty_input
-    ) or cached["prompt_hash"] == inputs.prompt_digest("")
+    ) or cached["prompt_hash"] == codec.prompt_digest("")
     same_input = cached["prompt_hash"] == (
-        prompt_hash or inputs.prompt_digest(event.text)
+        prompt_hash or codec.prompt_digest(event.text)
     )
     return (
         output

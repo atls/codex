@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from model_fit.assessment.validation import RECOMMENDATIONS
-from model_fit.infrastructure.adapters.codex.codec import prompt_digest as prompt_hash
+from model_fit.native_input.codec import prompt_digest as prompt_hash
 from model_fit.infrastructure.adapters.codex.identity import SESSION_ID_PATTERN
 
 

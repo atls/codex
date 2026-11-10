@@ -9,4 +9,6 @@ class AuditWriter(Protocol):
         outcome: str,
         details: dict[str, Any] | None = None,
         /,
-    ) -> None: ...
+        *,
+        error: BaseException | None = None,
+    ) -> bool | None: ...

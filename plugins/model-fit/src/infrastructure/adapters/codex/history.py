@@ -6,7 +6,7 @@ import time
 from typing import Any, Iterator
 
 from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPTS
-from model_fit.infrastructure.adapters.codex.codec import (
+from model_fit.native_input.codec import (
     hook_prompt,
     input_digest,
     input_text,

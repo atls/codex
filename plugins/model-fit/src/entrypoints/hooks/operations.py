@@ -28,7 +28,6 @@ from model_fit.infrastructure.adapters.codex.history import (
     session_input,
     unavailable_session_input,
 )
-from model_fit.infrastructure.adapters.codex.input import NativeInputs
 from model_fit.infrastructure.adapters.codex.transport.connection import (
     AppServerRPCError,
 )
@@ -63,7 +62,6 @@ def prepare_handoff(event, *, context_reader=None, assessor=None, native_factory
         clock=time.time,
         context_failure=AppServerRPCError,
         context_reason=unavailable_session_input,
-        inputs=NativeInputs(),
         conversation=native_conversation(native_factory),
         presentation=HookPresentation(),
         read_context=lambda request: (context_reader or session_input)(request.source),
@@ -77,7 +75,6 @@ def enqueue_handoff(thread_id, turn_id, *, native_factory=None):
         turn_id,
         caller_thread=os.environ.get("CODEX_THREAD_ID"),
         clock=time.time,
-        inputs=NativeInputs(),
         conversation=native_conversation(native_factory),
         queue_rejection=AppServerRPCError,
         store=FileStore(),
@@ -109,7 +106,6 @@ def guard_replay_answer(event, *, native_factory=None):
     return run_guard_replay_answer(
         answer_input(event),
         audit=record_audit,
-        inputs=NativeInputs(),
         conversation=native_conversation(native_factory),
         presentation=HookPresentation(),
         relevance=answer_relevance.classify_answer,
@@ -126,7 +122,6 @@ def submit_prompt(event, *, context_reader=None, assessor=None, native_factory=N
         clock=time.time,
         context_failure=AppServerRPCError,
         context_reason=unavailable_session_input,
-        inputs=NativeInputs(),
         conversation=native_conversation(native_factory),
         presentation=HookPresentation(),
         read_context=lambda request: (context_reader or session_input)(request.source),
@@ -153,7 +148,6 @@ def assess_submitted(*, context_reader=None, assessor=None, native_factory=None)
         clock=time.time,
         context_failure=AppServerRPCError,
         context_reason=unavailable_session_input,
-        inputs=NativeInputs(),
         conversation=native_conversation(native_factory),
         presentation=HookPresentation(),
         read_context=lambda request: (context_reader or session_input)(request.source),
@@ -183,7 +177,6 @@ def reassess(
         clock=time.time,
         context_failure=AppServerRPCError,
         context_reason=unavailable_session_input,
-        inputs=NativeInputs(),
         conversation=native_conversation(native_factory),
         presentation=HookPresentation(),
         read_context=lambda request: (context_reader or session_input)(request.source),

@@ -11,7 +11,7 @@ from model_fit.submission.types.evaluation import AssessmentContextReader
 from model_fit.autoswitch.handoff.types.conversation import (
     NativeConversationFactory,
 )
-from model_fit.autoswitch.handoff.types.input_reader import NativeInputReader
+from model_fit.native_input import codec
 from model_fit.autoswitch.state.types.record import PendingAssessmentRecord
 from model_fit.autoswitch.types.output import HookOutputRenderer
 from model_fit.submission.types.input import SubmissionInput
@@ -36,7 +36,6 @@ def prepare(
     clock: Clock,
     context_failure: type[Exception],
     context_reason: Callable[[Exception, str], str | None],
-    inputs: NativeInputReader,
     conversation: NativeConversationFactory,
     presentation: HookOutputRenderer,
     read_context: AssessmentContextReader,
@@ -100,7 +99,7 @@ def prepare(
                     prompt.strip() not in presentation.control_prompts
                     and (
                         turn_id != prior["source_turn_id"]
-                        or inputs.prompt_digest(prompt) != prior["prompt_digest"]
+                        or codec.prompt_digest(prompt) != prior["prompt_digest"]
                     )
                 ):
                     pending = prior
@@ -128,7 +127,7 @@ def prepare(
                     )
                 if prior.get(
                     "queued_hook_prompt_digest", prior.get("queued_prompt_digest")
-                ) == inputs.prompt_digest(prompt):
+                ) == codec.prompt_digest(prompt):
                     if prior.get("replay_turn_id") not in (None, turn_id):
                         return block_prompt(
                             thread_id,
@@ -229,7 +228,6 @@ def prepare(
             blocked = blocking_recommendation(
                 event,
                 recommendations=recommendations,
-                inputs=inputs,
                 presentation=presentation,
             )
             if blocked is not None:
@@ -290,7 +288,7 @@ def prepare(
         else:
             label = "Previous user clarification that cancelled the handoff; account for it on the same work:\n"
             with conversation(event.working_directory) as app:
-                clarification = inputs.input_text(
+                clarification = codec.input_text(
                     app.source_input(
                         thread_id, profile_context_turn_id, include_steering=True
                     )
@@ -334,9 +332,9 @@ def prepare(
             "active_effort": request["active_profile"]["effort"],
             "recommended_model": result.get("recommended_model"),
             "recommended_effort": result.get("recommended_effort"),
-            "task_sha256": inputs.prompt_digest(request["task"]),
-            "context_sha256": inputs.prompt_digest(request.get("context", "")),
-            "input_sha256": inputs.input_digest(request["input"])
+            "task_sha256": codec.prompt_digest(request["task"]),
+            "context_sha256": codec.prompt_digest(request.get("context", "")),
+            "input_sha256": codec.input_digest(request["input"])
             if "input" in request
             else None,
             "assessment_generation": str(expected_submission["generation"])
@@ -358,7 +356,6 @@ def prepare(
         audit=audit,
         recommendations=recommendations,
         clock=clock,
-        inputs=inputs,
         conversation=conversation,
         presentation=presentation,
         store=store,

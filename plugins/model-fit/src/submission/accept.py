@@ -11,7 +11,7 @@ from model_fit.submission.types.evaluation import AssessmentContextReader
 from model_fit.autoswitch.handoff.types.conversation import (
     NativeConversationFactory,
 )
-from model_fit.autoswitch.handoff.types.input_reader import NativeInputReader
+from model_fit.native_input import codec
 from model_fit.autoswitch.types.output import HookOutputRenderer
 from model_fit.submission.types.input import SubmissionInput
 from model_fit.autoswitch.recommendation.types.storage import (
@@ -30,7 +30,6 @@ def submit(
     clock: Clock,
     context_failure: type[Exception],
     context_reason: Callable[[Exception, str], str | None],
-    inputs: NativeInputReader,
     conversation: NativeConversationFactory,
     presentation: HookOutputRenderer,
     read_context: AssessmentContextReader,
@@ -82,7 +81,7 @@ def submit(
             if state is not None and state["phase"] == "rejected":
                 transitions.release(slot)
             transitions.register_submission(
-                slot, event, inputs.prompt_digest(event.text)
+                slot, event, codec.prompt_digest(event.text)
             )
     if immediate:
         return prepare(
@@ -93,7 +92,6 @@ def submit(
             clock=clock,
             context_failure=context_failure,
             context_reason=context_reason,
-            inputs=inputs,
             conversation=conversation,
             presentation=presentation,
             read_context=read_context,

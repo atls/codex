@@ -7,7 +7,7 @@ from model_fit.answer.limits import MAX_REPLAY_EVAL_CHARS
 from model_fit.autoswitch.state import transitions
 from model_fit.answer.types.input import ReplayAnswerInput
 from model_fit.autoswitch.handoff.types.conversation import NativeConversation
-from model_fit.autoswitch.handoff.types.input_reader import NativeInputReader
+from model_fit.native_input import codec
 from model_fit.autoswitch.types.output import HookOutputRenderer
 from model_fit.autoswitch.state.types.storage import TransferStateStore
 
@@ -16,7 +16,6 @@ def guard_replay_answer(
     event: ReplayAnswerInput,
     *,
     audit: Callable[..., Any],
-    inputs: NativeInputReader,
     conversation: Callable[[object], AbstractContextManager[NativeConversation]],
     presentation: HookOutputRenderer,
     relevance: Callable[[str, str, str], str],
@@ -80,13 +79,13 @@ def guard_replay_answer(
                 audit(thread_id, turn_id, "auto_stop_steered_or_unverified")
                 return None
             verified_input = replay
-            if inputs.input_digest(replay) != state["queued_input_digest"]:
+            if codec.input_digest(replay) != state["queued_input_digest"]:
                 audit(thread_id, turn_id, "auto_stop_input_unverified")
                 return None
     if any((item.get("type") != "text" for item in content)):
         audit(thread_id, turn_id, "auto_stop_multimodal_unchecked")
         return None
-    request = inputs.input_text(content).strip()
+    request = codec.input_text(content).strip()
     if (
         not request
         or len(request) > MAX_REPLAY_EVAL_CHARS
@@ -108,7 +107,7 @@ def guard_replay_answer(
             if assessed
             else app.replay_input(thread_id, turn_id)
         )
-    if latest_input is None or inputs.input_digest(latest_input) != inputs.input_digest(
+    if latest_input is None or codec.input_digest(latest_input) != codec.input_digest(
         verified_input
     ):
         audit(thread_id, turn_id, "auto_stop_input_changed")

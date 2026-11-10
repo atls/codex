@@ -1,3 +1,5 @@
+from typing import Any
+
 from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPT, CONTROL_PROMPTS
 from model_fit.entrypoints.hooks import instructions, response
 
@@ -17,13 +19,13 @@ class HookPresentation:
     control_context = staticmethod(instructions.control_context)
     queue_command = staticmethod(instructions.queue_command)
 
-    def block(self, reason):
+    def block(self, reason: str) -> dict[str, Any]:
         return {"decision": "block", "reason": reason}
 
-    def warning(self, message):
+    def warning(self, message: str) -> dict[str, Any]:
         return {"systemMessage": message}
 
-    def context(self, context):
+    def context(self, context: str) -> dict[str, Any]:
         return {
             "hookSpecificOutput": {
                 "hookEventName": "UserPromptSubmit",
@@ -31,19 +33,21 @@ class HookPresentation:
             }
         }
 
-    def with_context(self, output, context):
+    def with_context(
+        self, output: dict[str, Any] | None, context: str
+    ) -> dict[str, Any]:
         return {**(output or {}), **self.context(context)}
 
-    def extend_reason(self, output, text):
+    def extend_reason(self, output: dict[str, Any], text: str) -> None:
         output["reason"] += text
 
-    def is_block(self, output):
+    def is_block(self, output: dict[str, Any]) -> bool:
         return output.get("decision") == "block"
 
-    def assessed(self):
+    def assessed(self) -> dict[str, Any]:
         return self.context(instructions.ASSESSED_CONTEXT)
 
-    def prompt_outcome(self, output):
+    def prompt_outcome(self, output: dict[str, Any] | None) -> str:
         if output is None:
             return "auto_pass"
         context = output.get("hookSpecificOutput", {}).get("additionalContext")
