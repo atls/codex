@@ -494,14 +494,16 @@ class PartialPreflightEvidenceTests(unittest.TestCase):
             diagnostics = {}
             with (
                 self.subTest(failure=failure),
-                patch(
-                    "model_fit.infrastructure.adapters.codex.transport.assessment.session.AppServer",
-                    return_value=app,
-                ),
                 self.assertRaises((TimeoutError, RuntimeError)),
             ):
                 TRIAGE.assess(
-                    request, model, "low", 1, ("frozen fixture", models), diagnostics
+                    request,
+                    model,
+                    "low",
+                    1,
+                    ("frozen fixture", models),
+                    diagnostics,
+                    runtime_factory=lambda *args, **kwargs: app,
                 )
             self.assertEqual(diagnostics["events"], app.events)
             self.assertEqual(diagnostics["usage"]["total"], total)

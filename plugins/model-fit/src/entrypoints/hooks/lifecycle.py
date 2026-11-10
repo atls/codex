@@ -65,8 +65,11 @@ def queue_handoff(thread_id: str, turn_id: str) -> int:
                 audit_thread,
                 audit_turn,
                 f"auto_queue_error:{type(error).__name__}",
-                {"hook_event": "queue", "reason_code": "queue_failed"}
-                | failure_location(error),
+                {
+                    "hook_event": "queue",
+                    "reason_code": "queue_failed",
+                    **failure_location(error),
+                },
             )
         print(f"Model Fit queue failed ({type(error).__name__})", file=sys.stderr)
         return 1
@@ -83,8 +86,11 @@ def assess_current(
                 error.thread_id,
                 None,
                 "auto_assessment_error:SubmissionUnavailable",
-                {"hook_event": "assessment", "reason_code": error.reason_code}
-                | failure_location(error),
+                {
+                    "hook_event": "assessment",
+                    "reason_code": error.reason_code,
+                    **failure_location(error),
+                },
             )
         print(
             json.dumps(
@@ -111,8 +117,11 @@ def assess_current(
                 thread,
                 None,
                 f"auto_assessment_error:{type(error).__name__}",
-                {"hook_event": "assessment", "reason_code": "assessment_failed"}
-                | failure_location(error),
+                {
+                    "hook_event": "assessment",
+                    "reason_code": "assessment_failed",
+                    **failure_location(error),
+                },
             )
         print(json.dumps({"status": "failed", "error": type(error).__name__}))
         return 1
@@ -208,8 +217,14 @@ def handle_lifecycle(
                 auto_thread,
                 turn_id,
                 f"auto_error:{type(error).__name__}",
-                ({"hook_event": event_name} if isinstance(event_name, str) else {})
-                | failure_location(error),
+                {
+                    **(
+                        {"hook_event": event_name}
+                        if isinstance(event_name, str)
+                        else {}
+                    ),
+                    **failure_location(error),
+                },
             )
         if event_name in (None, "Stop"):
             output = None

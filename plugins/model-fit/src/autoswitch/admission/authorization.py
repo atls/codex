@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from model_fit.autoswitch.state.types.record import HandoffStateRecord
+
 from model_fit.autoswitch.admission.types.result import (
     AllowedTool,
     DeniedTool,
     ToolAdmission,
 )
 
-from typing import Any
+from model_fit.native_input.types.json import JsonValue
 
 from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.types.audit import AuditWriter
@@ -17,8 +19,8 @@ from model_fit.autoswitch.handoff.types.clock import Clock
 
 def authorize_transfer(
     event: ToolAdmissionInput,
-    state: dict[str, Any],
-    bound: dict[str, Any] | None,
+    state: HandoffStateRecord,
+    bound: dict[str, JsonValue] | None,
     *,
     audit: AuditWriter,
     clock: Clock,

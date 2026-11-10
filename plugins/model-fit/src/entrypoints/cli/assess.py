@@ -2,6 +2,14 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+from model_fit.assessment.types.catalog import ProfileCatalog
+from model_fit.assessment.types.request import ProfileAssessmentInput
+from model_fit.assessment.types.decision import AssessmentDecision
+from model_fit.native_input.types.json import JsonValue
+from model_fit.infrastructure.adapters.codex.transport.assessment.session import (
+    AppServer,
+)
 import argparse
 import json
 import subprocess
@@ -16,25 +24,33 @@ from model_fit.assessment.validation import empty_decision, validated_request
 
 
 def assess(
-    request,
+    request: ProfileAssessmentInput,
     evaluator_model: str,
     evaluator_effort: str,
     timeout: int,
-    source_bundle=None,
-    diagnostics=None,
+    source_bundle: tuple[str, ProfileCatalog | dict[str, dict[str, JsonValue]]]
+    | None = None,
+    diagnostics: dict[str, JsonValue] | None = None,
     *,
     codex_path: str = "codex",
-    runtime_factory=None,
-    skill_directory=None,
-):
+    runtime_factory: type[AppServer] | None = None,
+    skill_directory: Path | None = None,
+) -> AssessmentDecision:
     if source_bundle is not None and isinstance(source_bundle[1], dict):
         source_bundle = (source_bundle[0], NativeCatalog(source_bundle[1]))
+    sources: tuple[str, ProfileCatalog] | None = None
+    if source_bundle is not None:
+        source_text, catalog = source_bundle
+        sources = (
+            source_text,
+            NativeCatalog(catalog) if isinstance(catalog, dict) else catalog,
+        )
     return assess_profile(
         request,
         evaluator_model,
         evaluator_effort,
         timeout,
-        source_bundle,
+        sources,
         diagnostics,
         source_reader=assessment_sources,
         evaluator=native_evaluator(

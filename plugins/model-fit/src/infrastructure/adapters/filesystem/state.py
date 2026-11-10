@@ -10,9 +10,12 @@ import tempfile
 import time
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Iterator
+from model_fit.native_input.types.json import JsonValue
 
 from model_fit.infrastructure.adapters.codex.identity import SESSION_ID_PATTERN
+from model_fit.autoswitch.state.types.record import HandoffStateRecord
+from model_fit.autoswitch.state.validation import handoff_record
 
 STATE_DIRECTORY = ".tmp/model-fit-auto-switch"
 
@@ -63,14 +66,17 @@ def locked_state(
             lock.flush()
 
 
-def lock_owner(thread_id: str) -> dict[str, Any]:
+def lock_owner(thread_id: str) -> dict[str, JsonValue]:
     try:
         owner = json.loads(state_path(thread_id).with_suffix(".lock").read_text())
     except (OSError, ValueError):
         return {"holder_observed": False}
     if not isinstance(owner, dict) or type(owner.get("pid")) is not int:
         return {"holder_observed": False}
-    details: dict[str, Any] = {"holder_observed": True, "holder_pid": owner["pid"]}
+    details: dict[str, JsonValue] = {
+        "holder_observed": True,
+        "holder_pid": owner["pid"],
+    }
     if isinstance(owner.get("operation"), str) and owner["operation"] in {
         "prompt_submit",
         "pre_tool_use",
@@ -89,23 +95,16 @@ def lock_owner(thread_id: str) -> dict[str, Any]:
     return details
 
 
-def read_state(path: Path) -> dict[str, Any] | None:
+def read_state(path: Path) -> HandoffStateRecord | None:
     if not path.exists():
         return None
     state = json.loads(path.read_text())
-    if not isinstance(state, dict) or state.get("phase") not in {
-        "ready",
-        "submitted",
-        "attempting",
-        "queued",
-        "rejected",
-        "passed",
-    }:
+    if not handoff_record(state):
         raise ValueError("Invalid Model Fit handoff state")
     return state
 
 
-def write_state(path: Path, state: dict[str, Any]) -> None:
+def write_state(path: Path, state: HandoffStateRecord) -> None:
     temporary = None
     try:
         with tempfile.NamedTemporaryFile(

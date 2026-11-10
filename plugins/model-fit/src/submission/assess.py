@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
 
 from model_fit.autoswitch.state import transitions
+from model_fit.assessment.types.profile import ActiveProfile
+from model_fit.autoswitch.state.types.record import PendingAssessmentRecord
 from model_fit.autoswitch.exceptions.superseded import AssessmentSuperseded
 from model_fit.autoswitch.exceptions.unavailable import SubmissionUnavailable
 from model_fit.autoswitch.handoff.prepare import prepare
@@ -14,7 +15,17 @@ from model_fit.autoswitch.handoff.types.conversation import (
     NativeConversationFactory,
 )
 from model_fit.native_input import codec
-from model_fit.autoswitch.types.output import HookOutputRenderer
+from model_fit.autoswitch.types.disposition import (
+    ContinueWork,
+    PreparedTransfer,
+    QueuePending,
+    TurnDisposition,
+    TurnNotice,
+    UnknownAssessment,
+    WorkContext,
+)
+from model_fit.autoswitch.disposition import assessment_audit_outcome, blocks_work
+
 from model_fit.submission.types.input import SubmissionInput
 from model_fit.autoswitch.recommendation.types.storage import (
     RecommendationStore,
@@ -25,7 +36,7 @@ from model_fit.autoswitch.handoff.types.clock import Clock
 
 
 def assess_submitted(
-    decode: Callable[[dict[str, Any], str], SubmissionInput],
+    decode: Callable[[PendingAssessmentRecord, str], SubmissionInput],
     *,
     assessor: AssessmentRunner,
     assessment_failure: tuple[type[Exception], ...],
@@ -36,10 +47,9 @@ def assess_submitted(
     context_failure: type[Exception],
     context_reason: Callable[[Exception, str], str | None],
     conversation: NativeConversationFactory,
-    presentation: HookOutputRenderer,
     read_context: AssessmentContextReader,
     store: TransferStateStore,
-) -> dict[str, Any]:
+) -> TurnDisposition:
     try:
         thread_id = caller_thread
         if not thread_id:
@@ -51,20 +61,18 @@ def assess_submitted(
             pending = state.get("pending_assessment")
             if pending is None:
                 if state["phase"] == "ready":
-                    return presentation.control_context(
-                        thread_id, state["source_turn_id"], state
-                    )
+                    return PreparedTransfer(thread_id, state["source_turn_id"], state)
                 if state["phase"] == "queued":
                     if state.get("replay_turn_id") is not None:
-                        return presentation.context(presentation.replay_context)
-                    return presentation.queued_context()
+                        return ContinueWork(WorkContext.REPLAY)
+                    return QueuePending()
                 if state.get("assessment_decision") == "keep":
-                    return presentation.assessed()
-                return presentation.warning(
+                    return ContinueWork(WorkContext.ASSESSED)
+                return TurnNotice(
                     "Model Fit: no new assessment was performed; suitability is unknown."
                 )
             if pending["status"] == "running":
-                return presentation.warning(
+                return TurnNotice(
                     "Model Fit: assessment is already running; wait for the first invocation's result."
                 )
             pending = transitions.start_assessment(slot)
@@ -95,7 +103,6 @@ def assess_submitted(
                         prompt_hash=pending["prompt_hash"],
                         empty_input=pending["empty_text"],
                         recommendations=recommendations,
-                        presentation=presentation,
                     )
                     if blocked is not None:
                         recommendations.clear(thread_id)
@@ -113,7 +120,7 @@ def assess_submitted(
                     "auto_unknown",
                     {"hook_event": "assessment"},
                 )
-                return presentation.unknown(
+                return UnknownAssessment(
                     "Native chat context is unavailable for assessment."
                 )
             else:
@@ -161,8 +168,7 @@ def assess_submitted(
                     with store.transaction(
                         thread_id, operation="assessment", turn_id=event.turn_id
                     ) as slot:
-                        current = slot.load()
-                        transitions.require_submission(slot, pending)
+                        current = transitions.require_submission(slot, pending)
                         if state["queued_submission_id"] in queued:
                             raise RuntimeError(
                                 "Previous native submission is still queued"
@@ -186,13 +192,13 @@ def assess_submitted(
                             audit(
                                 thread_id, event.turn_id, "auto_native_profile_override"
                             )
-                            return presentation.context(
+                            return ContinueWork(
                                 "Model Fit: the native owner changed the profile after queueing. The current profile is retained; its suitability was not reassessed here. Perform the current original request with all current attachments and annotations."
                             )
                         if matches and unchanged:
                             transitions.bind_replay(slot, current, event.turn_id)
                             audit(thread_id, event.turn_id, "auto_replay")
-                            return presentation.context(presentation.replay_context)
+                            return ContinueWork(WorkContext.REPLAY)
                         transitions.consume_submission(slot, event.turn_id, pending)
                         if not matches and (
                             request["active_profile"]["model"],
@@ -232,7 +238,6 @@ def assess_submitted(
                     context_failure=context_failure,
                     context_reason=context_reason,
                     conversation=conversation,
-                    presentation=presentation,
                     read_context=lambda _: request,
                     store=store,
                 )
@@ -246,7 +251,7 @@ def assess_submitted(
                     request["active_profile"]["model"],
                     request["active_profile"]["effort"],
                 ):
-                    selected = {
+                    selected: ActiveProfile = {
                         **request["active_profile"],
                         "model": current_model,
                         "effort": current_effort,
@@ -295,7 +300,7 @@ def assess_submitted(
                             "reason_code": "native_choice_during_assessment",
                         },
                     )
-                    return presentation.context(
+                    return ContinueWork(
                         "Model Fit: the native owner changed the profile during assessment. The previous recommendation is cancelled; the current choice is retained and its suitability is unknown. Perform the original request with its current attachments."
                     )
             with store.transaction(
@@ -309,7 +314,7 @@ def assess_submitted(
                     raise AssessmentSuperseded(
                         thread_id, event.turn_id, pending["generation"]
                     )
-                if output is not None and presentation.is_block(output):
+                if output is not None and blocks_work(output):
                     transitions.fail_assessment(slot, pending)
                 else:
                     transitions.finish_assessment(
@@ -318,14 +323,14 @@ def assess_submitted(
             audit(
                 thread_id,
                 event.turn_id,
-                presentation.prompt_outcome(output),
+                assessment_audit_outcome(output),
                 {
                     "hook_event": "assessment",
                     "assessment_generation": str(pending["generation"]),
                     "root_session_id": event.session_id or thread_id,
                 },
             )
-            return output if output is not None else presentation.assessed()
+            return output if output is not None else ContinueWork(WorkContext.ASSESSED)
         except AssessmentSuperseded:
             raise
         except Exception as error:
@@ -361,7 +366,7 @@ def assess_submitted(
                             "reason_code": "assessment_failed_continue",
                         },
                     )
-                    return presentation.unknown(
+                    return UnknownAssessment(
                         "The evaluator is unavailable (" + type(error).__name__ + ")."
                     )
             try:
@@ -388,6 +393,6 @@ def assess_submitted(
                 "assessment_generation": error.generation,
             },
         )
-        return presentation.context(
+        return ContinueWork(
             "The previous Model Fit assessment was superseded and not applied. Use the instruction for the latest accepted input; do not repeat a handoff based on the cancelled assessment."
         )

@@ -1,4 +1,5 @@
-from typing import Any, Protocol
+from typing import Protocol
+from model_fit.native_input.types.json import JsonValue
 
 
 class AuditWriter(Protocol):
@@ -7,7 +8,7 @@ class AuditWriter(Protocol):
         thread_id: str,
         turn_id: str | None,
         outcome: str,
-        details: dict[str, Any] | None = None,
+        details: dict[str, JsonValue] | None = None,
         /,
         *,
         error: BaseException | None = None,

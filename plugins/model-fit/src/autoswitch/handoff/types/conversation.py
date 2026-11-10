@@ -1,7 +1,7 @@
+from model_fit.autoswitch.state.types.record import HandoffStateRecord
 from model_fit.native_input.types.json import JsonValue
 from contextlib import AbstractContextManager
 from typing import Protocol
-from typing import Any
 from model_fit.autoswitch.handoff.types.accepted_input import (
     AcceptedNativeInput,
 )
@@ -32,14 +32,14 @@ class NativeConversation(Protocol):
     def queued_ids(self, thread_id: str) -> set[str]: ...
 
     def source_input(
-        self, thread_id: str, turn_id: str, **options: Any
+        self, thread_id: str, turn_id: str, *, include_steering: bool = False
     ) -> list[dict[str, JsonValue]]: ...
 
     def handoff_input(
-        self, thread_id: str, state: dict[str, Any]
+        self, thread_id: str, state: HandoffStateRecord
     ) -> list[dict[str, JsonValue]]: ...
 
-    def replay_finished(self, thread_id: str, state: dict[str, Any]) -> bool: ...
+    def replay_finished(self, thread_id: str, state: HandoffStateRecord) -> bool: ...
 
     def source_terminal_without_replay(
         self, thread_id: str, source_turn_id: str, current_turn_id: str

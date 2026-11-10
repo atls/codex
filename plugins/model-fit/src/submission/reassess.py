@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
 
 from model_fit.autoswitch.state import transitions
+from model_fit.autoswitch.state.types.record import PendingAssessmentRecord
 from model_fit.autoswitch.exceptions.unavailable import SubmissionUnavailable
 from model_fit.submission.types.evaluation import AssessmentRunner
 from model_fit.autoswitch.types.audit import AuditWriter
@@ -12,7 +12,10 @@ from model_fit.autoswitch.handoff.types.conversation import (
     NativeConversationFactory,
 )
 from model_fit.native_input import codec
-from model_fit.autoswitch.types.output import HookOutputRenderer
+from model_fit.autoswitch.types.disposition import (
+    TurnDisposition,
+)
+
 from model_fit.submission.types.input import SubmissionInput
 from model_fit.autoswitch.recommendation.types.storage import (
     RecommendationStore,
@@ -24,7 +27,7 @@ from model_fit.submission.assess import assess_submitted
 
 def reassess(
     requirements: str,
-    decode,
+    decode: Callable[[PendingAssessmentRecord, str], SubmissionInput],
     *,
     assessor: AssessmentRunner,
     assessment_failure: tuple[type[Exception], ...],
@@ -35,11 +38,10 @@ def reassess(
     context_failure: type[Exception],
     context_reason: Callable[[Exception, str], str | None],
     conversation: NativeConversationFactory,
-    presentation: HookOutputRenderer,
     read_context: AssessmentContextReader,
     store: TransferStateStore,
     working_directory: Callable[[], str],
-) -> dict[str, Any]:
+) -> TurnDisposition:
     if not isinstance(requirements, str) or not requirements.strip():
         raise ValueError("Changed requirements must be nonempty")
     requirements_context = (
@@ -77,6 +79,8 @@ def reassess(
         accepted = app.accepted_input(thread_id, turn_id)
         model, effort = app.profile(thread_id)
         parent_id = app.parent_thread_id(thread_id)
+    if not isinstance(model, str) or not isinstance(effort, str):
+        raise ValueError("Native profile unavailable for reassessment")
     source = codec.hook_prompt(accepted.source_content)
     event = SubmissionInput(
         thread_id,
@@ -110,11 +114,11 @@ def reassess(
     ) as slot:
         if slot.load() != snapshot:
             raise SubmissionUnavailable(thread_id, "reassessment_turn_changed")
-        transitions.register_submission(slot, event, codec.prompt_digest(source))
+        pending = transitions.register_submission(
+            slot, event, codec.prompt_digest(source)
+        )
         if snapshot["phase"] == "queued":
-            transitions.consume_submission(
-                slot, turn_id, slot.load()["pending_assessment"]
-            )
+            transitions.consume_submission(slot, turn_id, pending)
             if (model, effort) != (snapshot["target_model"], snapshot["target_effort"]):
                 transitions.admit(
                     slot,
@@ -134,7 +138,6 @@ def reassess(
         context_failure=context_failure,
         context_reason=context_reason,
         conversation=conversation,
-        presentation=presentation,
         read_context=lambda _: request,
         store=store,
     )

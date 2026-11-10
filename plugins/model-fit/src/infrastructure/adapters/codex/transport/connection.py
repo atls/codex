@@ -7,7 +7,7 @@ import os
 import select
 import subprocess
 import time
-from typing import Any
+from typing import Any, Self
 
 from model_fit.infrastructure.adapters.codex.transport.rpc_error import (
     AppServerRPCError,
@@ -17,7 +17,7 @@ from model_fit.infrastructure.adapters.codex.transport.rpc_error import (
 class AppServerConnection:
     def __init__(
         self,
-        process: subprocess.Popen,
+        process: subprocess.Popen[bytes],
         client_info: dict[str, str],
         *,
         timeout_message: str = "app-server timed out",
@@ -43,7 +43,7 @@ class AppServerConnection:
             self.close()
             raise
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *_: object) -> None:
@@ -88,9 +88,14 @@ class AppServerConnection:
                 raise RuntimeError(self.closed_message)
             self.pending += chunk
         line, self.pending = self.pending.split(b"\n", 1)
-        return json.loads(line)
+        message: object = json.loads(line)
+        if not isinstance(message, dict):
+            raise ValueError("App-server message must be an object")
+        return message
 
-    def call(self, method: str, params: dict[str, Any], timeout: int) -> dict[str, Any]:
+    def call(
+        self, method: str, params: dict[str, Any], timeout: float
+    ) -> dict[str, Any]:
         request_id = self.next_id
         self.next_id += 1
         self.send({"method": method, "id": request_id, "params": params})
@@ -110,7 +115,10 @@ class AppServerConnection:
                         code=error.get("code"),
                         thread_id=params.get("threadId"),
                     )
-                return event["result"]
+                result = event["result"]
+                if not isinstance(result, dict):
+                    raise ValueError("App-server result must be an object")
+                return result
             if "id" in event and "method" in event:
                 raise RuntimeError(f"Unexpected app-server request: {event['method']}")
             self.events.append(event)

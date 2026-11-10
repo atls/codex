@@ -1,27 +1,32 @@
 from __future__ import annotations
 
 from contextlib import AbstractContextManager
-from typing import Any, Callable
+from typing import Callable
 
+from model_fit.autoswitch.types.audit import AuditWriter
 from model_fit.answer.limits import MAX_REPLAY_EVAL_CHARS
 from model_fit.autoswitch.state import transitions
 from model_fit.answer.types.input import ReplayAnswerInput
 from model_fit.autoswitch.handoff.types.conversation import NativeConversation
 from model_fit.native_input import codec
-from model_fit.autoswitch.types.output import HookOutputRenderer
+from model_fit.autoswitch.types.disposition import (
+    BlockedTurn,
+    TurnDisposition,
+    UnrelatedAnswer,
+)
+
 from model_fit.autoswitch.state.types.storage import TransferStateStore
 
 
 def guard_replay_answer(
     event: ReplayAnswerInput,
     *,
-    audit: Callable[..., Any],
+    audit: AuditWriter,
     conversation: Callable[[object], AbstractContextManager[NativeConversation]],
-    presentation: HookOutputRenderer,
     relevance: Callable[[str, str, str], str],
     store: TransferStateStore,
-) -> dict[str, Any] | None:
-    if event.stop_hook_active is True:
+) -> TurnDisposition | None:
+    if not isinstance(event.thread_id, str) or event.stop_hook_active is True:
         return None
     thread_id = event.thread_id
     turn_id = event.turn_id
@@ -38,7 +43,7 @@ def guard_replay_answer(
         if pending is not None:
             if pending["turn_id"] != turn_id or pending["status"] == "failed":
                 return None
-            return presentation.block(
+            return BlockedTurn(
                 "Model Fit: before answering, run the technical assessment command from this turn's instructions."
             )
         if (
@@ -116,4 +121,4 @@ def guard_replay_answer(
         current = slot.load()
     if current != state:
         return None
-    return presentation.block(presentation.replay_stop_reason)
+    return UnrelatedAnswer()

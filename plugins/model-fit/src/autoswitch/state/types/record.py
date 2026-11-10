@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Literal, Required, TypedDict
 from model_fit.assessment.types.profile import ActiveProfile
 
 
@@ -17,10 +17,12 @@ class PendingAssessmentRecord(TypedDict, total=False):
 
 
 class HandoffStateRecord(TypedDict, total=False):
-    phase: str
-    source_turn_id: str
+    phase: Required[
+        Literal["ready", "submitted", "attempting", "queued", "rejected", "passed"]
+    ]
+    source_turn_id: Required[str]
     control_turn_id: str
-    replay_turn_id: str
+    replay_turn_id: str | None
     continuation_turn_ids: list[str]
     assessment_generation: str | int
     pending_assessment: PendingAssessmentRecord | None
@@ -28,6 +30,7 @@ class HandoffStateRecord(TypedDict, total=False):
     profile_context_turn_id: str | None
     native_profile: ActiveProfile
     assessed_profile: ActiveProfile
+    queued_at: int
     created_at: int
     transfer_authorized_at: float
     prompt: str

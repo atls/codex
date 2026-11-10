@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Callable
 
 from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.assessment_outcome import apply_assessment
@@ -13,7 +13,16 @@ from model_fit.autoswitch.handoff.types.conversation import (
 )
 from model_fit.native_input import codec
 from model_fit.autoswitch.state.types.record import PendingAssessmentRecord
-from model_fit.autoswitch.types.output import HookOutputRenderer
+from model_fit.autoswitch.types.disposition import (
+    BlockedTurn,
+    ContinueWork,
+    PreparedTransfer,
+    TurnDisposition,
+    TurnNotice,
+    WorkContext,
+)
+from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPTS
+
 from model_fit.submission.types.input import SubmissionInput
 from model_fit.autoswitch.recommendation.types.storage import (
     RecommendationStore,
@@ -37,10 +46,9 @@ def prepare(
     context_failure: type[Exception],
     context_reason: Callable[[Exception, str], str | None],
     conversation: NativeConversationFactory,
-    presentation: HookOutputRenderer,
     read_context: AssessmentContextReader,
     store: TransferStateStore,
-) -> dict[str, Any] | None:
+) -> TurnDisposition | None:
     thread_id = event.thread_id
     turn_id = event.turn_id
     prompt = event.text
@@ -80,7 +88,6 @@ def prepare(
                     "Model Fit: the previous queue submission has an unknown outcome; submitting it again is forbidden.",
                     prior["phase"],
                     audit=audit,
-                    presentation=presentation,
                 )
             if prior["phase"] == "rejected":
                 if prior["source_turn_id"] == turn_id:
@@ -91,12 +98,11 @@ def prepare(
                         "Model Fit: the technical turn ended with a queue rejection; send a new instruction in a separate turn.",
                         prior["phase"],
                         audit=audit,
-                        presentation=presentation,
                     )
                 transitions.release(slot)
             if prior["phase"] == "ready":
                 if prior.get("pending_assessment") is not None or (
-                    prompt.strip() not in presentation.control_prompts
+                    prompt.strip() not in CONTROL_PROMPTS
                     and (
                         turn_id != prior["source_turn_id"]
                         or codec.prompt_digest(prompt) != prior["prompt_digest"]
@@ -106,10 +112,10 @@ def prepare(
                 else:
                     transitions.continue_transfer(slot, prior, turn_id)
                     audit(thread_id, turn_id, "auto_handoff_continued")
-                    return presentation.control_context(thread_id, turn_id, prior)
+                    return PreparedTransfer(thread_id, turn_id, prior)
             elif prior["phase"] == "queued":
                 if "queued_client_message_id" in prior:
-                    return presentation.block(
+                    return BlockedTurn(
                         "Model Fit: the assess command verifies the accepted continuation against native client identity."
                     )
                 if prior.get("replay_turn_id") == turn_id:
@@ -123,7 +129,6 @@ def prepare(
                         "Model Fit: the technical turn already queued the request; send a new instruction in a separate turn.",
                         prior["phase"],
                         audit=audit,
-                        presentation=presentation,
                     )
                 if prior.get(
                     "queued_hook_prompt_digest", prior.get("queued_prompt_digest")
@@ -136,7 +141,6 @@ def prepare(
                             "Model Fit: repeating the request continuation is forbidden.",
                             prior["phase"],
                             audit=audit,
-                            presentation=presentation,
                         )
                     with conversation(event.working_directory) as app:
                         if prior["queued_submission_id"] in app.queued_ids(thread_id):
@@ -147,7 +151,6 @@ def prepare(
                                 "Model Fit: the continuation is still queued.",
                                 prior["phase"],
                                 audit=audit,
-                                presentation=presentation,
                             )
                     selected = read_context(event)["active_profile"]
                     if (selected["model"], selected["effort"]) != (
@@ -161,10 +164,9 @@ def prepare(
                             "Model Fit: the queued request arrived on the wrong profile.",
                             prior["phase"],
                             audit=audit,
-                            presentation=presentation,
                         )
                     transitions.bind_replay(slot, prior, turn_id)
-                    return presentation.context(presentation.replay_context)
+                    return ContinueWork(WorkContext.REPLAY)
                 with conversation(event.working_directory) as app:
                     if prior["queued_submission_id"] in app.queued_ids(thread_id):
                         deleted = app.delete(thread_id, prior["queued_submission_id"])
@@ -176,7 +178,6 @@ def prepare(
                                 "Model Fit: the previous request is starting; repeat the new instruction after it completes.",
                                 prior["phase"],
                                 audit=audit,
-                                presentation=presentation,
                             )
                     elif not app.replay_finished(thread_id, prior):
                         if prior.get(
@@ -191,7 +192,6 @@ def prepare(
                                 "Model Fit: the previous request is running; repeat the new instruction after it completes.",
                                 prior["phase"],
                                 audit=audit,
-                                presentation=presentation,
                             )
                         audit(
                             thread_id,
@@ -210,7 +210,7 @@ def prepare(
     except context_failure as error:
         capability = context_reason(error, thread_id)
         if (
-            prompt.strip() in presentation.control_prompts
+            prompt.strip() in CONTROL_PROMPTS
             or not fresh_session
             or pending is not None
             or (profile_context_state is not None)
@@ -228,7 +228,6 @@ def prepare(
             blocked = blocking_recommendation(
                 event,
                 recommendations=recommendations,
-                presentation=presentation,
             )
             if blocked is not None:
                 audit(
@@ -248,7 +247,7 @@ def prepare(
             "auto_session_unavailable",
             {"hook_event": "UserPromptSubmit", "reason_code": capability},
         )
-        return presentation.warning(
+        return TurnNotice(
             "Model Fit: this chat's context is unavailable for assessment; profile suitability is unknown and the current profile has been retained."
         )
     with store.transaction(
@@ -268,7 +267,7 @@ def prepare(
         ):
             recommendations.clear(thread_id)
             manual_evidence = None
-    if profile_context_turn_id is not None:
+    if profile_context_turn_id is not None and profile_context_state is not None:
         if profile_context_state.get("native_profile") is not None:
             label = (
                 "Retained native chat owner's profile choice for the current work:\n"
@@ -294,7 +293,7 @@ def prepare(
                     )
                 )
         request["context"] = (
-            label + clarification + "\n\n" + request.get("context", "")
+            label + clarification + "\n\n" + (request.get("context") or "")
         )[:20000]
     if pending is not None:
         if "input" in request:
@@ -313,7 +312,7 @@ def prepare(
             "Original unfinished user request:\n"
             + pending["prompt"]
             + "\n\n"
-            + request.get("context", "")
+            + (request.get("context") or "")
         )[:20000]
     result = assessor(request)
     audit(
@@ -333,7 +332,7 @@ def prepare(
             "recommended_model": result.get("recommended_model"),
             "recommended_effort": result.get("recommended_effort"),
             "task_sha256": codec.prompt_digest(request["task"]),
-            "context_sha256": codec.prompt_digest(request.get("context", "")),
+            "context_sha256": codec.prompt_digest((request.get("context") or "")),
             "input_sha256": codec.input_digest(request["input"])
             if "input" in request
             else None,
@@ -357,6 +356,5 @@ def prepare(
         recommendations=recommendations,
         clock=clock,
         conversation=conversation,
-        presentation=presentation,
         store=store,
     )

@@ -1,11 +1,13 @@
 import shlex
 import sys
 from pathlib import Path
-from typing import Any, cast
+from model_fit.native_input.types.json import JsonValue
+from model_fit.native_input.validation import checked_object
+from model_fit.autoswitch.admission.types.input import ToolAdmissionInput
+from model_fit.autoswitch.state.types.record import HandoffStateRecord
 
-from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPTS
+from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPT, CONTROL_PROMPTS
 from model_fit.entrypoints.hooks.instructions import (
-    CONTROL_PROMPT,
     assessment_command,
     queue_command,
 )
@@ -32,8 +34,8 @@ class NativeTransferTools:
             return None
         return command[1:]
 
-    def matches_assessment(self, request):
-        native = cast(dict[str, Any], request.source)
+    def matches_assessment(self, request: ToolAdmissionInput) -> bool:
+        native = checked_object(request.source)
         arguments = native.get("tool_input")
         return (
             isinstance(arguments, dict)
@@ -44,8 +46,10 @@ class NativeTransferTools:
             )
         )
 
-    def matches_profile_switch(self, request, state):
-        native = cast(dict[str, Any], request.source)
+    def matches_profile_switch(
+        self, request: ToolAdmissionInput, state: HandoffStateRecord
+    ) -> bool:
+        native = checked_object(request.source)
         arguments = native.get("tool_input")
         return (
             isinstance(arguments, dict)
@@ -60,8 +64,10 @@ class NativeTransferTools:
             )
         )
 
-    def matches_queue(self, request, state):
-        native = cast(dict[str, Any], request.source)
+    def matches_queue(
+        self, request: ToolAdmissionInput, state: HandoffStateRecord
+    ) -> bool:
+        native = checked_object(request.source)
         arguments = native.get("tool_input")
         return (
             isinstance(arguments, dict)
@@ -74,8 +80,10 @@ class NativeTransferTools:
             )
         )
 
-    def bound_transfer_input(self, request, state):
-        native = cast(dict[str, Any], request.source)
+    def bound_transfer_input(
+        self, request: ToolAdmissionInput, state: HandoffStateRecord
+    ) -> dict[str, JsonValue] | None:
+        native = checked_object(request.source)
         arguments = native.get("tool_input")
         if not isinstance(arguments, dict):
             return None
@@ -112,8 +120,8 @@ class NativeTransferTools:
             "command": queue_command(request.thread_id, state["source_turn_id"]),
         }
 
-    def matches_transfer(self, request):
-        native = cast(dict[str, Any], request.source)
+    def matches_transfer(self, request: ToolAdmissionInput) -> bool:
+        native = checked_object(request.source)
         arguments = native.get("tool_input")
         if not isinstance(arguments, dict):
             return False

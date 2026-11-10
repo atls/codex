@@ -1,9 +1,9 @@
+from model_fit.autoswitch.state.types.record import HandoffStateRecord
 from model_fit.autoswitch.admission.types.result import (
     AllowedTool,
     DeniedTool,
     ToolAdmission,
 )
-from typing import Any
 from model_fit.autoswitch.admission.types.input import ToolAdmissionInput
 from model_fit.autoswitch.admission.types.tools import TransferTools
 from model_fit.autoswitch.types.audit import AuditWriter
@@ -12,7 +12,7 @@ from model_fit.autoswitch.admission.guards.replay import replay_transfer_complet
 
 def deny_replay_transfer(
     event: ToolAdmissionInput,
-    state: dict[str, Any] | None,
+    state: HandoffStateRecord | None,
     *,
     actions: TransferTools,
     audit: AuditWriter,
@@ -35,7 +35,7 @@ def deny_replay_transfer(
 
 def deny_unprepared_transfer(
     event: ToolAdmissionInput,
-    state: dict[str, Any] | None,
+    state: HandoffStateRecord | None,
     *,
     actions: TransferTools,
     audit: AuditWriter,

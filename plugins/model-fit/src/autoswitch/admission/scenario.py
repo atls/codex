@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from model_fit.native_input.types.json import JsonValue
+
 from model_fit.autoswitch.admission.types.result import (
     AllowedTool,
     DeniedTool,
@@ -50,7 +52,7 @@ def guard_tool(
             state = slot.load()
     except BlockingIOError:
         state = store.snapshot(thread_id)
-        details = {
+        details: dict[str, JsonValue] = {
             "hook_event": "PreToolUse",
             "state_phase": state["phase"] if state else "missing",
         }
@@ -112,7 +114,7 @@ def guard_tool(
             "Model Fit: handoff state is busy; the technical turn cannot admit a new tool."
         )
     pending = state.get("pending_assessment") if state is not None else None
-    if pending is not None:
+    if state is not None and pending is not None:
         if can_continue_failed_assessment(event, state, actions=actions):
             return AllowedTool()
         if pending["turn_id"] == event.turn_id and actions.matches_assessment(event):

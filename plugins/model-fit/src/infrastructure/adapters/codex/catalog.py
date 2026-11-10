@@ -1,5 +1,5 @@
 from model_fit.assessment.types.profile import ActiveProfile
-from typing import Any
+from typing import Any, Self
 
 
 class NativeCatalog:
@@ -7,7 +7,7 @@ class NativeCatalog:
         self.entries = models
 
     @classmethod
-    def from_projection(cls, projection: dict[str, Any]):
+    def from_projection(cls, projection: dict[str, Any]) -> Self:
         entries = projection.get("models")
         if not isinstance(entries, list) or not entries:
             raise ValueError("Codex model catalog is empty")
@@ -19,7 +19,7 @@ class NativeCatalog:
             ) from error
 
     @staticmethod
-    def index_entries(entries):
+    def index_entries(entries: object) -> dict[str, dict[str, Any]]:
         if not isinstance(entries, list) or any(
             (not isinstance(row, dict) for row in entries)
         ):

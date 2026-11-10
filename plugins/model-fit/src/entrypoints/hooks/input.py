@@ -1,3 +1,7 @@
+from model_fit.native_input.types.json import JsonValue
+from model_fit.native_input.validation import checked_object
+from model_fit.assessment.decoding import required_text, optional_text
+from model_fit.autoswitch.state.types.record import PendingAssessmentRecord
 from model_fit.answer.types.input import ReplayAnswerInput
 from model_fit.submission.types.input import SubmissionInput
 from model_fit.autoswitch.admission.types.input import ToolAdmissionInput
@@ -6,42 +10,46 @@ from model_fit.infrastructure.adapters.codex.identity import executor_thread_id
 MISSING_DIRECTORY = object()
 
 
-def prompt_input(native):
+def prompt_input(native: dict[str, JsonValue]) -> SubmissionInput:
     return SubmissionInput(
         executor_thread_id(native),
-        native["turn_id"],
-        native["prompt"],
+        required_text(native["turn_id"]),
+        required_text(native["prompt"]),
         native.get("cwd", MISSING_DIRECTORY),
-        native.get("model"),
+        optional_text(native.get("model")),
         native,
-        session_id=native["session_id"],
+        session_id=required_text(native["session_id"]),
     )
 
 
-def tool_input(native):
-    return ToolAdmissionInput(executor_thread_id(native), native.get("turn_id"), native)
+def tool_input(native: dict[str, JsonValue]) -> ToolAdmissionInput:
+    return ToolAdmissionInput(
+        executor_thread_id(native), optional_text(native.get("turn_id")), native
+    )
 
 
-def answer_input(native):
+def answer_input(native: dict[str, JsonValue]) -> ReplayAnswerInput:
     thread = executor_thread_id(native)
     return ReplayAnswerInput(
         thread,
-        native.get("turn_id"),
-        native.get("last_assistant_message"),
-        native.get("stop_hook_active"),
+        optional_text(native.get("turn_id")),
+        optional_text(native.get("last_assistant_message")),
+        native.get("stop_hook_active") is True,
         native.get("cwd", MISSING_DIRECTORY),
         native,
     )
 
 
-def submitted_prompt(pending, text):
+def submitted_prompt(pending: PendingAssessmentRecord, text: str) -> SubmissionInput:
     return prompt_input(
-        {
-            "session_id": pending.get("root_session_id", pending["thread_id"]),
-            "agent_id": pending.get("agent_id"),
-            "turn_id": pending["turn_id"],
-            "cwd": pending["working_directory"],
-            "model": pending["active_model"],
-            "prompt": text,
-        }
+        checked_object(
+            {
+                "session_id": pending.get("root_session_id", pending["thread_id"]),
+                "agent_id": pending.get("agent_id"),
+                "turn_id": pending["turn_id"],
+                "cwd": pending["working_directory"],
+                "model": pending["active_model"],
+                "prompt": text,
+            }
+        )
     )

@@ -1,8 +1,12 @@
 import json
-from collections.abc import Callable
 from importlib.resources import files
 from pathlib import Path
 from typing import Any
+from model_fit.assessment.types.profile import ActiveProfile
+from model_fit.native_input.types.json import JsonValue
+from model_fit.infrastructure.adapters.codex.transport.assessment.session import (
+    AppServer,
+)
 
 from model_fit.infrastructure.adapters.codex.transport.assessment.response import (
     assessment_response,
@@ -20,13 +24,13 @@ def execute_assessment(
     evaluator_model: str,
     evaluator_effort: str,
     timeout: int,
-    diagnostics: dict[str, Any] | None,
+    diagnostics: dict[str, JsonValue] | None,
     codex_path: str,
-    runtime_factory: Callable[..., Any],
+    runtime_factory: type[AppServer],
     skill_directory: Path | None,
     *,
-    native_input: list[dict[str, Any]] | None = None,
-    active_profile: dict[str, Any],
+    native_input: list[dict[str, JsonValue]] | None = None,
+    active_profile: ActiveProfile,
 ) -> dict[str, Any]:
     schema = json.loads(SCHEMA.read_text())
     if active_profile["speed"] is None:

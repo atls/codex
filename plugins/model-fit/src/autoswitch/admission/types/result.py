@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import Any
+from model_fit.native_input.types.json import JsonValue
 
 
 @dataclass(frozen=True)
 class AllowedTool:
-    updated_input: dict[str, Any] | None = None
+    updated_input: dict[str, JsonValue] | None = None
 
 
 @dataclass(frozen=True)

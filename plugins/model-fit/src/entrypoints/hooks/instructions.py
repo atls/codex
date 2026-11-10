@@ -6,6 +6,7 @@ import shlex
 import sys
 from pathlib import Path
 from typing import Any
+from model_fit.autoswitch.state.types.record import HandoffStateRecord
 
 from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPT
 
@@ -17,7 +18,7 @@ REPLAY_STOP_REASON = "The last answer addressed a different task. Compare it wit
 
 
 def control_context(
-    thread_id: str, turn_id: str, state: dict[str, Any]
+    thread_id: str, turn_id: str, state: HandoffStateRecord
 ) -> dict[str, Any]:
     model = state["target_model"]
     effort = state["target_effort"]

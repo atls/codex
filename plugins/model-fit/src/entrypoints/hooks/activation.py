@@ -1,5 +1,6 @@
 """Apply automatic hook admission at the executable boundary."""
 
+from model_fit.native_input.types.json import JsonValue
 import subprocess
 import sys
 
@@ -46,7 +47,9 @@ def record_unavailable(
         )
 
 
-def inactive_output(event, admitted):
+def inactive_output(
+    event: dict[str, JsonValue], admitted: bool | None
+) -> dict[str, JsonValue] | None:
     continued = False
     if admitted is None and event.get("hook_event_name") == "PreToolUse":
         try:

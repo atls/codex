@@ -5,4 +5,4 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class NativeQueueReceipt:
     submission_id: str
-    accepted_input: list[dict[str, JsonValue]]
+    accepted_input: list[dict[str, JsonValue]] | None

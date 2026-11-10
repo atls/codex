@@ -72,6 +72,6 @@ def classify_answer(request: str, task_context: str, answer: str) -> str:
             ) not in {"user_message", "agent_message", "reasoning"}:
                 raise RuntimeError("Replay answer evaluation attempted a tool")
         verdict = json.loads(output.read_text()).get("verdict")
-        if verdict not in VERDICTS:
+        if not isinstance(verdict, str) or verdict not in VERDICTS:
             raise ValueError("Replay answer evaluation returned an invalid verdict")
         return verdict

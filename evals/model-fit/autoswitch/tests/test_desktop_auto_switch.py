@@ -224,7 +224,12 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         self.assertNotIn(self.prompt, raw)
 
     def test_finished_unqueued_control_turn_releases_guard(self):
-        state = {"phase": "ready", "source_turn_id": self.turn_id}
+        state = {
+            "phase": "ready",
+            "source_turn_id": self.turn_id,
+            "pending_assessment": None,
+            "assessment_generation": "retained-generation",
+        }
         HANDOFF_STATE.state_path(self.thread_id).parent.mkdir(
             parents=True, exist_ok=True
         )
@@ -235,10 +240,10 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             "last_assistant_message": "Profile switch unavailable; use Sol medium",
         }
         self.assertIsNone(HANDOFF_GUARDS.guard_replay_answer(event))
-        self.assertEqual(
-            HANDOFF_STATE.read_state(HANDOFF_STATE.state_path(self.thread_id))["phase"],
-            "passed",
-        )
+        saved = HANDOFF_STATE.read_state(HANDOFF_STATE.state_path(self.thread_id))
+        self.assertEqual(saved["phase"], "passed")
+        self.assertEqual(saved["assessment_generation"], "retained-generation")
+        self.assertNotIn("pending_assessment", saved)
         self.assertIsNone(
             HANDOFF_GUARDS.guard_tool(
                 {**event, "tool_name": "Bash", "tool_input": {"command": "pwd"}}

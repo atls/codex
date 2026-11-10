@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
 
 from model_fit.assessment.validation import validated_active_profile
 from model_fit.assessment.types.profile import ActiveProfile
@@ -13,7 +12,11 @@ from model_fit.autoswitch.recommendation.types.record import (
 )
 from model_fit.native_input import codec
 from model_fit.autoswitch.state.types.record import PendingAssessmentRecord
-from model_fit.autoswitch.types.output import HookOutputRenderer
+from model_fit.autoswitch.types.disposition import (
+    TurnDisposition,
+)
+from model_fit.autoswitch.disposition import assessment_disposition
+
 from model_fit.submission.types.input import SubmissionInput
 from model_fit.autoswitch.recommendation.types.storage import (
     RecommendationStore,
@@ -69,15 +72,14 @@ def blocking_recommendation(
     prompt_hash: str | None = None,
     empty_input: bool | None = None,
     recommendations: RecommendationStore,
-    presentation: HookOutputRenderer,
-) -> dict[str, Any] | None:
+) -> TurnDisposition | None:
     cached = load_blocking_recommendation(
         event.thread_id, recommendations=recommendations
     )
     if cached is None:
         return None
     active = cached["active_profile"]
-    output = presentation.hook_output(cached["result"])
+    output = assessment_disposition(cached["result"])
     unknown_input = (
         not event.text.strip() if empty_input is None else empty_input
     ) or cached["prompt_hash"] == codec.prompt_digest("")
@@ -95,12 +97,12 @@ def retain_manual_recommendation(
     event: SubmissionInput,
     request: ProfileAssessmentInput,
     result: AssessmentDecision,
-    output: dict[str, Any],
+    output: TurnDisposition,
     *,
     expected_submission: PendingAssessmentRecord | None = None,
     recommendations: RecommendationStore,
     store: TransferStateStore,
-) -> dict[str, Any]:
+) -> TurnDisposition:
     with store.transaction(
         event.thread_id,
         nonblocking=True,
@@ -112,7 +114,10 @@ def retain_manual_recommendation(
         submitted = (
             current is not None
             and current["phase"] == "submitted"
-            and (current.get("pending_assessment", {}).get("turn_id") == event.turn_id)
+            and (
+                (current.get("pending_assessment") or {}).get("turn_id")
+                == event.turn_id
+            )
         )
         if (
             current is None

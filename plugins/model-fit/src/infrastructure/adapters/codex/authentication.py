@@ -10,7 +10,7 @@ from pathlib import Path
 
 def authenticated_home(
     prefix: str, source_home: Path | None = None
-) -> tempfile.TemporaryDirectory:
+) -> tempfile.TemporaryDirectory[str]:
     temporary = tempfile.TemporaryDirectory(prefix=prefix)
     try:
         source = (

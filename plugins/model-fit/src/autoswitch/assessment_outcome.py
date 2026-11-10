@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
 
 from model_fit.assessment.types.decision import AssessmentDecision
 from model_fit.assessment.types.request import ProfileAssessmentInput
 from model_fit.assessment.validation import RECOMMENDATIONS
 from model_fit.autoswitch.state import transitions
+from model_fit.autoswitch.state.types.preparation import TransferPreparation
 from model_fit.autoswitch.denial import block_prompt
 from model_fit.autoswitch.types.audit import AuditWriter
 from model_fit.autoswitch.handoff.types.conversation import (
@@ -14,7 +14,15 @@ from model_fit.autoswitch.handoff.types.conversation import (
 from model_fit.autoswitch.state.types.record import HandoffStateRecord
 from model_fit.native_input import codec
 from model_fit.autoswitch.state.types.record import PendingAssessmentRecord
-from model_fit.autoswitch.types.output import HookOutputRenderer
+from model_fit.autoswitch.types.disposition import (
+    ContinueWork,
+    ManualRecommendation,
+    PreparedTransfer,
+    TurnDisposition,
+    WorkContext,
+)
+from model_fit.autoswitch.disposition import assessment_disposition
+
 from model_fit.submission.types.input import SubmissionInput
 from model_fit.autoswitch.recommendation.types.record import (
     RecommendationRecord,
@@ -46,24 +54,23 @@ def apply_assessment(
     recommendations: RecommendationStore,
     clock: Clock,
     conversation: NativeConversationFactory,
-    presentation: HookOutputRenderer,
     store: TransferStateStore,
-) -> dict[str, Any] | None:
+) -> TurnDisposition | None:
     thread_id, turn_id, prompt = (event.thread_id, event.turn_id, event.text)
     if result["decision"] == "unknown":
         with store.transaction(
             thread_id, operation="prompt_submit", turn_id=turn_id
         ) as slot:
             transitions.require_submission(slot, expected_submission)
-            if slot.load() != handoff_snapshot:
+            current_handoff = slot.load()
+            if current_handoff != handoff_snapshot:
                 return block_prompt(
                     thread_id,
                     turn_id,
                     "handoff_changed_during_triage",
                     "Model Fit: the handoff state changed while the new request was being assessed.",
-                    slot.load()["phase"] if slot.load() else "missing",
+                    current_handoff["phase"] if current_handoff else "missing",
                     audit=audit,
-                    presentation=presentation,
                 )
             current_manual = load_blocking_recommendation(
                 thread_id, recommendations=recommendations
@@ -84,7 +91,7 @@ def apply_assessment(
                     "state_phase": "passed",
                 },
             )
-        return presentation.hook_output(result)
+        return assessment_disposition(result)
     if result["decision"] == "keep":
         with store.transaction(
             thread_id, operation="prompt_submit", turn_id=turn_id
@@ -99,7 +106,6 @@ def apply_assessment(
                     "Model Fit: the handoff state changed while the new request was being assessed.",
                     current_handoff["phase"] if current_handoff else "missing",
                     audit=audit,
-                    presentation=presentation,
                 )
             current_manual = load_blocking_recommendation(
                 thread_id, recommendations=recommendations
@@ -110,7 +116,6 @@ def apply_assessment(
                 blocked = blocking_recommendation(
                     event,
                     recommendations=recommendations,
-                    presentation=presentation,
                 )
                 if blocked is not None and result["decision"] == "keep":
                     if not prompt.strip() or current_manual[
@@ -140,25 +145,18 @@ def apply_assessment(
                 },
             )
             output = (
-                None
-                if result["decision"] == "keep"
-                else presentation.hook_output(result)
+                None if result["decision"] == "keep" else assessment_disposition(result)
             )
-            output = presentation.with_context(
-                output, presentation.handoff_cancelled_context
-            )
+            output = ContinueWork(WorkContext.TRANSFER_CANCELLED, output)
             return output
-        return (
-            None if result["decision"] == "keep" else presentation.hook_output(result)
-        )
+        return None if result["decision"] == "keep" else assessment_disposition(result)
     if result["decision"] not in RECOMMENDATIONS:
         raise ValueError("Unsupported triage decision")
-    manual = presentation.hook_output(result)
+    manual = assessment_disposition(result)
+    if not isinstance(manual, ManualRecommendation):
+        raise ValueError("Recommendation evidence is unavailable")
     if event.session_id is not None and event.session_id != thread_id:
-        presentation.extend_reason(
-            manual,
-            " Automatic child-agent handoff is not performed; pass the recommendation to the parent agent to choose the profile when allocating the work.",
-        )
+        manual.explanation += " Automatic child-agent handoff is not performed; pass the recommendation to the parent agent to choose the profile when allocating the work."
         audit(
             thread_id,
             turn_id,
@@ -183,10 +181,7 @@ def apply_assessment(
         None,
         request["active_profile"]["speed"],
     ):
-        presentation.extend_reason(
-            manual,
-            f" Automatic speed-tier handoff is unavailable; requested value: {result['recommended_speed']}.",
-        )
+        manual.explanation += f" Automatic speed-tier handoff is unavailable; requested value: {result['recommended_speed']}."
         if profile_context_state is not None:
             with store.transaction(
                 thread_id, operation="prompt_submit", turn_id=turn_id
@@ -200,7 +195,6 @@ def apply_assessment(
                         "Model Fit: the retained profile choice changed during assessment.",
                         "passed",
                         audit=audit,
-                        presentation=presentation,
                     )
                 transitions.admit(
                     slot, turn_id, profile_context_turn_id=profile_context_turn_id
@@ -240,7 +234,6 @@ def apply_assessment(
                         "Model Fit: the retained profile choice changed during assessment.",
                         "passed",
                         audit=audit,
-                        presentation=presentation,
                     )
                 transitions.admit(
                     slot, turn_id, profile_context_turn_id=profile_context_turn_id
@@ -267,7 +260,7 @@ def apply_assessment(
         with conversation(event.working_directory) as app:
             app.queued_ids(thread_id)
     except (OSError, ValueError, RuntimeError, TimeoutError):
-        presentation.extend_reason(manual, " The automatic queue is unavailable.")
+        manual.explanation += " The automatic queue is unavailable."
         if profile_context_state is not None:
             with store.transaction(
                 thread_id, operation="prompt_submit", turn_id=turn_id
@@ -281,7 +274,6 @@ def apply_assessment(
                         "Model Fit: the retained profile choice changed during assessment.",
                         "passed",
                         audit=audit,
-                        presentation=presentation,
                     )
                 transitions.admit(
                     slot, turn_id, profile_context_turn_id=profile_context_turn_id
@@ -304,7 +296,7 @@ def apply_assessment(
             recommendations=recommendations,
             store=store,
         )
-    state = {
+    state: TransferPreparation = {
         "created_at": int(clock()),
         "source_turn_id": turn_id,
         "prompt": prompt,
@@ -328,7 +320,6 @@ def apply_assessment(
                 "Model Fit: the handoff state or retained profile choice changed while the new request was being assessed.",
                 current_handoff["phase"] if current_handoff else "missing",
                 audit=audit,
-                presentation=presentation,
             )
         if pending is not None:
             state["source_turn_id"] = pending["source_turn_id"]
@@ -344,5 +335,5 @@ def apply_assessment(
             ):
                 state["continuation_turn_ids"].append(turn_id)
             audit(thread_id, turn_id, "auto_handoff_continued")
-        transitions.stage(slot, state)
-    return presentation.control_context(thread_id, turn_id, state)
+        prepared_state = transitions.stage(slot, state)
+    return PreparedTransfer(thread_id, turn_id, prepared_state)

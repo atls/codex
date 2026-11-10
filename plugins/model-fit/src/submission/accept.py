@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
 
 from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.handoff.prepare import prepare
@@ -12,7 +11,15 @@ from model_fit.autoswitch.handoff.types.conversation import (
     NativeConversationFactory,
 )
 from model_fit.native_input import codec
-from model_fit.autoswitch.types.output import HookOutputRenderer
+from model_fit.autoswitch.types.disposition import (
+    AssessmentPending,
+    BlockedTurn,
+    PreparedTransfer,
+    QueuePending,
+    TurnDisposition,
+)
+from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPTS
+
 from model_fit.submission.types.input import SubmissionInput
 from model_fit.autoswitch.recommendation.types.storage import (
     RecommendationStore,
@@ -31,10 +38,9 @@ def submit(
     context_failure: type[Exception],
     context_reason: Callable[[Exception, str], str | None],
     conversation: NativeConversationFactory,
-    presentation: HookOutputRenderer,
     read_context: AssessmentContextReader,
     store: TransferStateStore,
-) -> dict[str, Any] | None:
+) -> TurnDisposition | None:
     audit(
         event.thread_id,
         event.turn_id,
@@ -53,10 +59,10 @@ def submit(
         state = slot.load()
         if slot.unsafe():
             raise ValueError("Unsafe Model Fit state")
-        if event.text.strip() in presentation.control_prompts:
+        if event.text.strip() in CONTROL_PROMPTS:
             if state is not None and state["phase"] == "queued":
                 transitions.continue_transfer(slot, state, event.turn_id)
-                return presentation.queued_context()
+                return QueuePending()
             if (
                 state is not None
                 and state["phase"] == "ready"
@@ -64,10 +70,8 @@ def submit(
             ):
                 transitions.continue_transfer(slot, state, event.turn_id)
                 audit(event.thread_id, event.turn_id, "auto_handoff_continued")
-                return presentation.control_context(
-                    event.thread_id, event.turn_id, state
-                )
-            return presentation.block(
+                return PreparedTransfer(event.thread_id, event.turn_id, state)
+            return BlockedTurn(
                 "Model Fit: the service handoff is not prepared, or new input is still awaiting assessment."
             )
         immediate = state is not None and (
@@ -93,7 +97,6 @@ def submit(
             context_failure=context_failure,
             context_reason=context_reason,
             conversation=conversation,
-            presentation=presentation,
             read_context=read_context,
             store=store,
         )
@@ -103,4 +106,4 @@ def submit(
         "auto_deferred",
         {"hook_event": "UserPromptSubmit"},
     )
-    return presentation.pending_context()
+    return AssessmentPending()

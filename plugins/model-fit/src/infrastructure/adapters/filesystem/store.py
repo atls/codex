@@ -1,3 +1,6 @@
+from collections.abc import Iterator
+from model_fit.native_input.types.json import JsonValue
+from model_fit.autoswitch.state.types.record import HandoffStateRecord
 from contextlib import contextmanager
 
 import model_fit.infrastructure.adapters.filesystem.state as state
@@ -6,12 +9,21 @@ from model_fit.infrastructure.adapters.filesystem.slot import FileSlot
 
 class FileStore:
     @contextmanager
-    def transaction(self, thread_id, **options):
-        with state.locked_state(thread_id, **options) as path:
+    def transaction(
+        self,
+        thread_id: str,
+        *,
+        nonblocking: bool = False,
+        operation: str = "unknown",
+        turn_id: str | None = None,
+    ) -> Iterator[FileSlot]:
+        with state.locked_state(
+            thread_id, nonblocking=nonblocking, operation=operation, turn_id=turn_id
+        ) as path:
             yield FileSlot(path)
 
-    def snapshot(self, thread_id):
+    def snapshot(self, thread_id: str) -> HandoffStateRecord | None:
         return state.read_state(state.state_path(thread_id))
 
-    def owner(self, thread_id):
+    def owner(self, thread_id: str) -> dict[str, JsonValue]:
         return state.lock_owner(thread_id)

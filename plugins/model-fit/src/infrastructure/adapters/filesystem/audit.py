@@ -8,7 +8,7 @@ import sys
 import time
 import traceback
 from pathlib import Path
-from typing import Any
+from model_fit.native_input.types.json import JsonValue
 
 from model_fit.infrastructure.adapters.codex.identity import SESSION_ID_PATTERN
 
@@ -46,11 +46,14 @@ def audit_path(session_id: str) -> Path:
 
 
 def append_audit(
-    session_id: str, turn_id: Any, outcome: str, details: dict[str, Any] | None = None
+    session_id: str,
+    turn_id: object,
+    outcome: str,
+    details: dict[str, JsonValue] | None = None,
 ) -> None:
     path = audit_path(session_id)
     path.parent.mkdir(parents=True, exist_ok=True, mode=448)
-    entry = {
+    entry: dict[str, JsonValue] = {
         "time": int(time.time()),
         "time_ns": time.time_ns(),
         "pid": os.getpid(),
@@ -69,7 +72,7 @@ def append_audit(
         output.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
-def failure_location(error: BaseException) -> dict[str, Any]:
+def failure_location(error: BaseException) -> dict[str, JsonValue]:
     frames = traceback.extract_tb(error.__traceback__)
     if not frames:
         return {}
@@ -83,9 +86,9 @@ def failure_location(error: BaseException) -> dict[str, Any]:
 
 def record_audit(
     session_id: str,
-    turn_id: Any,
+    turn_id: object,
     outcome: str,
-    details: dict[str, Any] | None = None,
+    details: dict[str, JsonValue] | None = None,
     *,
     error: BaseException | None = None,
 ) -> bool:

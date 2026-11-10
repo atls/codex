@@ -63,7 +63,7 @@ def sources() -> tuple[str, NativeCatalog]:
     return (context, models)
 
 
-def assessment_sources():
+def assessment_sources() -> tuple[str, NativeCatalog]:
     from model_fit.infrastructure.adapters.codex.catalog import NativeCatalog
 
     text, catalog = sources()

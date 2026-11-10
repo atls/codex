@@ -19,13 +19,16 @@ def recover_unsubmitted_successor(
     recommendations: RecommendationStore,
     audit: AuditWriter,
 ) -> bool:
+    turn_id = event.turn_id
+    if not isinstance(turn_id, str):
+        return False
     pending = state["pending_assessment"]
     if pending is None:
         return False
     try:
         with conversation(working_directory()) as app:
             successor = app.unsubmitted_successor(
-                event.thread_id, pending["turn_id"], event.turn_id
+                event.thread_id, pending["turn_id"], turn_id
             )
         if successor is True:
             with store.transaction(
@@ -44,7 +47,7 @@ def recover_unsubmitted_successor(
                 ):
                     transitions.admit(
                         slot,
-                        event.turn_id,
+                        turn_id,
                         "unknown",
                         state.get("profile_context_turn_id"),
                         supersede_assessment=True,

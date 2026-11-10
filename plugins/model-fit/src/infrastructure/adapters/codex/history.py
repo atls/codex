@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+from model_fit.autoswitch.state.types.record import HandoffStateRecord
+
 import time
 from typing import Any, Iterator
+from model_fit.native_input.validation import checked_content, checked_object
+from model_fit.assessment.types.request import ProfileAssessmentInput
+from model_fit.assessment.decoding import optional_text
 
 from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPTS
 from model_fit.native_input.codec import (
@@ -13,7 +18,7 @@ from model_fit.native_input.codec import (
     prompt_digest,
 )
 from model_fit.infrastructure.adapters.codex.identity import executor_thread_id
-from model_fit.infrastructure.adapters.codex.transport.connection import (
+from model_fit.infrastructure.adapters.codex.transport.rpc_error import (
     AppServerRPCError,
 )
 from model_fit.infrastructure.adapters.codex.transport.reader import AppServerReader
@@ -81,7 +86,7 @@ def source_input(
     expected_prompt: str | None = None,
 ) -> list[dict[str, Any]]:
     messages = source_messages(app, thread_id, turn_id, include_steering)
-    first = messages[0]["content"]
+    first = checked_content(messages[0]["content"])
     if expected_prompt is not None and hook_prompt(first) != expected_prompt:
         raise ValueError("Source user input does not match the submitted prompt")
     if not include_steering:
@@ -95,7 +100,7 @@ def source_input(
 
 
 def handoff_input(
-    app: AppServerReader, thread_id: str, state: dict[str, Any]
+    app: AppServerReader, thread_id: str, state: HandoffStateRecord
 ) -> list[dict[str, Any]]:
     content = source_input(
         app,
@@ -153,7 +158,7 @@ def handoff_turns(app: AppServerReader, thread_id: str) -> Iterator[dict[str, An
 
 
 def replay_finished(
-    app: AppServerReader, thread_id: str, state: dict[str, Any]
+    app: AppServerReader, thread_id: str, state: HandoffStateRecord
 ) -> bool:
     for turn in handoff_turns(app, thread_id):
         replay_turn_id = state.get("replay_turn_id")
@@ -256,7 +261,9 @@ def unsubmitted_successor(
     return False
 
 
-def unavailable_session_input(error: AppServerRPCError, thread_id: str) -> str | None:
+def unavailable_session_input(error: Exception, thread_id: str) -> str | None:
+    if not isinstance(error, AppServerRPCError):
+        return None
     if error.thread_id != thread_id:
         return None
     if (
@@ -274,7 +281,8 @@ def unavailable_session_input(error: AppServerRPCError, thread_id: str) -> str |
     return None
 
 
-def session_input(event: dict[str, Any]) -> dict[str, Any]:
+def session_input(source: object) -> ProfileAssessmentInput:
+    event = checked_object(source)
     session_id = executor_thread_id(event)
     prompt = event.get("prompt")
     cwd = event.get("cwd")
@@ -282,6 +290,12 @@ def session_input(event: dict[str, Any]) -> dict[str, Any]:
     if not all(
         (isinstance(value, str) and value for value in (session_id, cwd, model))
     ) or not isinstance(prompt, str):
+        raise ValueError("Incomplete Desktop hook input")
+    if (
+        not isinstance(cwd, str)
+        or not isinstance(model, str)
+        or not isinstance(prompt, str)
+    ):
         raise ValueError("Incomplete Desktop hook input")
     with AppServerReader(cwd) as app:
         thread = app.call(
@@ -329,7 +343,7 @@ def session_input(event: dict[str, Any]) -> dict[str, Any]:
                 (item.get("type") == "userMessage" for item in turn.get("items", []))
             ):
                 continue
-            items = []
+            items: list[dict[str, Any]] = []
             cursor = None
             seen = set()
             for _ in range(MAX_INPUT_PAGES):
@@ -360,12 +374,14 @@ def session_input(event: dict[str, Any]) -> dict[str, Any]:
             turn["items"] = [
                 item for item in items if item.get("type") == "functionCallOutput"
             ] + turn.get("items", [])
-    request = {
+    request: ProfileAssessmentInput = {
         "task": prompt
         or "Attachment-only request; account for the current work context.",
         "active_profile": {"model": model, "effort": effort, "speed": None},
     }
-    context = recent_context(prompt, turns, event.get("turn_id"), CONTROL_PROMPTS)
+    context = recent_context(
+        prompt, turns, optional_text(event.get("turn_id")), CONTROL_PROMPTS
+    )
     if context is not None:
         request["context"] = context
     return request

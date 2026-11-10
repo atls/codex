@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from model_fit.autoswitch.types.audit import AuditWriter
-from model_fit.autoswitch.types.output import HookOutputRenderer
+from model_fit.autoswitch.types.disposition import (
+    BlockedTurn,
+)
 
 
 def block_prompt(
@@ -12,8 +14,7 @@ def block_prompt(
     phase: str,
     *,
     audit: AuditWriter,
-    presentation: HookOutputRenderer,
-) -> dict[str, str]:
+) -> BlockedTurn:
     audit(
         thread_id,
         turn_id,
@@ -24,4 +25,4 @@ def block_prompt(
             "state_phase": phase,
         },
     )
-    return presentation.block(reason)
+    return BlockedTurn(reason)

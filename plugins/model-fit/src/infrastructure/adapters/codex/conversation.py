@@ -1,3 +1,15 @@
+from collections.abc import Callable
+from types import TracebackType
+from typing import Self
+
+from model_fit.autoswitch.state.types.record import HandoffStateRecord
+from model_fit.infrastructure.adapters.codex.transport.reader import AppServerReader
+from model_fit.native_input.types.json import JsonValue
+from model_fit.native_input.validation import checked_content, native_content
+from model_fit.native_input.codec import input_text
+from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPTS
+from model_fit.assessment.decoding import required_text, optional_text
+
 import model_fit.infrastructure.adapters.codex.chat_profile as native_settings
 import model_fit.infrastructure.adapters.codex.history as conversation
 from model_fit.autoswitch.handoff.types.accepted_input import (
@@ -9,26 +21,38 @@ from model_fit.autoswitch.handoff.types.queue_receipt import (
 
 
 class ConversationGateway:
-    def __init__(self, reader, queue_reader=conversation.queued_ids):
+    def __init__(
+        self,
+        reader: AppServerReader,
+        queue_reader: Callable[
+            [AppServerReader, str], set[str]
+        ] = conversation.queued_ids,
+    ) -> None:
         self.reader = reader
         self.manager = reader
         self.queue_reader = queue_reader
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         self.reader = self.manager.__enter__()
         return self
 
-    def __exit__(self, *args):
-        return self.manager.__exit__(*args)
+    def __exit__(
+        self,
+        exception_type: type[BaseException] | None,
+        error: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self.manager.__exit__(exception_type, error, traceback)
 
-    def parent_thread_id(self, thread_id):
-        return self.reader.call(
+    def parent_thread_id(self, thread_id: str) -> str | None:
+        parent = self.reader.call(
             "thread/read",
             {"threadId": thread_id, "includeTurns": False},
             conversation.RPC_TIMEOUT_SECONDS,
         )["thread"]["parentThreadId"]
+        return optional_text(parent)
 
-    def latest_turn_id(self, thread_id):
+    def latest_turn_id(self, thread_id: str) -> str | None:
         page = self.reader.call(
             "thread/turns/list",
             {
@@ -39,69 +63,91 @@ class ConversationGateway:
             },
             conversation.RPC_TIMEOUT_SECONDS,
         )
-        return page["data"][0]["id"] if page["data"] else None
+        return required_text(page["data"][0]["id"]) if page["data"] else None
 
-    def queued_ids(self, thread_id):
+    def queued_ids(self, thread_id: str) -> set[str]:
         return self.queue_reader(self.reader, thread_id)
 
-    def source_input(self, thread_id, turn_id, **options):
-        return conversation.source_input(self.reader, thread_id, turn_id, **options)
+    def source_input(
+        self, thread_id: str, turn_id: str, *, include_steering: bool = False
+    ) -> list[dict[str, JsonValue]]:
+        return checked_content(
+            conversation.source_input(
+                self.reader, thread_id, turn_id, include_steering=include_steering
+            )
+        )
 
-    def accepted_input(self, thread_id, turn_id):
+    def accepted_input(self, thread_id: str, turn_id: str) -> AcceptedNativeInput:
         messages = conversation.source_messages(self.reader, thread_id, turn_id)
         content = [
             value
             for index, message in enumerate(messages)
             if index == 0
-            or conversation.input_text(message["content"]).strip()
-            not in conversation.CONTROL_PROMPTS
+            or input_text(checked_content(message["content"])).strip()
+            not in CONTROL_PROMPTS
             for value in message["content"]
         ]
         return AcceptedNativeInput(
-            message_id=messages[0]["id"],
-            client_message_id=messages[0].get("clientId"),
-            content=content,
-            source_content=messages[0]["content"],
+            message_id=required_text(messages[0]["id"]),
+            client_message_id=optional_text(messages[0].get("clientId")),
+            content=checked_content(content),
+            source_content=checked_content(messages[0]["content"]),
         )
 
-    def handoff_input(self, thread_id, state):
-        return conversation.handoff_input(self.reader, thread_id, state)
+    def handoff_input(
+        self, thread_id: str, state: HandoffStateRecord
+    ) -> list[dict[str, JsonValue]]:
+        return checked_content(
+            conversation.handoff_input(self.reader, thread_id, state)
+        )
 
-    def replay_finished(self, thread_id, state):
+    def replay_finished(self, thread_id: str, state: HandoffStateRecord) -> bool:
         return conversation.replay_finished(self.reader, thread_id, state)
 
     def source_terminal_without_replay(
-        self, thread_id, source_turn_id, current_turn_id
-    ):
+        self, thread_id: str, source_turn_id: str, current_turn_id: str
+    ) -> bool:
         return conversation.source_terminal_without_replay(
             self.reader, thread_id, source_turn_id, current_turn_id
         )
 
-    def unsubmitted_successor(self, thread_id, source_turn_id, current_turn_id):
+    def unsubmitted_successor(
+        self, thread_id: str, source_turn_id: str, current_turn_id: str
+    ) -> bool:
         return conversation.unsubmitted_successor(
             self.reader, thread_id, source_turn_id, current_turn_id
         )
 
-    def profile(self, thread_id):
+    def profile(self, thread_id: str) -> tuple[str | None, str | None]:
         return native_settings.profile(self.reader, thread_id)
 
-    def enqueue(self, thread_id, turn_id, content):
+    def enqueue(
+        self, thread_id: str, turn_id: str, content: list[dict[str, JsonValue]]
+    ) -> NativeQueueReceipt:
         result = self.reader.call(
             "thread/queue/add",
             {"threadId": thread_id, "clientUserMessageId": turn_id, "input": content},
             conversation.RPC_TIMEOUT_SECONDS,
         )
         receipt = result["queuedSubmission"]
-        return NativeQueueReceipt(receipt["id"], receipt["input"])
+        content = receipt["input"]
+        return NativeQueueReceipt(
+            required_text(receipt["id"]), content if native_content(content) else None
+        )
 
-    def delete(self, thread_id, submission_id):
-        return self.reader.call(
+    def delete(self, thread_id: str, submission_id: str) -> bool:
+        deleted = self.reader.call(
             "thread/queue/delete",
             {"threadId": thread_id, "queuedSubmissionId": submission_id},
             conversation.RPC_TIMEOUT_SECONDS,
         ).get("deleted")
+        if not isinstance(deleted, bool):
+            raise ValueError("Native queue deletion outcome is unavailable")
+        return deleted
 
-    def replay_input(self, thread_id, turn_id):
+    def replay_input(
+        self, thread_id: str, turn_id: str
+    ) -> list[dict[str, JsonValue]] | None:
         replay = self.reader.call(
             "thread/items/list",
             {
@@ -116,8 +162,7 @@ class ConversationGateway:
             for row in replay["data"]
             if row["item"].get("type") == "userMessage"
         ]
-        return (
-            None
-            if replay.get("nextCursor") or len(messages) != 1
-            else messages[0].get("content", [])
-        )
+        if replay.get("nextCursor") or len(messages) != 1:
+            return None
+        content = messages[0].get("content", [])
+        return content if native_content(content) else None

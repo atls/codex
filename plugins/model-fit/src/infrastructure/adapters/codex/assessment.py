@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+from model_fit.assessment.types.evaluator import AssessmentEvaluator
+from model_fit.native_input.types.json import JsonValue
+from model_fit.infrastructure.adapters.codex.transport.assessment.session import (
+    AppServer,
+)
 import json
 import re
 import subprocess
@@ -59,31 +65,33 @@ def triage(request: ProfileAssessmentInput) -> AssessmentDecision:
     return decode_decision(result)
 
 
-def native_evaluator(request, codex_path, runtime_factory, skill_directory):
+def native_evaluator(
+    request: ProfileAssessmentInput,
+    codex_path: str,
+    runtime_factory: type[AppServer] | None,
+    skill_directory: Path | None,
+) -> AssessmentEvaluator:
     from model_fit.infrastructure.adapters.codex.transport.assessment.execution import (
         execute_assessment,
     )
-    from model_fit.infrastructure.adapters.codex.transport.assessment.session import (
-        AppServer,
-    )
 
     def evaluate(
-        instructions,
-        prompt,
-        model,
-        effort,
-        turn_timeout,
-        observations,
+        instructions: str,
+        prompt: str,
+        model: str,
+        effort: str,
+        timeout: int,
+        diagnostics: dict[str, JsonValue] | None,
         *,
-        native_input=None,
-    ):
+        native_input: list[dict[str, JsonValue]] | None = None,
+    ) -> object:
         return execute_assessment(
             instructions,
             prompt,
             model,
             effort,
-            turn_timeout,
-            observations,
+            timeout,
+            diagnostics,
             codex_path,
             runtime_factory or AppServer,
             skill_directory,

@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+from collections.abc import Callable
+from model_fit.assessment.types.request import ProfileAssessmentInput
+from model_fit.native_input.types.json import JsonValue
 import json
 import os
 import subprocess
 import sys
 
 from model_fit.autoswitch.recommendation.prompt import decide as decide_prompt
-from model_fit.entrypoints.hooks.presentation import HookPresentation
+from model_fit.entrypoints.hooks.presentation import render_disposition
 from model_fit.infrastructure.adapters.codex.assessment import triage
 from model_fit.native_input.codec import prompt_digest as prompt_hash
 from model_fit.infrastructure.adapters.codex.history import session_input
@@ -22,16 +26,20 @@ from model_fit.infrastructure.adapters.filesystem.pending import pending_path
 PILOT_THREAD_ENV = "MODEL_FIT_PILOT_THREAD"
 
 
-def decide(request, path, observe=None):
-    return decide_prompt(
+def decide(
+    request: ProfileAssessmentInput,
+    path: Path,
+    observe: Callable[[str], bool | None] | None = None,
+) -> dict[str, JsonValue] | None:
+    result = decide_prompt(
         request,
         thread_id=path.stem,
         recommendations=FileRecommendations(lambda thread_id: path),
         assessor=triage,
-        presentation=HookPresentation(),
         digest=prompt_hash,
         observe=observe,
     )
+    return render_disposition(result)
 
 
 def handle_prompt() -> int:
