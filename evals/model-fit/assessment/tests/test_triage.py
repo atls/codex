@@ -254,6 +254,18 @@ class TriageContractTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "effort direction"):
             validate(output, active, self.models)
 
+    def test_unknown_decision_rejects_nontext_evidence(self) -> None:
+        active, _ = self.saved_output("mail-collection")
+        for field, invalid in (
+            ("official_source_url", 7),
+            ("official_guidance", ["unvalidated evidence"]),
+            ("task_inference", {"text": "unvalidated inference"}),
+        ):
+            output = dict(empty_decision(active, "unknown", "Unable to assess"))
+            output[field] = invalid
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                validate(output, active, self.models)
+
     def test_missing_catalog_does_not_become_keep(self) -> None:
         active, _ = self.saved_output("mail-collection")
         request = {"task": "Collect email dates and subjects", "active_profile": active}

@@ -1,3 +1,4 @@
+from model_fit.assessment.types.profile import ActiveProfile
 from typing import Any
 
 
@@ -28,7 +29,7 @@ class NativeCatalog:
             raise ValueError("Codex catalog contains missing or duplicate model slugs")
         return models
 
-    def supported(self, profile: dict[str, Any]) -> bool:
+    def supported(self, profile: ActiveProfile) -> bool:
         entry = self.entries.get(profile["model"])
         if not entry or entry.get("visibility") != "list":
             return False

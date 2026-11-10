@@ -1,9 +1,9 @@
+from model_fit.assessment.types.profile import ActiveProfile
 import json
-from typing import Any
 
 
 def assessment_prompt(
-    task: str, active: dict[str, Any], context: str | None, source_text: str
+    task: str, active: ActiveProfile, context: str | None, source_text: str
 ) -> tuple[str, str]:
     profile = json.dumps(active, ensure_ascii=False)
     instructions = (

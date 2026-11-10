@@ -1,11 +1,14 @@
-from typing import Any
 from urllib.parse import urlparse
 
 from model_fit.assessment.exceptions.unknown_speed_change import UnknownSpeedChange
 from model_fit.assessment.types.catalog import ProfileCatalog
+from model_fit.assessment.decoding import decode_decision
+from model_fit.assessment.types.profile import ActiveProfile
+from model_fit.assessment.types.user_choice import RetainedProfileChoice
+from model_fit.assessment.types.decision import AssessmentDecision, DecisionKind
 
 
-def validated_active_profile(request: Any) -> dict[str, Any]:
+def validated_active_profile(request: object) -> ActiveProfile:
     if not isinstance(request, dict):
         raise ValueError("Preflight input is not an object")
     active = request.get("active_profile")
@@ -17,13 +20,19 @@ def validated_active_profile(request: Any) -> dict[str, Any]:
         raise ValueError("Active model and effort must come from session state")
     if active["speed"] is not None and (not isinstance(active["speed"], str)):
         raise ValueError("Active speed must be a string or null")
-    return {field: active[field] for field in ("model", "effort", "speed")}
+    return {
+        "model": active["model"],
+        "effort": active["effort"],
+        "speed": active["speed"],
+    }
 
 
 def validated_request(
-    request: Any,
-) -> tuple[str, dict[str, Any], str | None, dict[str, Any] | None]:
+    request: object,
+) -> tuple[str, ActiveProfile, str | None, RetainedProfileChoice | None]:
     active = validated_active_profile(request)
+    if not isinstance(request, dict):
+        raise ValueError("Preflight input is not an object")
     native_input = request.get("input")
     if "input" in request and (
         not isinstance(native_input, list)
@@ -53,7 +62,12 @@ def validated_request(
             raise ValueError(
                 "prior_choice does not confirm this active profile and work"
             )
-    return (task, active, context, prior)
+    choice: RetainedProfileChoice | None = (
+        {"user_selected": True, "same_work": True, "profile": active}
+        if prior is not None
+        else None
+    )
+    return (task, active, context, choice)
 
 
 RECOMMENDATIONS = {"recommend_lighter", "recommend_stronger", "recommend_faster"}
@@ -67,7 +81,7 @@ DECISIONS = {
 EFFORT_ORDER = ("none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra")
 
 
-def official_source(url: Any) -> bool:
+def official_source(url: object) -> bool:
     if not isinstance(url, str):
         return False
     parsed = urlparse(url)
@@ -82,8 +96,9 @@ def official_source(url: Any) -> bool:
 
 
 def validate(
-    output: dict[str, Any], active: dict[str, Any], models: ProfileCatalog
-) -> dict[str, Any]:
+    output: object, active: ActiveProfile, models: ProfileCatalog
+) -> AssessmentDecision:
+    current_fields = dict(active)
     expected_fields = {
         "active_model",
         "active_effort",
@@ -97,19 +112,22 @@ def validate(
         "task_inference",
         "reason",
     }
-    if set(output) != expected_fields:
+    if not isinstance(output, dict) or set(output) != expected_fields:
         raise ValueError("Preflight result does not match the decision schema")
-    if output.get("decision") not in DECISIONS:
-        raise ValueError("Unknown preflight decision")
+    result = decode_decision(output)
+    observed = dict(result)
     for field in ("model", "effort", "speed"):
-        if output.get(f"active_{field}") != active[field]:
+        if observed[f"active_{field}"] != current_fields[field]:
             raise ValueError(f"Preflight changed active_{field}")
-    if not isinstance(output.get("reason"), str) or not output["reason"].strip():
+    if not result["reason"].strip():
         raise ValueError("Preflight reason is empty")
-    result = dict(output)
     decision = result["decision"]
     fields = ("model", "effort", "speed")
-    proposed = {field: result.get(f"recommended_{field}") for field in fields}
+    proposed = {
+        "model": result["recommended_model"],
+        "effort": result["recommended_effort"],
+        "speed": result["recommended_speed"],
+    }
     if any(
         (
             value is not None and (not isinstance(value, str) or not value.strip())
@@ -118,13 +136,17 @@ def validate(
     ):
         raise ValueError("Recommendation contains an empty profile field")
     if decision in ("keep", "unknown"):
-        if any((proposed[field] not in (None, active[field]) for field in fields)):
+        if any(
+            (proposed[field] not in (None, current_fields[field]) for field in fields)
+        ):
             raise ValueError("Non-recommendation contains a changed profile")
-        for field in fields:
-            result[f"recommended_{field}"] = None
+        result["recommended_model"] = None
+        result["recommended_effort"] = None
+        result["recommended_speed"] = None
         if decision == "keep":
-            for field in ("official_source_url", "official_guidance", "task_inference"):
-                result[field] = None
+            result["official_source_url"] = None
+            result["official_guidance"] = None
+            result["task_inference"] = None
         return result
     if not official_source(result.get("official_source_url")):
         raise ValueError("Recommendation lacks a supported official source")
@@ -138,7 +160,11 @@ def validate(
         or inference.strip() == guidance.strip()
     ):
         raise ValueError("Task inference is missing or duplicates guidance")
-    target = {field: proposed[field] or active[field] for field in fields}
+    target: ActiveProfile = {
+        "model": proposed["model"] or active["model"],
+        "effort": proposed["effort"] or active["effort"],
+        "speed": proposed["speed"] or active["speed"],
+    }
     if target == active:
         raise ValueError("Recommendation does not change the active profile")
     if active["speed"] is None and proposed["speed"] is not None:
@@ -173,8 +199,8 @@ def validate(
 
 
 def empty_decision(
-    active: dict[str, Any], decision: str, reason: str
-) -> dict[str, Any]:
+    active: ActiveProfile, decision: DecisionKind, reason: str
+) -> AssessmentDecision:
     return {
         "active_model": active["model"],
         "active_effort": active["effort"],

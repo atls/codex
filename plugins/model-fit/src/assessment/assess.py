@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any, cast
+from model_fit.native_input.types.json import JsonValue
 
 from model_fit.assessment.types.catalog import ProfileCatalog
 from model_fit.assessment.types.decision import AssessmentDecision
@@ -21,7 +21,7 @@ def assess(
     evaluator_effort: str,
     timeout: int,
     source_bundle: tuple[str, ProfileCatalog] | None = None,
-    diagnostics: dict[str, Any] | None = None,
+    diagnostics: dict[str, JsonValue] | None = None,
     *,
     source_reader: AssessmentSources,
     evaluator: AssessmentEvaluator,
@@ -42,13 +42,10 @@ def assess(
                     "usage": None,
                 }
             )
-        return cast(
-            AssessmentDecision,
-            empty_decision(
-                active,
-                "keep",
-                "The user already selected the active profile for the same work",
-            ),
+        return empty_decision(
+            active,
+            "keep",
+            "The user already selected the active profile for the same work",
         )
     source_text, models = (
         source_bundle if source_bundle is not None else source_reader()
@@ -81,4 +78,4 @@ def assess(
             timeout,
             diagnostics,
         )
-    return cast(AssessmentDecision, validate(output, active, models))
+    return validate(output, active, models)

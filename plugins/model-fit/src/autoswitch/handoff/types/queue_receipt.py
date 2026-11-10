@@ -1,8 +1,8 @@
+from model_fit.native_input.types.json import JsonValue
 from dataclasses import dataclass
-from typing import Any
 
 
 @dataclass(frozen=True)
 class NativeQueueReceipt:
     submission_id: str
-    accepted_input: list[dict[str, Any]]
+    accepted_input: list[dict[str, JsonValue]]

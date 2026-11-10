@@ -1,4 +1,5 @@
-from typing import Any, Protocol
+from model_fit.native_input.types.json import JsonValue
+from typing import Protocol
 
 
 class AssessmentEvaluator(Protocol):
@@ -9,7 +10,7 @@ class AssessmentEvaluator(Protocol):
         model: str,
         effort: str,
         timeout: int,
-        diagnostics: dict[str, Any] | None,
+        diagnostics: dict[str, JsonValue] | None,
         *,
-        native_input: list[dict[str, Any]] | None = None,
-    ) -> dict[str, Any]: ...
+        native_input: list[dict[str, JsonValue]] | None = None,
+    ) -> object: ...

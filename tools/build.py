@@ -80,6 +80,7 @@ def guidance_package() -> tuple[dict, dict[str, bytes]]:
     full = source_files(PLUGINS / "model-fit")
     shared = (
         "src/py.typed",
+        "src/native_input/",
         "src/assessment/",
         "src/entrypoints/cli/assess.py",
         "src/infrastructure/adapters/codex/assessment.py",

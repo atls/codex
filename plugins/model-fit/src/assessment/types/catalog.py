@@ -1,5 +1,6 @@
-from typing import Any, Protocol
+from model_fit.assessment.types.profile import ActiveProfile
+from typing import Protocol
 
 
 class ProfileCatalog(Protocol):
-    def supported(self, profile: dict[str, Any]) -> bool: ...
+    def supported(self, profile: ActiveProfile) -> bool: ...
