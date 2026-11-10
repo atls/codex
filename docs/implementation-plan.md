@@ -33,8 +33,9 @@ input constraints in constraints/, returned failures in errors/ and stopping
 exceptions in exceptions/. Related companion declarations may share a file.
 Never disguise declarations or utility functions as product scenarios.
 
-Assessment context assembly belongs to assessment/helpers/context.py; native
-context acquisition belongs to the Codex adapter. Assessment completion must
+Assessment context assembly belongs to assessment/helpers/context.py. Switch
+handlers acquire native facts through the Codex conversation adapter, then pass
+them to that pure helper. Assessment completion must
 not prepare a handoff. Reassessment and assessment recovery are operations of
 the same assessment lifecycle, not independent scenario owners.
 
@@ -117,10 +118,10 @@ Preserve direct project Yarn commands, Raijin-managed tooling and uv execution.
 - [x] Carry prepared, attempted, accepted and queued phase-specific values through the queue operation
 - [x] Consolidate shared switch transitions, submission ownership and pure admission
 - [x] Separate event boundaries, utilities, failures, answer relevance and composition
-- [ ] Replace covered evaluator infrastructure with the public SDK
+- [x] Check the published SDK against the transport contract and document the uncovered deadline/input requirements
 - [x] Replace custom packaging with workflow composition and native release
 - [x] Obtain and classify a pinned plugin-eval static report; reproduce skill validation
-- [ ] Complete behavior, typing, packaging and installed-fixture verification
+- [x] Complete behavior, typing, packaging and installed-fixture verification
 - [ ] Publish current revision, pass CI and configured exact-head Codex review
 - [ ] Finish cumulative self-review and present for user acceptance
 
