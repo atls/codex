@@ -8,3 +8,5 @@ __pycache__/
 node_modules/
 .yarn/
 .ruff_cache/
+.mypy_cache/
+build/
