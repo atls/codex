@@ -23,11 +23,8 @@ def assess(
     source_bundle: tuple[str, ProfileCatalog] | None = None,
     diagnostics: dict[str, Any] | None = None,
     *,
-    source_reader: AssessmentSources | None = None,
-    evaluator: AssessmentEvaluator | None = None,
-    codex_path: str = "codex",
-    runtime_factory=None,
-    skill_directory=None,
+    source_reader: AssessmentSources,
+    evaluator: AssessmentEvaluator,
 ) -> AssessmentDecision:
     task, active, context, prior = validated_request(request)
     if prior is not None:
@@ -53,20 +50,6 @@ def assess(
                 "The user already selected the active profile for the same work",
             ),
         )
-    if source_reader is None:
-        from model_fit.infrastructure.adapters.codex.sources import assessment_sources
-
-        source_reader = assessment_sources
-    if evaluator is None:
-        from model_fit.infrastructure.adapters.codex.assessment import native_evaluator
-
-        evaluator = native_evaluator(
-            request, codex_path, runtime_factory, skill_directory
-        )
-    if source_bundle is not None and isinstance(source_bundle[1], dict):
-        from model_fit.infrastructure.adapters.codex.catalog import NativeCatalog
-
-        source_bundle = (source_bundle[0], NativeCatalog(source_bundle[1]))
     source_text, models = (
         source_bundle if source_bundle is not None else source_reader()
     )

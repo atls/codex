@@ -6,7 +6,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(HERE))
-import model_fit.assessment.assess as TRIAGE
+import model_fit.entrypoints.cli.assess as TRIAGE
 from assessment.scenarios import catalog_models, fixture_context, load_scenarios
 from model_fit.assessment.exceptions.source_unavailable import SourceUnavailable
 from model_fit.assessment.validation import empty_decision

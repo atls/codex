@@ -7,9 +7,40 @@ import json
 import subprocess
 import sys
 
-from model_fit.assessment.assess import assess
+from model_fit.assessment.assess import assess as assess_profile
+from model_fit.infrastructure.adapters.codex.sources import assessment_sources
+from model_fit.infrastructure.adapters.codex.assessment import native_evaluator
+from model_fit.infrastructure.adapters.codex.catalog import NativeCatalog
 from model_fit.assessment.exceptions.source_unavailable import SourceUnavailable
 from model_fit.assessment.validation import empty_decision, validated_request
+
+
+def assess(
+    request,
+    evaluator_model: str,
+    evaluator_effort: str,
+    timeout: int,
+    source_bundle=None,
+    diagnostics=None,
+    *,
+    codex_path: str = "codex",
+    runtime_factory=None,
+    skill_directory=None,
+):
+    if source_bundle is not None and isinstance(source_bundle[1], dict):
+        source_bundle = (source_bundle[0], NativeCatalog(source_bundle[1]))
+    return assess_profile(
+        request,
+        evaluator_model,
+        evaluator_effort,
+        timeout,
+        source_bundle,
+        diagnostics,
+        source_reader=assessment_sources,
+        evaluator=native_evaluator(
+            request, codex_path, runtime_factory, skill_directory
+        ),
+    )
 
 
 def main() -> int:

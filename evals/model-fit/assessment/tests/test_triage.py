@@ -15,7 +15,7 @@ import model_fit.infrastructure.adapters.codex.sources as SOURCES
 ROOT = Path(__file__).resolve().parents[4]
 HERE = ROOT / "evals/model-fit"
 MODULE_PATH = ROOT / "plugins/model-fit/src/triage.py"
-import model_fit.assessment.assess as TRIAGE
+import model_fit.entrypoints.cli.assess as TRIAGE
 import model_fit.entrypoints.cli.assess as CLI
 import model_fit.infrastructure.adapters.codex.assessment as ASSESSMENT_CLIENT
 from model_fit.assessment.exceptions.source_unavailable import SourceUnavailable
