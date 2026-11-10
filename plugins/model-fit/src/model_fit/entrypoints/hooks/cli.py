@@ -11,11 +11,9 @@ from model_fit.entrypoints.hooks.instructions import (
     admission_unavailable_context,
     inactive_context,
 )
-from model_fit.entrypoints.hooks.lifecycle import (
-    assess_current,
-    handle_lifecycle,
-    queue_handoff,
-)
+from model_fit.entrypoints.hooks.handlers.assessment import assess_current
+from model_fit.entrypoints.hooks.handlers.queue import queue_handoff
+from model_fit.entrypoints.hooks.events.dispatch import handle_event
 from model_fit.entrypoints.hooks.prompt import handle_prompt
 
 
@@ -76,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
         return handle_prompt()
     if args.command == "queue":
         return queue_handoff(args.thread_id, args.turn_id)
-    return handle_lifecycle(check_admission=True)
+    return handle_event(check_admission=True)
 
 
 if __name__ == "__main__":

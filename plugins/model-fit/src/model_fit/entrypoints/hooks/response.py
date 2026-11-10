@@ -5,7 +5,7 @@ from model_fit.application.switch.recommendation.types.evidence import (
     RecommendationEvidence,
 )
 
-from model_fit.application.switch.handoff.control_message import CONTROL_PROMPTS
+from model_fit.application.handoff.control_message import CONTROL_PROMPTS
 
 """Render Model Fit outcomes as native hook responses."""
 

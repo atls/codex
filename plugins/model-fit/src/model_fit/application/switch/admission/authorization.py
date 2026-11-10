@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from model_fit.application.switch.lifecycle import handoff as handoff_lifecycle
+from model_fit.application.handoff import lifecycle as handoff_lifecycle
 
 
 from model_fit.application.switch.state.types.record import HandoffStateRecord
@@ -16,7 +16,7 @@ from model_fit.application.submission.types.json import JsonValue
 from model_fit.application.switch.types.audit import AuditWriter
 from model_fit.application.switch.state.types.storage import TransferStateStore
 from model_fit.application.switch.admission.types.input import ToolAdmissionInput
-from model_fit.application.switch.handoff.types.clock import Clock
+from model_fit.application.handoff.types.clock import Clock
 
 
 def authorize_transfer(

@@ -3,7 +3,7 @@ from model_fit.application.switch.lifecycle import (
 )
 from collections.abc import Callable
 from model_fit.application.switch.admission.types.input import ToolAdmissionInput
-from model_fit.application.switch.handoff.types.conversation import (
+from model_fit.application.handoff.types.conversation import (
     NativeConversationFactory,
 )
 from model_fit.application.switch.recommendation.types.storage import (

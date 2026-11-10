@@ -2,13 +2,11 @@ from model_fit.application.switch.state.types.record import HandoffStateRecord
 from model_fit.application.submission.types.json import JsonValue
 from contextlib import AbstractContextManager
 from typing import Protocol
-from model_fit.application.switch.handoff.types.accepted_input import (
+from model_fit.application.handoff.types.accepted_input import (
     AcceptedNativeInput,
 )
-from model_fit.application.switch.handoff.types.queue_receipt import (
-    NativeQueueReceipt,
-    NativeQueueRejection,
-)
+from model_fit.application.handoff.types.queue_receipt import NativeQueueReceipt
+from model_fit.application.handoff.errors.queue_rejection import NativeQueueRejection
 
 
 class NativeConversation(Protocol):

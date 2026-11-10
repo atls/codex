@@ -1,6 +1,6 @@
 from model_fit.application.assessment.types.request import ProfileAssessmentInput
 from model_fit.application.switch.types.reconciliation import ReconciledAssessment
-from model_fit.application.switch.handoff.types.conversation import (
+from model_fit.application.handoff.types.conversation import (
     NativeConversationFactory,
 )
 from model_fit.application.submission.types.input import SubmissionInput

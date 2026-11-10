@@ -12,7 +12,8 @@ SCRIPTS = Path(__file__).resolve().parents[1]
 from model_fit.entrypoints.hooks import activation
 from model_fit.entrypoints.hooks import cli as ENTRY
 from model_fit.entrypoints.hooks import dispatch as GLOBAL
-from model_fit.entrypoints.hooks import lifecycle as CLI
+import model_fit.entrypoints.hooks.handlers.assessment as CLI
+import model_fit.entrypoints.hooks.events.dispatch as EVENTS
 from model_fit.infrastructure.adapters.codex import hooks as NATIVE_HOOKS
 
 
@@ -113,7 +114,7 @@ class GlobalHookTests(unittest.TestCase):
                             {"CODEX_HOME": home, "MODEL_FIT_AUTO_THREAD": "stale-id"},
                         ),
                         patch.object(sys, "stdin", io.StringIO(raw)),
-                        patch.object(GLOBAL, "handle_lifecycle") as run,
+                        patch.object(GLOBAL, "handle_event") as run,
                     ):
                         run.return_value = 0
                         self.assertEqual(GLOBAL.dispatch_hook(), 0)
@@ -131,7 +132,7 @@ class GlobalHookTests(unittest.TestCase):
             with (
                 self.subTest(event=event),
                 patch.object(sys, "stdin", io.StringIO(json.dumps(event))),
-                patch.object(GLOBAL, "handle_lifecycle") as run,
+                patch.object(GLOBAL, "handle_event") as run,
             ):
                 self.assertEqual(GLOBAL.dispatch_hook(), 0)
                 run.assert_not_called()
@@ -143,7 +144,7 @@ class GlobalHookTests(unittest.TestCase):
                 "stdin",
                 io.StringIO('{"session_id":"chat","hook_event_name":"Stop"}'),
             ),
-            patch.object(GLOBAL, "handle_lifecycle") as run,
+            patch.object(GLOBAL, "handle_event") as run,
         ):
             run.return_value = 2
             self.assertEqual(GLOBAL.dispatch_hook(), 2)
@@ -158,7 +159,7 @@ class GlobalHookTests(unittest.TestCase):
         raw = json.dumps(event)
         with (
             patch.object(sys, "stdin", io.StringIO(raw)),
-            patch.object(GLOBAL, "handle_lifecycle") as run,
+            patch.object(GLOBAL, "handle_event") as run,
         ):
             run.return_value = 0
             self.assertEqual(GLOBAL.dispatch_hook(), 0)
@@ -253,7 +254,7 @@ class GlobalHookTests(unittest.TestCase):
                     patch.dict(os.environ, {"CODEX_HOME": home}),
                     patch.object(GLOBAL, "automatic_allowed", return_value=None),
                     patch.object(sys, "stdin", io.StringIO(json.dumps(event))),
-                    patch.object(GLOBAL, "handle_lifecycle") as runtime,
+                    patch.object(GLOBAL, "handle_event") as runtime,
                     redirect_stdout(io.StringIO()) as output,
                 ):
                     self.assertEqual(GLOBAL.dispatch_hook(), 0)
@@ -368,11 +369,11 @@ class GlobalHookTests(unittest.TestCase):
             }
             with (
                 patch.dict(os.environ, {"CODEX_HOME": home}),
-                patch.object(CLI, "automatic_allowed", return_value=None),
+                patch.object(EVENTS, "automatic_allowed", return_value=None),
                 redirect_stdout(io.StringIO()) as output,
             ):
                 self.assertEqual(
-                    CLI.handle_lifecycle(
+                    EVENTS.handle_event(
                         event=event,
                         expected_thread="child-thread",
                         check_admission=True,
@@ -403,7 +404,7 @@ class GlobalHookTests(unittest.TestCase):
         with (
             patch.object(GLOBAL, "automatic_allowed", return_value=None),
             patch.object(sys, "stdin", io.StringIO(json.dumps(event))),
-            patch.object(GLOBAL, "handle_lifecycle") as run,
+            patch.object(GLOBAL, "handle_event") as run,
             redirect_stdout(output),
             patch.object(GLOBAL, "record_unavailable") as audit,
         ):

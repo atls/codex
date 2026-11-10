@@ -26,7 +26,8 @@ import model_fit.application.submission.helpers.content as HANDOFF_INPUT
 import model_fit.infrastructure.adapters.codex.history as HANDOFF_CODEX
 import model_fit.infrastructure.adapters.codex.transport.connection as CODEX_CONNECTION
 import model_fit.infrastructure.adapters.filesystem.state as HANDOFF_STATE
-from model_fit.entrypoints.hooks import lifecycle as CLI
+import model_fit.entrypoints.hooks.events.dispatch as EVENTS
+import model_fit.entrypoints.hooks.handlers.queue as QUEUE
 
 
 class DesktopAutoSwitchTests(unittest.TestCase):
@@ -686,14 +687,14 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             patch("sys.argv", ["desktop.py"]),
             patch("sys.stdin", io.StringIO(json.dumps(self.event))),
             patch.object(
-                CLI,
+                EVENTS,
                 "submit_prompt",
                 side_effect=subprocess.TimeoutExpired("triage", 45),
             ),
-            patch.object(CLI, "record_audit") as audit,
+            patch.object(EVENTS, "record_audit") as audit,
             redirect_stdout(output),
         ):
-            self.assertEqual(CLI.handle_lifecycle(), 0)
+            self.assertEqual(EVENTS.handle_event(), 0)
         self.assertEqual(json.loads(output.getvalue())["decision"], "block")
         self.assertIn("TimeoutExpired", audit.call_args_list[-1].args[2])
 
@@ -1742,10 +1743,12 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             ),
             patch("sys.argv", ["desktop.py"]),
             patch("sys.stdin", io.StringIO(json.dumps(event))),
-            patch.object(CLI, "guard_tool", side_effect=OSError("state unavailable")),
+            patch.object(
+                EVENTS, "guard_tool", side_effect=OSError("state unavailable")
+            ),
             redirect_stdout(output),
         ):
-            self.assertEqual(CLI.handle_lifecycle(), 0)
+            self.assertEqual(EVENTS.handle_event(), 0)
         self.assertEqual(
             json.loads(output.getvalue())["hookSpecificOutput"]["permissionDecision"],
             "deny",
@@ -2354,7 +2357,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             ),
             redirect_stdout(output),
         ):
-            self.assertEqual(CLI.handle_lifecycle(), 0)
+            self.assertEqual(EVENTS.handle_event(), 0)
         self.assertEqual(
             json.loads(output.getvalue())["hookSpecificOutput"]["additionalContext"],
             HOOKS_INSTRUCTIONS.pending_context()["hookSpecificOutput"][
@@ -2388,7 +2391,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             patch("sys.stdin", io.StringIO(json.dumps(event))),
             patch.object(sys, "argv", ["desktop.py"]),
             patch.object(
-                CLI,
+                EVENTS,
                 "guard_replay_answer",
                 return_value={
                     "decision": "block",
@@ -2397,7 +2400,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             ) as guard,
             redirect_stdout(output),
         ):
-            self.assertEqual(CLI.handle_lifecycle(), 0)
+            self.assertEqual(EVENTS.handle_event(), 0)
         self.assertEqual(json.loads(output.getvalue())["decision"], "block")
         guard.assert_called_once_with(event)
 
@@ -2416,11 +2419,11 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 ],
             ),
             patch.object(
-                CLI, "enqueue", side_effect=RuntimeError("private request text")
+                QUEUE, "enqueue", side_effect=RuntimeError("private request text")
             ),
             redirect_stderr(error_output),
         ):
-            self.assertEqual(CLI.queue_handoff("test-thread", "test-turn"), 1)
+            self.assertEqual(QUEUE.queue_handoff("test-thread", "test-turn"), 1)
         audit = (
             Path(self.temporary.name) / ".tmp/model-fit-hook-audit/test-thread.jsonl"
         ).read_text()
@@ -2440,7 +2443,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             patch("sys.stdin", io.StringIO('["private request text"]')),
             redirect_stdout(output),
         ):
-            self.assertEqual(CLI.handle_lifecycle(), 0)
+            self.assertEqual(EVENTS.handle_event(), 0)
         self.assertEqual(output.getvalue(), "")
         audit = (
             Path(self.temporary.name) / ".tmp/model-fit-hook-audit/test-thread.jsonl"
@@ -2624,16 +2627,16 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             ),
             patch("sys.stdin", io.StringIO(json.dumps(event))),
             patch.object(
-                CLI, "automatic_allowed", side_effect=[True, False]
+                EVENTS, "automatic_allowed", side_effect=[True, False]
             ) as admission,
             patch.object(
-                CLI,
+                EVENTS,
                 "guard_replay_answer",
                 return_value={"decision": "block", "reason": "stale correction"},
             ),
             redirect_stdout(output),
         ):
-            self.assertEqual(CLI.handle_lifecycle(check_admission=True), 0)
+            self.assertEqual(EVENTS.handle_event(check_admission=True), 0)
         self.assertEqual(output.getvalue(), "")
         self.assertEqual(admission.call_count, 2)
 
@@ -2650,16 +2653,16 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 os.environ, {DESKTOP_CONFIGURATION.AUTO_THREAD_ENV: self.thread_id}
             ),
             patch("sys.stdin", io.StringIO(json.dumps(event))),
-            patch.object(CLI, "automatic_allowed", side_effect=[True, None]),
-            patch.object(CLI, "record_unavailable") as record,
+            patch.object(EVENTS, "automatic_allowed", side_effect=[True, None]),
+            patch.object(EVENTS, "record_unavailable") as record,
             patch.object(
-                CLI,
+                EVENTS,
                 "guard_replay_answer",
                 return_value={"decision": "block", "reason": "stale correction"},
             ),
             redirect_stdout(output),
         ):
-            self.assertEqual(CLI.handle_lifecycle(check_admission=True), 0)
+            self.assertEqual(EVENTS.handle_event(check_admission=True), 0)
         self.assertNotIn("decision", json.loads(output.getvalue()))
         record.assert_called_once_with(self.thread_id, self.turn_id, "Stop")
 
@@ -2679,11 +2682,11 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             patch("sys.stdin", io.StringIO(json.dumps(event))),
             patch.object(sys, "argv", ["desktop.py"]),
             patch.object(
-                CLI, "guard_replay_answer", side_effect=RuntimeError("unavailable")
+                EVENTS, "guard_replay_answer", side_effect=RuntimeError("unavailable")
             ),
             redirect_stdout(output),
         ):
-            self.assertEqual(CLI.handle_lifecycle(), 0)
+            self.assertEqual(EVENTS.handle_event(), 0)
         self.assertEqual(output.getvalue(), "")
         audit = (
             (Path(self.temporary.name) / ".tmp/model-fit-hook-audit/test-thread.jsonl")

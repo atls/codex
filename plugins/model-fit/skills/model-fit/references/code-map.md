@@ -14,14 +14,14 @@
 | Admit tools | `application/switch/admission/scenario.py`, `application/switch/admission/guards/` |
 | Authorize a prepared transfer | `application/switch/admission/authorization.py` |
 | Retain prompt-hook recommendations | `application/switch/recommendation/prompt.py` |
-| Enqueue the accepted native input once | `application/switch/scenarios/enqueue.py`, `application/switch/lifecycle/handoff.py` |
-| Own transfer planning, attempts, receipts and replay | `application/switch/lifecycle/handoff.py` |
+| Enqueue the accepted native input once | `application/handoff/lifecycle.py` |
+| Own transfer planning, attempts, receipts and replay | `application/handoff/lifecycle.py` |
 | Own assessment generation and supersession | `application/switch/lifecycle/submission.py` |
 | Own admission and retained native profile choice | `application/switch/lifecycle/profile_choice.py` |
-| Decode phase-specific progress | `application/switch/state/decoding.py`, `application/switch/lifecycle/types/progress.py` |
+| Decode phase-specific progress | `application/switch/state/decoding.py`, `application/handoff/types/progress.py` |
 | Accepted submission data | `application/submission/types/input.py` |
 | Assessment callbacks | `application/assessment/types/execution.py` |
-| Native conversation and its opening contract | `application/switch/handoff/types/conversation.py` |
+| Native conversation and its opening contract | `application/handoff/types/conversation.py` |
 | Recommendation persistence contract | `application/switch/recommendation/types/storage.py` |
 | Recommendation dictionary declaration | `application/switch/recommendation/types/record.py` |
 | Transaction storage and companion slot | `application/switch/state/types/storage.py` |
@@ -54,6 +54,8 @@ Submission registers metadata and digests, then assessment reads the complete na
 Answer checking is a bounded relevance check, not a quality grade. Unknown queue outcomes are not automatically released. Codex owns its profile and queue; audit is not a recovery source of truth.
 
 ## Entry points and errors
+
+Hook event handling is in `entrypoints/hooks/events/dispatch.py`. Technical assessment and queue commands are in `entrypoints/hooks/handlers/`. Returned queue rejection is in `application/handoff/errors/`; native RPC exceptions belong to the Codex transport adapter. The accepted implementation plan tracks the remaining state/lifecycle consolidation; the current module map does not establish completion of that work.
 
 Explicit assessment: `model-fit` or `python -m model_fit.entrypoints.cli.assess`.
 Automatic CLI: `python -m model_fit.entrypoints.hooks.cli` with `hook`, `lifecycle`, `assess`, `reassess`, `prompt` and `queue`. Internal Python module paths are not another public API.

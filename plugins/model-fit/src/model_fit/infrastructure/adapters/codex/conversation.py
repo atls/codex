@@ -11,19 +11,17 @@ from model_fit.application.submission.constraints.content import (
     native_content,
 )
 from model_fit.application.submission.helpers.content import input_text
-from model_fit.application.switch.handoff.control_message import CONTROL_PROMPTS
+from model_fit.application.handoff.control_message import CONTROL_PROMPTS
 from model_fit.application.assessment.decoding import required_text, optional_text
 
 import model_fit.infrastructure.adapters.codex.chat_profile as native_settings
 import model_fit.infrastructure.adapters.codex.history as conversation
-from model_fit.application.switch.handoff.types.accepted_input import (
+from model_fit.application.handoff.types.accepted_input import (
     AcceptedNativeInput,
 )
-from model_fit.application.switch.handoff.types.queue_receipt import (
-    NativeQueueReceipt,
-    NativeQueueRejection,
-)
-from model_fit.infrastructure.adapters.codex.transport.rpc_error import (
+from model_fit.application.handoff.types.queue_receipt import NativeQueueReceipt
+from model_fit.application.handoff.errors.queue_rejection import NativeQueueRejection
+from model_fit.infrastructure.adapters.codex.transport.exceptions.rpc import (
     AppServerRPCError,
 )
 

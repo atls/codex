@@ -11,7 +11,7 @@ from typing import Callable
 from model_fit.application.switch.types.audit import AuditWriter
 from model_fit.application.answer.limits import MAX_REPLAY_EVAL_CHARS
 from model_fit.application.answer.types.input import ReplayAnswerInput
-from model_fit.application.switch.handoff.types.conversation import NativeConversation
+from model_fit.application.handoff.types.conversation import NativeConversation
 from model_fit.application.submission.helpers import content as codec
 from model_fit.application.switch.types.disposition import (
     BlockedTurn,

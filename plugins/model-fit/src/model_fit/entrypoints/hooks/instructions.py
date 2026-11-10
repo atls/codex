@@ -8,7 +8,7 @@ from pathlib import Path
 from model_fit.entrypoints.hooks.types.output import HookOutput
 from model_fit.application.switch.state.types.record import HandoffStateRecord
 
-from model_fit.application.switch.handoff.control_message import CONTROL_PROMPT
+from model_fit.application.handoff.control_message import CONTROL_PROMPT
 
 UNKNOWN_CONTEXT = "Model Fit did not determine a new profile. The current profile is retained; suitability is unknown. Continue the original task in this turn on the current profile with all attachments and annotations. An unknown result does not prohibit ordinary tools or require manual switching or resubmission."
 ASSESSED_CONTEXT = "The Model Fit hook has already assessed the profile for this turn. Technical assessment is complete. If the original request requires further work, perform it in this turn; merely reporting the assessment result is insufficient. Use this decision for the same next work; reading the skill alone does not require reassessment. Reassess only after identifying concrete changed requirements. Do not claim an automatic handoff without a confirmed queue acknowledgement for the original input."

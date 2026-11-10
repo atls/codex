@@ -20,7 +20,7 @@ from model_fit.application.switch.scenarios.complete_assessment import (
 from model_fit.application.assessment.types.execution import AssessmentRunner
 from model_fit.application.switch.types.audit import AuditWriter
 from model_fit.application.assessment.types.execution import AssessmentContextReader
-from model_fit.application.switch.handoff.types.conversation import (
+from model_fit.application.handoff.types.conversation import (
     NativeConversationFactory,
 )
 from model_fit.application.submission.helpers import content as codec
@@ -29,7 +29,7 @@ from model_fit.application.switch.types.disposition import (
     TurnDisposition,
     TurnNotice,
 )
-from model_fit.application.switch.handoff.control_message import CONTROL_PROMPTS
+from model_fit.application.handoff.control_message import CONTROL_PROMPTS
 
 from model_fit.application.submission.types.input import SubmissionInput
 from model_fit.application.switch.recommendation.types.storage import (
@@ -40,7 +40,7 @@ from model_fit.application.switch.recommendation.check import (
     blocking_recommendation,
     load_blocking_recommendation,
 )
-from model_fit.application.switch.handoff.types.clock import Clock
+from model_fit.application.handoff.types.clock import Clock
 
 
 def evaluate(

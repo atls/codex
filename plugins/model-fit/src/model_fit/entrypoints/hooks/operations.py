@@ -4,7 +4,7 @@ from collections.abc import Callable
 from model_fit.application.submission.types.json import JsonValue
 from model_fit.application.assessment.types.request import ProfileAssessmentInput
 from model_fit.application.assessment.types.execution import AssessmentRunner
-from model_fit.application.switch.handoff.types.conversation import (
+from model_fit.application.handoff.types.conversation import (
     NativeConversationFactory,
 )
 import os
@@ -15,7 +15,7 @@ import model_fit.infrastructure.adapters.codex.answer as answer_relevance
 from model_fit.application.switch.scenarios.finish import (
     finish as run_guard_replay_answer,
 )
-from model_fit.application.switch.scenarios.enqueue import enqueue as run_enqueue
+from model_fit.application.handoff.lifecycle import enqueue as run_enqueue
 from model_fit.application.switch.admission.scenario import guard_tool as run_guard_tool
 from model_fit.application.switch.admission.guards.continuation import (
     can_continue_admitted_tool as continue_tool,

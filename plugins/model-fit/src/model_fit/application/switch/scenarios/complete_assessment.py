@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from model_fit.application.switch.lifecycle import handoff as handoff_lifecycle
-from model_fit.application.switch.lifecycle.types.plan import (
+from model_fit.application.handoff import lifecycle as handoff_lifecycle
+from model_fit.application.handoff.types.plan import (
     ManualHandoff,
     TransferTarget,
 )
@@ -14,10 +14,10 @@ from model_fit.application.switch.lifecycle import submission as submission_life
 from model_fit.application.assessment.types.decision import AssessmentDecision
 from model_fit.application.assessment.types.request import ProfileAssessmentInput
 from model_fit.application.assessment.constraints.decision import RECOMMENDATIONS
-from model_fit.application.switch.state.types.preparation import TransferPreparation
+from model_fit.application.handoff.types.preparation import TransferPreparation
 from model_fit.application.switch.denial import block_prompt
 from model_fit.application.switch.types.audit import AuditWriter
-from model_fit.application.switch.handoff.types.conversation import (
+from model_fit.application.handoff.types.conversation import (
     NativeConversationFactory,
 )
 from model_fit.application.switch.state.types.record import HandoffStateRecord
@@ -45,7 +45,7 @@ from model_fit.application.switch.recommendation.check import (
     load_blocking_recommendation,
     retain_manual_recommendation,
 )
-from model_fit.application.switch.handoff.types.clock import Clock
+from model_fit.application.handoff.types.clock import Clock
 
 
 def complete_assessment(

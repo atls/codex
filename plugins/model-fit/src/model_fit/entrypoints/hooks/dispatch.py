@@ -11,7 +11,7 @@ from model_fit.entrypoints.hooks.activation import (
     inactive_output,
     record_unavailable,
 )
-from model_fit.entrypoints.hooks.lifecycle import handle_lifecycle
+from model_fit.entrypoints.hooks.events.dispatch import handle_event
 from model_fit.infrastructure.adapters.codex.identity import executor_thread_id
 
 
@@ -37,7 +37,7 @@ def dispatch_hook() -> int:
             if output is not None:
                 print(json.dumps(output, ensure_ascii=False))
             return 0
-        return handle_lifecycle(event=event, expected_thread=thread_id)
+        return handle_event(event=event, expected_thread=thread_id)
     except (OSError, ValueError, TypeError) as error:
         print(f"Model Fit global hook failed ({type(error).__name__})", file=sys.stderr)
         return 1

@@ -24,7 +24,8 @@ import model_fit.application.submission.helpers.content as HANDOFF_INPUT
 import model_fit.infrastructure.adapters.codex.transport.connection as CODEX_CONNECTION
 import model_fit.infrastructure.adapters.filesystem.pending as RECOMMENDATION_STORE
 import model_fit.infrastructure.adapters.filesystem.state as HANDOFF_STATE
-from model_fit.entrypoints.hooks import lifecycle as CLI
+import model_fit.entrypoints.hooks.handlers.assessment as CLI
+import model_fit.entrypoints.hooks.events.dispatch as EVENTS
 
 
 class UnavailableSourceTests(unittest.TestCase):
@@ -71,7 +72,7 @@ class UnavailableSourceTests(unittest.TestCase):
             patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader,
         ):
             with redirect_stdout(submitted):
-                self.assertEqual(CLI.handle_lifecycle(), 0)
+                self.assertEqual(EVENTS.handle_event(), 0)
             stage = json.loads(submitted.getvalue())
             if stage.get("decision") == "block":
                 return stage

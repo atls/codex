@@ -1,32 +1,36 @@
 from __future__ import annotations
 from model_fit.application.assessment.types.decision import AssessmentDecision
 from model_fit.application.assessment.types.profile import ActiveProfile
-from model_fit.application.switch.lifecycle.types.plan import (
+from model_fit.application.handoff.types.plan import (
     ManualHandoff,
     TransferTarget,
 )
-
 from model_fit.application.assessment.decoding import required_text
-from model_fit.application.switch.state.types.preparation import TransferPreparation
+from model_fit.application.handoff.types.preparation import TransferPreparation
 from model_fit.application.switch.state.types.record import HandoffStateRecord
-
 from model_fit.application.switch.state.types.storage import TransferStateSlot
-
 from model_fit.application.switch.state.commit import save_snapshot
-from model_fit.application.switch.handoff.types.queue_receipt import NativeQueueReceipt
+from model_fit.application.handoff.types.queue_receipt import NativeQueueReceipt
 from model_fit.application.submission.types.json import JsonValue
 from model_fit.application.submission.helpers import content as codec
-from model_fit.application.switch.exceptions.invalid_handoff import InvalidHandoff
-from model_fit.application.switch.exceptions.handoff_conflict import HandoffConflict
+from model_fit.application.handoff.exceptions.invalid_handoff import InvalidHandoff
+from model_fit.application.handoff.exceptions.conflict import HandoffConflict
 from model_fit.application.switch.state.decoding import (
     prepared_handoff,
     attempted_handoff,
     queued_handoff,
 )
-from model_fit.application.switch.lifecycle.types.progress import PreparedHandoff
-from model_fit.application.switch.lifecycle.types.progress import QueuedHandoff
-from model_fit.application.switch.types.queue import QueueConfirmation
-from model_fit.application.switch.handoff.expiry import HANDOFF_TTL_SECONDS
+from model_fit.application.handoff.types.progress import PreparedHandoff
+from model_fit.application.handoff.types.progress import QueuedHandoff
+from model_fit.application.handoff.types.queue import QueueConfirmation
+from model_fit.application.handoff.expiry import HANDOFF_TTL_SECONDS
+from model_fit.application.handoff.errors.queue_rejection import NativeQueueRejection
+from typing import Callable
+from model_fit.application.handoff.types.conversation import (
+    NativeConversationFactory,
+)
+from model_fit.application.switch.state.types.storage import TransferStateStore
+from model_fit.application.handoff.types.clock import Clock
 
 
 def require_queue_executor(caller_thread: str | None, thread_id: str) -> None:
@@ -232,3 +236,33 @@ def release(slot: TransferStateSlot) -> None:
         )
     else:
         slot.clear()
+
+
+def enqueue(
+    thread_id: str,
+    turn_id: str,
+    *,
+    caller_thread: str | None,
+    clock: Clock,
+    conversation: NativeConversationFactory,
+    store: TransferStateStore,
+    working_directory: Callable[[], str],
+) -> QueueConfirmation:
+    require_queue_executor(caller_thread, thread_id)
+    with store.transaction(thread_id, operation="queue", turn_id=turn_id) as slot:
+        state = slot.load()
+        prepared = queue_preparation(state, turn_id, clock())
+        if isinstance(prepared, QueueConfirmation):
+            return prepared
+        assert state is not None
+        with conversation(working_directory()) as app:
+            require_transfer_profile(prepared, app.profile(thread_id))
+            content = app.handoff_input(thread_id, state)
+            begin_queue(slot, state, turn_id, content)
+            submission = app.enqueue(thread_id, turn_id, content)
+            if isinstance(submission, NativeQueueRejection):
+                reject(slot, state)
+                raise submission.error
+            receipt(slot, state, submission)
+        confirmed = confirm_queue(slot, state, clock())
+        return QueueConfirmation(confirmed.submission_id)

@@ -1,8 +1,8 @@
 """Refine supported stored projections before executing phase-specific effects."""
 
-from model_fit.application.switch.exceptions.invalid_handoff import InvalidHandoff
-from model_fit.application.switch.lifecycle.types.plan import TransferTarget
-from model_fit.application.switch.lifecycle.types.progress import (
+from model_fit.application.handoff.exceptions.invalid_handoff import InvalidHandoff
+from model_fit.application.handoff.types.plan import TransferTarget
+from model_fit.application.handoff.types.progress import (
     AttemptedHandoff,
     PreparedHandoff,
     QueuedHandoff,

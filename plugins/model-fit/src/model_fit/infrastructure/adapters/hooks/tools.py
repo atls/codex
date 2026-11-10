@@ -6,7 +6,7 @@ from model_fit.application.submission.constraints.content import checked_object
 from model_fit.application.switch.admission.types.input import ToolAdmissionInput
 from model_fit.application.switch.state.types.record import HandoffStateRecord
 
-from model_fit.application.switch.handoff.control_message import (
+from model_fit.application.handoff.control_message import (
     CONTROL_PROMPT,
     CONTROL_PROMPTS,
 )

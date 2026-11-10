@@ -67,6 +67,10 @@ class AuthIsolationTests(unittest.TestCase):
             original = source.read_bytes()
 
             def execute(command, **kwargs):
+                schema = json.loads(
+                    Path(command[command.index("--output-schema") + 1]).read_text()
+                )
+                self.assertIn("verdict", schema["required"])
                 isolated = Path(kwargs["env"]["CODEX_HOME"]) / "auth.json"
                 self.assertFalse(isolated.is_symlink())
                 self.assertEqual(stat.S_IMODE(isolated.stat().st_mode), 384)

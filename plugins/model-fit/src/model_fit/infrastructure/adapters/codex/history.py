@@ -16,7 +16,7 @@ from model_fit.application.submission.constraints.content import (
 from model_fit.application.assessment.types.request import ProfileAssessmentInput
 from model_fit.application.assessment.decoding import optional_text
 
-from model_fit.application.switch.handoff.control_message import CONTROL_PROMPTS
+from model_fit.application.handoff.control_message import CONTROL_PROMPTS
 from model_fit.application.submission.helpers.content import (
     hook_prompt,
     input_digest,
@@ -24,7 +24,7 @@ from model_fit.application.submission.helpers.content import (
     prompt_digest,
 )
 from model_fit.infrastructure.adapters.codex.identity import executor_thread_id
-from model_fit.infrastructure.adapters.codex.transport.rpc_error import (
+from model_fit.infrastructure.adapters.codex.transport.exceptions.rpc import (
     AppServerRPCError,
 )
 from model_fit.infrastructure.adapters.codex.transport.reader import AppServerReader

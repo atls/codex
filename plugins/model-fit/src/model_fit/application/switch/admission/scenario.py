@@ -12,7 +12,7 @@ from typing import Callable
 
 from model_fit.application.switch.admission.types.tools import TransferTools
 from model_fit.application.switch.types.audit import AuditWriter
-from model_fit.application.switch.handoff.types.conversation import (
+from model_fit.application.handoff.types.conversation import (
     NativeConversationFactory,
 )
 from model_fit.application.switch.recommendation.types.storage import (
@@ -28,7 +28,7 @@ from model_fit.application.switch.admission.denial import (
     deny_unprepared_transfer,
 )
 from model_fit.application.switch.admission.authorization import authorize_transfer
-from model_fit.application.switch.handoff.types.clock import Clock
+from model_fit.application.handoff.types.clock import Clock
 from model_fit.application.switch.admission.recovery import (
     recover_unsubmitted_successor,
 )

@@ -6,7 +6,7 @@ from model_fit.application.switch.exceptions.context_unavailable import (
 )
 from model_fit.infrastructure.adapters.codex.history import unavailable_session_input
 from model_fit.infrastructure.adapters.codex.identity import executor_thread_id
-from model_fit.infrastructure.adapters.codex.transport.rpc_error import (
+from model_fit.infrastructure.adapters.codex.transport.exceptions.rpc import (
     AppServerRPCError,
 )
 from model_fit.application.submission.constraints.content import checked_object

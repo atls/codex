@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Literal
 
-from model_fit.application.switch.lifecycle.types.plan import TransferTarget
+from model_fit.application.handoff.types.plan import TransferTarget
 
 
 @dataclass(frozen=True)

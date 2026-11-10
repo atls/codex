@@ -14,7 +14,7 @@ from model_fit.application.submission.constraints.content import (
     native_text,
 )
 
-from model_fit.infrastructure.adapters.codex.transport.rpc_error import (
+from model_fit.infrastructure.adapters.codex.transport.exceptions.rpc import (
     AppServerRPCError,
 )
 

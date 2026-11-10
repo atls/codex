@@ -18,6 +18,6 @@ src/model_fit/infrastructure/adapters/codex/authentication.py
 src/model_fit/infrastructure/adapters/codex/transport/__init__.py
 src/model_fit/infrastructure/adapters/codex/transport/assessment/
 src/model_fit/infrastructure/adapters/codex/transport/connection.py
-src/model_fit/infrastructure/adapters/codex/transport/rpc_error.py
+src/model_fit/infrastructure/adapters/codex/transport/exceptions/
 pyproject.toml
 uv.lock

@@ -7,10 +7,11 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
+from importlib.resources import files
 
 from model_fit.infrastructure.adapters.codex.authentication import authenticated_home
 
-SCHEMA = Path(__file__).resolve().parents[3] / "answer/relevance.schema.json"
+SCHEMA = files("model_fit.application.answer").joinpath("relevance.schema.json")
 EVALUATOR_MODEL = "gpt-6-luna"
 EVALUATOR_EFFORT = "low"
 EVALUATOR_TIMEOUT_SECONDS = 20

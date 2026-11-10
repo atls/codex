@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from model_fit.application.switch.lifecycle import handoff as handoff_lifecycle
+from model_fit.application.handoff import lifecycle as handoff_lifecycle
 from model_fit.application.switch.lifecycle import submission as submission_lifecycle
 
 
 from model_fit.application.switch.denial import block_prompt
 from model_fit.application.switch.types.audit import AuditWriter
 from model_fit.application.assessment.types.execution import AssessmentContextReader
-from model_fit.application.switch.handoff.types.conversation import (
+from model_fit.application.handoff.types.conversation import (
     NativeConversationFactory,
 )
 from model_fit.application.submission.helpers import content as codec
@@ -19,7 +19,7 @@ from model_fit.application.switch.types.disposition import (
     TurnDisposition,
     WorkContext,
 )
-from model_fit.application.switch.handoff.control_message import CONTROL_PROMPTS
+from model_fit.application.handoff.control_message import CONTROL_PROMPTS
 
 from model_fit.application.submission.types.input import SubmissionInput
 from model_fit.application.switch.state.types.storage import TransferStateStore
