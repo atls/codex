@@ -16,6 +16,7 @@ from unittest.mock import MagicMock, patch
 
 ROOT = Path(__file__).resolve().parents[4]
 SCRIPTS = ROOT / "plugins/model-fit/src"
+from assessment_fixture import evaluate_request
 import model_fit.entrypoints.hooks.instructions as HOOKS_INSTRUCTIONS
 import model_fit.entrypoints.hooks.native_contract as DESKTOP_CONFIGURATION
 import model_fit.entrypoints.hooks.operations as HANDOFF_GUARDS
@@ -78,7 +79,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             ),
         ):
             self.assertIsNone(
-                HANDOFF_PREPARATION.prepare_handoff(
+                evaluate_request(
                     self.event,
                     context_reader=lambda event: request,
                     assessor=lambda request: {"decision": "keep"},
@@ -203,7 +204,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 HANDOFF_PREPARATION, "triage", return_value={"decision": "keep"}
             ),
         ):
-            self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(self.event))
+            self.assertIsNone(evaluate_request(self.event))
         raw = (
             Path(self.temporary.name) / ".tmp/model-fit-hook-audit/test-thread.jsonl"
         ).read_text()
@@ -332,7 +333,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 "data": [],
                 "nextCursor": None,
             }
-            return HANDOFF_PREPARATION.prepare_handoff(event)
+            return evaluate_request(event)
 
     def stage_replay(self, content=None):
         content = content or [{"type": "text", "text": self.prompt}]
@@ -361,7 +362,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 "data": [],
                 "nextCursor": None,
             }
-            result = HANDOFF_PREPARATION.prepare_handoff(self.event)
+            result = evaluate_request(self.event)
         instruction = result["hookSpecificOutput"]["additionalContext"]
         self.assertIn("model=gpt-6-sol, thinking=medium", instruction)
         self.assertIn("queue --thread-id current --turn-id source", instruction)
@@ -384,7 +385,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             ),
             patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader,
         ):
-            self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(self.event))
+            self.assertIsNone(evaluate_request(self.event))
             reader.assert_not_called()
         self.assertEqual(
             HANDOFF_STATE.read_state(HANDOFF_STATE.state_path(self.thread_id))["phase"],
@@ -402,7 +403,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 HANDOFF_PREPARATION, "triage", return_value={"decision": "keep"}
             ),
         ):
-            self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(self.event))
+            self.assertIsNone(evaluate_request(self.event))
         with (
             patch.object(
                 HANDOFF_PREPARATION,
@@ -418,9 +419,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 "data": [],
                 "nextCursor": None,
             }
-            result = HANDOFF_PREPARATION.prepare_handoff(
-                dict(self.event, turn_id="next-turn")
-            )
+            result = evaluate_request(dict(self.event, turn_id="next-turn"))
             triage.assert_called_once()
         self.assertIn("hookSpecificOutput", result)
         self.assertEqual(
@@ -587,7 +586,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
 
     def test_control_message_is_not_replayed_as_user_work(self):
         path = self.stage()
-        HANDOFF_PREPARATION.prepare_handoff(
+        evaluate_request(
             dict(
                 self.event,
                 turn_id="control-turn",
@@ -687,7 +686,9 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             patch("sys.argv", ["desktop.py"]),
             patch("sys.stdin", io.StringIO(json.dumps(self.event))),
             patch.object(
-                CLI, "prepare", side_effect=subprocess.TimeoutExpired("triage", 45)
+                CLI,
+                "submit_prompt",
+                side_effect=subprocess.TimeoutExpired("triage", 45),
             ),
             patch.object(CLI, "record_audit") as audit,
             redirect_stdout(output),
@@ -938,11 +939,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 {"data": [{"id": "queued-1"}], "nextCursor": None},
                 {"deleted": True},
             ]
-            self.assertIsNone(
-                HANDOFF_PREPARATION.prepare_handoff(
-                    dict(self.event, turn_id="new-turn")
-                )
-            )
+            self.assertIsNone(evaluate_request(dict(self.event, turn_id="new-turn")))
             self.assertEqual(
                 [c.args[0] for c in app.call.call_args_list],
                 ["thread/queue/list", "thread/queue/delete"],
@@ -1045,9 +1042,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(RuntimeError, "rejected"):
             HANDOFF_QUEUE.enqueue_handoff(self.thread_id, self.turn_id)
-        self.assertEqual(
-            HANDOFF_PREPARATION.prepare_handoff(self.event)["decision"], "block"
-        )
+        self.assertEqual(evaluate_request(self.event)["decision"], "block")
         next_event = dict(self.event, turn_id="new-turn")
         with (
             patch.object(
@@ -1059,7 +1054,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 HANDOFF_PREPARATION, "triage", return_value={"decision": "keep"}
             ),
         ):
-            self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(next_event))
+            self.assertIsNone(evaluate_request(next_event))
         self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
 
     def test_json_rpc_rejection_has_distinct_exception(self):
@@ -1313,7 +1308,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                     ) as triage,
                     patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader,
                 ):
-                    output = HANDOFF_PREPARATION.prepare_handoff(event)
+                    output = evaluate_request(event)
                     reader.assert_not_called()
                 triage.assert_called_once()
                 self.assertEqual(triage.call_args.args[0]["task"], event["prompt"])
@@ -1354,7 +1349,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 HANDOFF_PREPARATION, "triage", return_value={"decision": "unknown"}
             ) as triage,
         ):
-            output = HANDOFF_PREPARATION.prepare_handoff(event)
+            output = evaluate_request(event)
         triage.assert_called_once()
         self.assertNotEqual(output.get("decision"), "block")
         self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
@@ -1391,7 +1386,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             ),
             self.assertRaises(RuntimeError),
         ):
-            HANDOFF_PREPARATION.prepare_handoff(event)
+            evaluate_request(event)
         self.assertEqual(HANDOFF_STATE.read_state(path), prior)
         with (
             patch.object(HANDOFF_PREPARATION, "session_input", return_value=request),
@@ -1401,7 +1396,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             reader.return_value.__enter__.return_value.call.side_effect = TimeoutError(
                 "temporary history read failure"
             )
-            HANDOFF_PREPARATION.prepare_handoff(event)
+            evaluate_request(event)
         self.assertEqual(HANDOFF_STATE.read_state(path), prior)
         with (
             patch.object(HANDOFF_PREPARATION, "session_input", return_value=request),
@@ -1413,7 +1408,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             reader.return_value.__enter__.return_value.call.return_value = (
                 self.source_response([{"type": "text", "text": choice}])
             )
-            HANDOFF_PREPARATION.prepare_handoff(event)
+            evaluate_request(event)
         self.assertIn(choice, triage.call_args.args[0]["context"])
         self.assertEqual(
             HANDOFF_STATE.read_state(path),
@@ -1440,7 +1435,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 HANDOFF_PREPARATION, "triage", return_value={"decision": "keep"}
             ),
         ):
-            HANDOFF_PREPARATION.prepare_handoff(event)
+            evaluate_request(event)
         for index in range(4):
             next_turn = "continuation-" + str(index)
             request = {
@@ -1461,7 +1456,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                     self.source_response([{"type": "text", "text": choice}])
                 )
                 self.assertIsNone(
-                    HANDOFF_PREPARATION.prepare_handoff(
+                    evaluate_request(
                         dict(self.event, turn_id=next_turn, prompt=request["task"])
                     )
                 )
@@ -1496,7 +1491,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             ),
             patch.object(HANDOFF_PREPARATION, "triage", side_effect=concurrent_queue),
         ):
-            output = HANDOFF_PREPARATION.prepare_handoff(event)
+            output = evaluate_request(event)
         self.assertEqual(output["decision"], "block")
         self.assertEqual(
             HANDOFF_STATE.read_state(path)["queued_submission_id"], "concurrent-queue"
@@ -1767,9 +1762,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         HANDOFF_STATE.write_state(path, state)
         steered = dict(self.event, prompt="Show the backlog")
         with patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader:
-            self.assertEqual(
-                HANDOFF_PREPARATION.prepare_handoff(steered)["decision"], "block"
-            )
+            self.assertEqual(evaluate_request(steered)["decision"], "block")
             reader.assert_not_called()
         self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "queued")
         tool_event = {
@@ -1811,7 +1804,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 {"data": [{"id": "queued-1"}], "nextCursor": None},
                 {"deleted": True},
             ]
-            self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(new_event))
+            self.assertIsNone(evaluate_request(new_event))
             self.assertEqual(app.call.call_args_list[1].args[0], "thread/queue/delete")
         self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
 
@@ -1842,9 +1835,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                     "nextCursor": None,
                 },
             ]
-            self.assertEqual(
-                HANDOFF_PREPARATION.prepare_handoff(new_event)["decision"], "block"
-            )
+            self.assertEqual(evaluate_request(new_event)["decision"], "block")
         self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "queued")
 
     def test_completed_replay_releases_new_request(self):
@@ -1901,7 +1892,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             ]
             state["queued_prompt_digest"] = HANDOFF_INPUT.prompt_digest(self.prompt)
             HANDOFF_STATE.write_state(path, state)
-            self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(new_event))
+            self.assertIsNone(evaluate_request(new_event))
             self.assertEqual(
                 [call.args[0] for call in app.call.call_args_list],
                 ["thread/queue/list", "thread/turns/list", "thread/items/list"],
@@ -1983,7 +1974,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 {"data": [source], "nextCursor": None},
             ]
             self.assertIsNone(
-                HANDOFF_PREPARATION.prepare_handoff(
+                evaluate_request(
                     dict(self.event, turn_id="new-turn", prompt="new work")
                 )
             )
@@ -2099,7 +2090,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                     "nextCursor": None,
                 },
             ]
-            self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(new_event))
+            self.assertIsNone(evaluate_request(new_event))
             self.assertEqual(
                 [call.args[0] for call in app.call.call_args_list],
                 ["thread/queue/list", "thread/turns/list", "thread/turns/list"],
@@ -2134,9 +2125,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 },
             ]
             self.assertEqual(
-                HANDOFF_PREPARATION.prepare_handoff(
-                    dict(self.event, turn_id="manual-turn")
-                )["decision"],
+                evaluate_request(dict(self.event, turn_id="manual-turn"))["decision"],
                 "block",
             )
         self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "queued")
@@ -2187,7 +2176,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                             "nextCursor": None,
                         },
                     ]
-                    self.assertIsNone(HANDOFF_PREPARATION.prepare_handoff(new_event))
+                    self.assertIsNone(evaluate_request(new_event))
                 self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
 
     def test_consumed_replay_denies_repeated_transfer_without_changing_state(self):

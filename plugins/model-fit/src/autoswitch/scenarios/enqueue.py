@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from model_fit.autoswitch.lifecycle import handoff as handoff_lifecycle
+from model_fit.autoswitch.types.queue import QueueConfirmation
+
+
 from typing import Callable
 
-from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.handoff.types.conversation import (
     NativeConversationFactory,
 )
-from model_fit.native_input import codec
 from model_fit.autoswitch.state.types.storage import TransferStateStore
 from model_fit.autoswitch.handoff.expiry import HANDOFF_TTL_SECONDS
 from model_fit.autoswitch.handoff.types.clock import Clock
@@ -22,8 +24,7 @@ def enqueue(
     queue_rejection: type[Exception],
     store: TransferStateStore,
     working_directory: Callable[[], str],
-) -> dict[str, str]:
-    caller_thread = caller_thread
+) -> QueueConfirmation:
     if caller_thread and caller_thread != thread_id:
         raise ValueError("Queue helper must run in the target Desktop thread")
     with store.transaction(thread_id, operation="queue", turn_id=turn_id) as slot:
@@ -31,10 +32,9 @@ def enqueue(
         if state is None or state["source_turn_id"] != turn_id:
             raise ValueError("No matching Model Fit handoff")
         if state["phase"] == "queued":
-            return {
-                "queued_submission_id": state["queued_submission_id"],
-                "status": "already_queued",
-            }
+            return QueueConfirmation(
+                state["queued_submission_id"], already_confirmed=True
+            )
         if state.get("pending_assessment") is not None:
             raise RuntimeError("New native input must be assessed before queueing")
         if state["phase"] == "rejected":
@@ -53,37 +53,12 @@ def enqueue(
             if selected_profile != (state["target_model"], state["target_effort"]):
                 raise ValueError("Target profile was not applied to the next turn")
             content = app.handoff_input(thread_id, state)
-            queued_input = content
-            state["queued_client_message_id"] = turn_id
-            state.pop("prompt")
-            state["source_input_digest"] = codec.input_digest(content)
-            state["queued_input_digest"] = codec.input_digest(queued_input)
-            state["queued_prompt_digest"] = codec.prompt_digest(
-                codec.input_text(queued_input)
-            )
-            state["queued_hook_prompt_digest"] = codec.prompt_digest(
-                codec.hook_prompt(queued_input)
-            )
-            transitions.begin_queue(slot, state)
+            handoff_lifecycle.begin_queue(slot, state, turn_id, content)
             try:
-                submission = app.enqueue(thread_id, turn_id, queued_input)
+                submission = app.enqueue(thread_id, turn_id, content)
             except queue_rejection:
-                transitions.reject(slot, state)
+                handoff_lifecycle.reject(slot, state)
                 raise
-            transitions.receipt(slot, state, submission.submission_id)
-            if (
-                not isinstance(submission.accepted_input, list)
-                or not submission.accepted_input
-                or (
-                    not all(
-                        (isinstance(item, dict) for item in submission.accepted_input)
-                    )
-                )
-            ):
-                raise ValueError("Native queue receipt input is unavailable")
-            state["queued_input_digest"] = codec.input_digest(submission.accepted_input)
-        transitions.confirm_queue(slot, state, clock())
-        return {
-            "queued_submission_id": state["queued_submission_id"],
-            "status": "queued",
-        }
+            handoff_lifecycle.receipt(slot, state, submission)
+        handoff_lifecycle.confirm_queue(slot, state, clock())
+        return QueueConfirmation(state["queued_submission_id"])

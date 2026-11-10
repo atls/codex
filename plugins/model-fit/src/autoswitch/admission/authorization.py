@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from model_fit.autoswitch.lifecycle import handoff as handoff_lifecycle
+
+
 from model_fit.autoswitch.state.types.record import HandoffStateRecord
 
 from model_fit.autoswitch.admission.types.result import (
@@ -10,7 +13,6 @@ from model_fit.autoswitch.admission.types.result import (
 
 from model_fit.native_input.types.json import JsonValue
 
-from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.types.audit import AuditWriter
 from model_fit.autoswitch.state.types.storage import TransferStateStore
 from model_fit.autoswitch.admission.types.input import ToolAdmissionInput
@@ -34,7 +36,7 @@ def authorize_transfer(
             turn_id=event.turn_id,
         ) as slot:
             if slot.load() == state:
-                transitions.authorize_transfer(slot, state, clock())
+                handoff_lifecycle.authorize_transfer(slot, state, clock())
                 if bound is not None:
                     audit(
                         event.thread_id,

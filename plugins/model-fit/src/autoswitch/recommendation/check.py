@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from model_fit.autoswitch.lifecycle import submission as submission_lifecycle
+
 
 from model_fit.assessment.validation import validated_active_profile
 from model_fit.assessment.types.profile import ActiveProfile
 from model_fit.assessment.types.request import ProfileAssessmentInput
 from model_fit.assessment.types.decision import AssessmentDecision
 from model_fit.autoswitch.recommendation.validation import require_recommendation
-from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.recommendation.types.record import (
     RecommendationRecord,
 )
@@ -109,7 +110,7 @@ def retain_manual_recommendation(
         operation="prompt_submit",
         turn_id=event.turn_id,
     ) as slot:
-        transitions.require_submission(slot, expected_submission)
+        submission_lifecycle.require_submission(slot, expected_submission)
         current = slot.load()
         submitted = (
             current is not None

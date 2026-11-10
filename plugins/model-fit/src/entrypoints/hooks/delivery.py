@@ -1,4 +1,4 @@
-from model_fit.autoswitch.state.transitions import preparation_is_current
+from model_fit.autoswitch.lifecycle.handoff import preparation_is_current
 from model_fit.autoswitch.state.types.storage import TransferStateStore
 from model_fit.autoswitch.types.audit import AuditWriter
 from model_fit.autoswitch.types.disposition import PreparedTransfer, TurnDisposition

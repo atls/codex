@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from model_fit.autoswitch.lifecycle import profile_choice as profile_choice_lifecycle
+from model_fit.autoswitch.lifecycle import submission as submission_lifecycle
+
+
 from collections.abc import Callable
 
-from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.state.types.record import PendingAssessmentRecord
 from model_fit.autoswitch.exceptions.unavailable import SubmissionUnavailable
 from model_fit.submission.types.evaluation import AssessmentRunner
@@ -22,7 +25,7 @@ from model_fit.autoswitch.recommendation.types.storage import (
 )
 from model_fit.autoswitch.state.types.storage import TransferStateStore
 from model_fit.autoswitch.handoff.types.clock import Clock
-from model_fit.submission.assess import assess_submitted
+from model_fit.autoswitch.scenarios.assess import assess
 
 
 def reassess(
@@ -35,8 +38,6 @@ def reassess(
     recommendations: RecommendationStore,
     caller_thread: str | None,
     clock: Clock,
-    context_failure: type[Exception],
-    context_reason: Callable[[Exception, str], str | None],
     conversation: NativeConversationFactory,
     read_context: AssessmentContextReader,
     store: TransferStateStore,
@@ -114,20 +115,20 @@ def reassess(
     ) as slot:
         if slot.load() != snapshot:
             raise SubmissionUnavailable(thread_id, "reassessment_turn_changed")
-        pending = transitions.register_submission(
+        pending = submission_lifecycle.register_submission(
             slot, event, codec.prompt_digest(source)
         )
         if snapshot["phase"] == "queued":
-            transitions.consume_submission(slot, turn_id, pending)
+            submission_lifecycle.consume_submission(slot, turn_id, pending)
             if (model, effort) != (snapshot["target_model"], snapshot["target_effort"]):
-                transitions.admit(
+                profile_choice_lifecycle.admit(
                     slot,
                     turn_id,
                     "native_override",
                     turn_id,
                     native_profile=request["active_profile"],
                 )
-    return assess_submitted(
+    return assess(
         decode,
         assessor=assessor,
         assessment_failure=assessment_failure,
@@ -135,8 +136,6 @@ def reassess(
         recommendations=recommendations,
         caller_thread=caller_thread,
         clock=clock,
-        context_failure=context_failure,
-        context_reason=context_reason,
         conversation=conversation,
         read_context=lambda _: request,
         store=store,

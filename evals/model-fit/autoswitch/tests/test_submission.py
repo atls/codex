@@ -9,6 +9,7 @@ import threading
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+from assessment_fixture import evaluate_request
 
 import model_fit.entrypoints.hooks.operations as api
 from model_fit.autoswitch.exceptions.unavailable import SubmissionUnavailable
@@ -1552,7 +1553,7 @@ class SubmittedInputTests(unittest.TestCase):
         self.stage_and_queue()
         path = state_path("submitted-thread")
         saved = path.read_bytes()
-        output = api.prepare_handoff(
+        output = evaluate_request(
             {**self.event, "turn_id": "another-source"},
             context_reader=lambda _: self.fail(
                 "Native replay identity was guessed from text"

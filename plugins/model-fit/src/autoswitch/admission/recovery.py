@@ -1,9 +1,9 @@
+from model_fit.autoswitch.lifecycle import profile_choice as profile_choice_lifecycle
 from collections.abc import Callable
 from model_fit.autoswitch.admission.types.input import ToolAdmissionInput
 from model_fit.autoswitch.handoff.types.conversation import NativeConversationFactory
 from model_fit.autoswitch.recommendation.types.storage import RecommendationStore
 from model_fit.autoswitch.recommendation.check import load_blocking_recommendation
-from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.state.types.record import HandoffStateRecord
 from model_fit.autoswitch.state.types.storage import TransferStateStore
 from model_fit.autoswitch.types.audit import AuditWriter
@@ -45,7 +45,7 @@ def recover_unsubmitted_successor(
                     )
                     is None
                 ):
-                    transitions.admit(
+                    profile_choice_lifecycle.admit(
                         slot,
                         turn_id,
                         "unknown",

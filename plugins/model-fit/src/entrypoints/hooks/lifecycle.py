@@ -24,9 +24,9 @@ from model_fit.entrypoints.hooks.operations import (
     guard_replay_answer,
     guard_tool,
     reassess,
+    submit_prompt,
 )
 from model_fit.entrypoints.hooks.operations import enqueue_handoff as enqueue
-from model_fit.entrypoints.hooks.operations import submit_prompt as prepare
 from model_fit.entrypoints.hooks.response import deny_tool
 from model_fit.infrastructure.adapters.codex.identity import executor_thread_id
 from model_fit.infrastructure.adapters.filesystem.audit import (
@@ -184,7 +184,7 @@ def handle_lifecycle(
                 print(json.dumps(output, ensure_ascii=False))
             return 0
         if event_name == "UserPromptSubmit":
-            output = prepare(event)
+            output = submit_prompt(event)
         elif event_name == "PreToolUse":
             output = guard_tool(event)
         elif event_name == "Stop":

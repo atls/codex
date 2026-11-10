@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from model_fit.autoswitch.lifecycle import handoff as handoff_lifecycle
+from model_fit.autoswitch.lifecycle.types.plan import ManualHandoff, TransferTarget
+from model_fit.autoswitch.lifecycle import profile_choice as profile_choice_lifecycle
+from model_fit.autoswitch.lifecycle import submission as submission_lifecycle
+
 
 from model_fit.assessment.types.decision import AssessmentDecision
 from model_fit.assessment.types.request import ProfileAssessmentInput
 from model_fit.assessment.validation import RECOMMENDATIONS
-from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.state.types.preparation import TransferPreparation
 from model_fit.autoswitch.denial import block_prompt
 from model_fit.autoswitch.types.audit import AuditWriter
@@ -39,7 +43,7 @@ from model_fit.autoswitch.recommendation.check import (
 from model_fit.autoswitch.handoff.types.clock import Clock
 
 
-def apply_assessment(
+def complete_assessment(
     event: SubmissionInput,
     request: ProfileAssessmentInput,
     result: AssessmentDecision,
@@ -61,7 +65,7 @@ def apply_assessment(
         with store.transaction(
             thread_id, operation="prompt_submit", turn_id=turn_id
         ) as slot:
-            transitions.require_submission(slot, expected_submission)
+            submission_lifecycle.require_submission(slot, expected_submission)
             current_handoff = slot.load()
             if current_handoff != handoff_snapshot:
                 return block_prompt(
@@ -79,7 +83,9 @@ def apply_assessment(
                 raise RuntimeError("Blocking recommendation changed during triage")
             if current_manual is not None:
                 recommendations.clear(thread_id)
-            transitions.admit(slot, turn_id, "unknown", profile_context_turn_id)
+            profile_choice_lifecycle.admit(
+                slot, turn_id, "unknown", profile_context_turn_id
+            )
         if pending is not None:
             audit(
                 thread_id,
@@ -96,7 +102,7 @@ def apply_assessment(
         with store.transaction(
             thread_id, operation="prompt_submit", turn_id=turn_id
         ) as slot:
-            transitions.require_submission(slot, expected_submission)
+            submission_lifecycle.require_submission(slot, expected_submission)
             current_handoff = slot.load()
             if current_handoff != handoff_snapshot:
                 return block_prompt(
@@ -117,7 +123,7 @@ def apply_assessment(
                     event,
                     recommendations=recommendations,
                 )
-                if blocked is not None and result["decision"] == "keep":
+                if blocked is not None:
                     if not prompt.strip() or current_manual[
                         "prompt_hash"
                     ] == codec.prompt_digest(""):
@@ -128,9 +134,9 @@ def apply_assessment(
                         == request["active_profile"]
                     ):
                         recommendations.clear(thread_id)
-            if pending is not None and result["decision"] == "keep":
+            if pending is not None:
                 profile_context_turn_id = turn_id
-            transitions.admit(
+            profile_choice_lifecycle.admit(
                 slot, turn_id, result["decision"], profile_context_turn_id
             )
         if pending is not None:
@@ -144,49 +150,28 @@ def apply_assessment(
                     "state_phase": "passed",
                 },
             )
-            output = (
-                None if result["decision"] == "keep" else assessment_disposition(result)
-            )
-            output = ContinueWork(WorkContext.TRANSFER_CANCELLED, output)
-            return output
-        return None if result["decision"] == "keep" else assessment_disposition(result)
+            return ContinueWork(WorkContext.TRANSFER_CANCELLED)
+        return None
     if result["decision"] not in RECOMMENDATIONS:
         raise ValueError("Unsupported triage decision")
-    manual = assessment_disposition(result)
-    if not isinstance(manual, ManualRecommendation):
-        raise ValueError("Recommendation evidence is unavailable")
-    if event.session_id is not None and event.session_id != thread_id:
-        manual.explanation += " Automatic child-agent handoff is not performed; pass the recommendation to the parent agent to choose the profile when allocating the work."
-        audit(
-            thread_id,
-            turn_id,
-            "auto_fallback",
-            {
-                "hook_event": "assessment",
-                "reason_code": "child_profile_allocation_required",
-            },
-        )
-        return retain_manual_recommendation(
-            event,
-            request,
-            result,
-            manual,
-            expected_submission=expected_submission,
-            recommendations=recommendations,
-            store=store,
-        )
-    target_model = result.get("recommended_model") or result["active_model"]
-    target_effort = result.get("recommended_effort") or result["active_effort"]
-    if result.get("recommended_speed") not in (
-        None,
-        request["active_profile"]["speed"],
-    ):
-        manual.explanation += f" Automatic speed-tier handoff is unavailable; requested value: {result['recommended_speed']}."
-        if profile_context_state is not None:
+    child_agent = event.session_id is not None and event.session_id != thread_id
+    plan = handoff_lifecycle.plan_transfer(
+        result, request["active_profile"], child_agent=child_agent
+    )
+    if isinstance(plan, TransferTarget):
+        try:
+            with conversation(event.working_directory) as app:
+                app.queued_ids(thread_id)
+        except (OSError, ValueError, RuntimeError, TimeoutError):
+            plan = ManualHandoff(
+                "queue_preflight_unavailable", " The automatic queue is unavailable."
+            )
+    if isinstance(plan, ManualHandoff):
+        if plan.retain_profile_context and profile_context_state is not None:
             with store.transaction(
                 thread_id, operation="prompt_submit", turn_id=turn_id
             ) as slot:
-                transitions.require_submission(slot, expected_submission)
+                submission_lifecycle.require_submission(slot, expected_submission)
                 if slot.load() != profile_context_state:
                     return block_prompt(
                         thread_id,
@@ -196,7 +181,7 @@ def apply_assessment(
                         "passed",
                         audit=audit,
                     )
-                transitions.admit(
+                profile_choice_lifecycle.admit(
                     slot, turn_id, profile_context_turn_id=profile_context_turn_id
                 )
         audit(
@@ -204,98 +189,20 @@ def apply_assessment(
             turn_id,
             "auto_fallback",
             {
-                "hook_event": "UserPromptSubmit",
-                "reason_code": "speed_switch_unsupported",
+                "hook_event": "assessment" if child_agent else "UserPromptSubmit",
+                "reason_code": plan.reason_code,
             },
         )
         return retain_manual_recommendation(
             event,
             request,
             result,
-            manual,
+            ManualRecommendation(result, plan.explanation),
             expected_submission=expected_submission,
             recommendations=recommendations,
             store=store,
         )
-    if (target_model, target_effort) == (
-        result["active_model"],
-        result["active_effort"],
-    ):
-        if profile_context_state is not None:
-            with store.transaction(
-                thread_id, operation="prompt_submit", turn_id=turn_id
-            ) as slot:
-                transitions.require_submission(slot, expected_submission)
-                if slot.load() != profile_context_state:
-                    return block_prompt(
-                        thread_id,
-                        turn_id,
-                        "profile_choice_changed_during_triage",
-                        "Model Fit: the retained profile choice changed during assessment.",
-                        "passed",
-                        audit=audit,
-                    )
-                transitions.admit(
-                    slot, turn_id, profile_context_turn_id=profile_context_turn_id
-                )
-        audit(
-            thread_id,
-            turn_id,
-            "auto_fallback",
-            {
-                "hook_event": "UserPromptSubmit",
-                "reason_code": "no_model_or_effort_change",
-            },
-        )
-        return retain_manual_recommendation(
-            event,
-            request,
-            result,
-            manual,
-            expected_submission=expected_submission,
-            recommendations=recommendations,
-            store=store,
-        )
-    try:
-        with conversation(event.working_directory) as app:
-            app.queued_ids(thread_id)
-    except (OSError, ValueError, RuntimeError, TimeoutError):
-        manual.explanation += " The automatic queue is unavailable."
-        if profile_context_state is not None:
-            with store.transaction(
-                thread_id, operation="prompt_submit", turn_id=turn_id
-            ) as slot:
-                transitions.require_submission(slot, expected_submission)
-                if slot.load() != profile_context_state:
-                    return block_prompt(
-                        thread_id,
-                        turn_id,
-                        "profile_choice_changed_during_triage",
-                        "Model Fit: the retained profile choice changed during assessment.",
-                        "passed",
-                        audit=audit,
-                    )
-                transitions.admit(
-                    slot, turn_id, profile_context_turn_id=profile_context_turn_id
-                )
-        audit(
-            thread_id,
-            turn_id,
-            "auto_fallback",
-            {
-                "hook_event": "UserPromptSubmit",
-                "reason_code": "queue_preflight_unavailable",
-            },
-        )
-        return retain_manual_recommendation(
-            event,
-            request,
-            result,
-            manual,
-            expected_submission=expected_submission,
-            recommendations=recommendations,
-            store=store,
-        )
+    target_model, target_effort = plan.model, plan.effort
     state: TransferPreparation = {
         "created_at": int(clock()),
         "source_turn_id": turn_id,
@@ -310,7 +217,7 @@ def apply_assessment(
     with store.transaction(
         thread_id, operation="prompt_submit", turn_id=turn_id
     ) as slot:
-        transitions.require_submission(slot, expected_submission)
+        submission_lifecycle.require_submission(slot, expected_submission)
         current_handoff = slot.load()
         if current_handoff != handoff_snapshot:
             return block_prompt(
@@ -335,5 +242,5 @@ def apply_assessment(
             ):
                 state["continuation_turn_ids"].append(turn_id)
             audit(thread_id, turn_id, "auto_handoff_continued")
-        prepared_state = transitions.stage(slot, state)
+        prepared_state = handoff_lifecycle.stage(slot, state)
     return PreparedTransfer(thread_id, turn_id, prepared_state)

@@ -10,9 +10,8 @@ import time
 from model_fit.entrypoints.hooks.delivery import deliver_disposition
 
 import model_fit.infrastructure.adapters.codex.answer as answer_relevance
-from model_fit.answer.check import guard_replay_answer as run_guard_replay_answer
-from model_fit.autoswitch.handoff.enqueue import enqueue as run_enqueue
-from model_fit.autoswitch.handoff.prepare import prepare as run_prepare
+from model_fit.autoswitch.scenarios.finish import finish as run_guard_replay_answer
+from model_fit.autoswitch.scenarios.enqueue import enqueue as run_enqueue
 from model_fit.autoswitch.admission.scenario import guard_tool as run_guard_tool
 from model_fit.autoswitch.admission.guards.continuation import (
     can_continue_admitted_tool as continue_tool,
@@ -29,12 +28,12 @@ from model_fit.entrypoints.hooks.presentation import (
     HookPresentation,
 )
 from model_fit.infrastructure.adapters.codex.assessment import triage
+from model_fit.infrastructure.adapters.codex.context import assessment_context
 from model_fit.infrastructure.adapters.codex.conversation import ConversationGateway
 from model_fit.infrastructure.adapters.codex.transport.reader import AppServerReader
 from model_fit.infrastructure.adapters.codex.history import (
     queued_ids,
     session_input,
-    unavailable_session_input,
 )
 from model_fit.infrastructure.adapters.codex.transport.rpc_error import (
     AppServerRPCError,
@@ -44,9 +43,9 @@ from model_fit.infrastructure.adapters.filesystem.recommendations import (
     FileRecommendations,
 )
 from model_fit.infrastructure.adapters.filesystem.store import FileStore
-from model_fit.submission.accept import submit as run_submit
-from model_fit.submission.assess import assess_submitted as run_assess_submitted
-from model_fit.submission.reassess import reassess as run_reassess
+from model_fit.autoswitch.scenarios.accept import accept as run_submit
+from model_fit.autoswitch.scenarios.assess import assess as run_assess_submitted
+from model_fit.autoswitch.scenarios.reassess import reassess as run_reassess
 
 
 def native_conversation(
@@ -65,35 +64,13 @@ def native_conversation(
     return open_conversation
 
 
-def prepare_handoff(
-    event: dict[str, JsonValue],
-    *,
-    context_reader: Callable[[object], ProfileAssessmentInput] | None = None,
-    assessor: AssessmentRunner | None = None,
-    native_factory: Callable[[str], AppServerReader] | None = None,
-) -> dict[str, JsonValue] | None:
-    result = run_prepare(
-        prompt_input(event),
-        assessor=assessor or triage,
-        audit=record_audit,
-        recommendations=FileRecommendations(),
-        clock=time.time,
-        context_failure=AppServerRPCError,
-        context_reason=unavailable_session_input,
-        conversation=native_conversation(native_factory),
-        read_context=lambda request: (context_reader or session_input)(request.source),
-        store=FileStore(),
-    )
-    return deliver_disposition(result, store=FileStore(), audit=record_audit)
-
-
 def enqueue_handoff(
     thread_id: str,
     turn_id: str,
     *,
     native_factory: Callable[[str], AppServerReader] | None = None,
 ) -> dict[str, str]:
-    return run_enqueue(
+    result = run_enqueue(
         thread_id,
         turn_id,
         caller_thread=os.environ.get("CODEX_THREAD_ID"),
@@ -103,6 +80,10 @@ def enqueue_handoff(
         store=FileStore(),
         working_directory=os.getcwd,
     )
+    return {
+        "queued_submission_id": result.submission_id,
+        "status": "already_queued" if result.already_confirmed else "queued",
+    }
 
 
 def guard_tool(event: dict[str, JsonValue]) -> dict[str, JsonValue] | None:
@@ -153,10 +134,10 @@ def submit_prompt(
         audit=record_audit,
         recommendations=FileRecommendations(),
         clock=time.time,
-        context_failure=AppServerRPCError,
-        context_reason=unavailable_session_input,
         conversation=native_conversation(native_factory),
-        read_context=lambda request: (context_reader or session_input)(request.source),
+        read_context=lambda request: assessment_context(
+            request.source, reader=context_reader or session_input
+        ),
         store=FileStore(),
     )
     return deliver_disposition(result, store=FileStore(), audit=record_audit)
@@ -184,10 +165,10 @@ def assess_submitted(
         recommendations=FileRecommendations(),
         caller_thread=os.environ.get("CODEX_THREAD_ID"),
         clock=time.time,
-        context_failure=AppServerRPCError,
-        context_reason=unavailable_session_input,
         conversation=native_conversation(native_factory),
-        read_context=lambda request: (context_reader or session_input)(request.source),
+        read_context=lambda request: assessment_context(
+            request.source, reader=context_reader or session_input
+        ),
         store=FileStore(),
     )
     output = deliver_disposition(result, store=FileStore(), audit=record_audit)
@@ -219,10 +200,10 @@ def reassess(
         recommendations=FileRecommendations(),
         caller_thread=os.environ.get("CODEX_THREAD_ID"),
         clock=time.time,
-        context_failure=AppServerRPCError,
-        context_reason=unavailable_session_input,
         conversation=native_conversation(native_factory),
-        read_context=lambda request: (context_reader or session_input)(request.source),
+        read_context=lambda request: assessment_context(
+            request.source, reader=context_reader or session_input
+        ),
         store=FileStore(),
         working_directory=os.getcwd,
     )

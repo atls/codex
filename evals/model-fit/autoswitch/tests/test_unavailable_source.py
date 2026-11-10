@@ -1,3 +1,5 @@
+from assessment_fixture import evaluate_request
+
 """Unavailable native history and protected handoff behavior with simulated API failures."""
 
 import io
@@ -407,7 +409,7 @@ class UnavailableSourceTests(unittest.TestCase):
                 side_effect=RuntimeError("queue unavailable"),
             ),
         ):
-            result = HANDOFF_PREPARATION.prepare_handoff(event)
+            result = evaluate_request(event)
         self.assertEqual(result["decision"], "block")
         self.assertIsNone(HANDOFF_STATE.read_state(HANDOFF_STATE.state_path("thread")))
         self.assertIsNotNone(
@@ -474,7 +476,7 @@ class UnavailableSourceTests(unittest.TestCase):
             ),
         ):
             self.assertIsNone(
-                HANDOFF_PREPARATION.prepare_handoff(
+                evaluate_request(
                     dict(self.event, turn_id="selected", model="gpt-6.1-sol")
                 )
             )
@@ -519,11 +521,7 @@ class UnavailableSourceTests(unittest.TestCase):
                 HANDOFF_PREPARATION, "triage", return_value={"decision": "keep"}
             ),
         ):
-            self.assertIsNone(
-                HANDOFF_PREPARATION.prepare_handoff(
-                    dict(self.event, turn_id="selected")
-                )
-            )
+            self.assertIsNone(evaluate_request(dict(self.event, turn_id="selected")))
         self.assertFalse(RECOMMENDATION_STORE.pending_path("thread").exists())
 
     def test_fresh_unknown_releases_applicable_manual_recommendation(self):
@@ -534,9 +532,7 @@ class UnavailableSourceTests(unittest.TestCase):
                 HANDOFF_PREPARATION, "triage", return_value={"decision": "unknown"}
             ),
         ):
-            output = HANDOFF_PREPARATION.prepare_handoff(
-                dict(self.event, turn_id="second")
-            )
+            output = evaluate_request(dict(self.event, turn_id="second"))
         self.assertNotEqual(output.get("decision"), "block")
         self.assertFalse(RECOMMENDATION_STORE.pending_path("thread").exists())
         self.assertEqual(
@@ -554,9 +550,7 @@ class UnavailableSourceTests(unittest.TestCase):
                 HANDOFF_PREPARATION, "triage", return_value={"decision": "keep"}
             ),
         ):
-            self.assertIsNone(
-                HANDOFF_PREPARATION.prepare_handoff(dict(self.event, turn_id="second"))
-            )
+            self.assertIsNone(evaluate_request(dict(self.event, turn_id="second")))
         self.assertFalse(RECOMMENDATION_STORE.pending_path("thread").exists())
         self.assertIn(
             "systemMessage",
@@ -577,7 +571,7 @@ class UnavailableSourceTests(unittest.TestCase):
             ),
         ):
             self.assertIsNone(
-                HANDOFF_PREPARATION.prepare_handoff(
+                evaluate_request(
                     dict(self.event, turn_id="second", prompt="different work")
                 )
             )
@@ -691,7 +685,7 @@ class UnavailableSourceTests(unittest.TestCase):
                             ),
                             patch.object(HANDOFF_PREPARATION, "AppServerReader"),
                         ):
-                            result = HANDOFF_PREPARATION.prepare_handoff(self.event)
+                            result = evaluate_request(self.event)
                         self.assertEqual(result["decision"], "block")
                         self.assertEqual(
                             HANDOFF_STATE.read_state(

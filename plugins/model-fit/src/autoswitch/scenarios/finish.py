@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from model_fit.autoswitch.lifecycle import profile_choice as profile_choice_lifecycle
+
+
 from contextlib import AbstractContextManager
 from typing import Callable
 
 from model_fit.autoswitch.types.audit import AuditWriter
 from model_fit.answer.limits import MAX_REPLAY_EVAL_CHARS
-from model_fit.autoswitch.state import transitions
 from model_fit.answer.types.input import ReplayAnswerInput
 from model_fit.autoswitch.handoff.types.conversation import NativeConversation
 from model_fit.native_input import codec
@@ -18,7 +20,7 @@ from model_fit.autoswitch.types.disposition import (
 from model_fit.autoswitch.state.types.storage import TransferStateStore
 
 
-def guard_replay_answer(
+def finish(
     event: ReplayAnswerInput,
     *,
     audit: AuditWriter,
@@ -51,7 +53,7 @@ def guard_replay_answer(
             and state["phase"] == "ready"
             and (turn_id in {state["source_turn_id"], state.get("control_turn_id")})
         ):
-            transitions.admit(slot, turn_id)
+            profile_choice_lifecycle.admit(slot, turn_id)
             audit(
                 thread_id,
                 turn_id,
