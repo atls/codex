@@ -463,7 +463,7 @@ class DesktopHookTests(unittest.TestCase):
                 )
 
     def test_cached_proposal_cannot_bypass_changed_context_or_input(self):
-        from model_fit.assessment.validation import empty_decision
+        from model_fit.application.assessment.helpers.decision import empty_decision
 
         request = {
             "task": "Explain this result.",

@@ -1,9 +1,12 @@
 import unittest
 
-from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPT, CONTROL_PROMPTS
-from model_fit.autoswitch.admission.types.input import ToolAdmissionInput
+from model_fit.application.switch.handoff.control_message import (
+    CONTROL_PROMPT,
+    CONTROL_PROMPTS,
+)
+from model_fit.application.switch.admission.types.input import ToolAdmissionInput
 from model_fit.infrastructure.adapters.hooks.tools import NativeTransferTools
-from model_fit.submission.context import recent_context
+from model_fit.application.assessment.helpers.context import recent_context
 
 
 class ControlMessageCompatibilityTests(unittest.TestCase):

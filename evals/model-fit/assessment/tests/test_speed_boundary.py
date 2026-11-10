@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import model_fit.entrypoints.cli.assess as cli
 import model_fit.infrastructure.adapters.codex.assessment as client
-from model_fit.assessment.validation import validate
+from model_fit.application.assessment.constraints.decision import validate
 from model_fit.infrastructure.adapters.codex.transport.assessment import execution
 
 

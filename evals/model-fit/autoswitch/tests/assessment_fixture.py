@@ -5,7 +5,7 @@ import time
 from model_fit.entrypoints.hooks import operations as api
 from model_fit.entrypoints.hooks.input import prompt_input
 from model_fit.entrypoints.hooks.delivery import deliver_disposition
-from model_fit.autoswitch.scenarios.evaluate import evaluate
+from model_fit.application.switch.scenarios.evaluate import evaluate
 from model_fit.infrastructure.adapters.filesystem.audit import record_audit
 from model_fit.infrastructure.adapters.filesystem.recommendations import (
     FileRecommendations,

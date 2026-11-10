@@ -67,7 +67,7 @@ def full_package() -> tuple[dict, dict[str, bytes]]:
     files["LICENSE"] = (ROOT / "LICENSE").read_bytes()
     if (
         "skills/model-fit/SKILL.md" not in files
-        or "src/assessment/assess.py" not in files
+        or "src/model_fit/application/assessment/lifecycle.py" not in files
         or "assets/icon.png" not in files
     ):
         raise ValueError("Full Model Fit package is incomplete")
@@ -79,17 +79,17 @@ def guidance_package() -> tuple[dict, dict[str, bytes]]:
     identity = manifest(package)
     full = source_files(PLUGINS / "model-fit")
     shared = (
-        "src/py.typed",
-        "src/native_input/",
-        "src/assessment/",
-        "src/entrypoints/cli/assess.py",
-        "src/infrastructure/adapters/codex/assessment.py",
-        "src/infrastructure/adapters/codex/catalog.py",
-        "src/infrastructure/adapters/codex/sources.py",
-        "src/infrastructure/adapters/codex/authentication.py",
-        "src/infrastructure/adapters/codex/transport/assessment/",
-        "src/infrastructure/adapters/codex/transport/connection.py",
-        "src/infrastructure/adapters/codex/transport/rpc_error.py",
+        "src/model_fit/py.typed",
+        "src/model_fit/application/submission/",
+        "src/model_fit/application/assessment/",
+        "src/model_fit/entrypoints/cli/assess.py",
+        "src/model_fit/infrastructure/adapters/codex/assessment.py",
+        "src/model_fit/infrastructure/adapters/codex/catalog.py",
+        "src/model_fit/infrastructure/adapters/codex/sources.py",
+        "src/model_fit/infrastructure/adapters/codex/authentication.py",
+        "src/model_fit/infrastructure/adapters/codex/transport/assessment/",
+        "src/model_fit/infrastructure/adapters/codex/transport/connection.py",
+        "src/model_fit/infrastructure/adapters/codex/transport/rpc_error.py",
     )
     files = {name: data for name, data in full.items() if name.startswith(shared)}
     for name, data in full.items():
@@ -108,20 +108,10 @@ def guidance_package() -> tuple[dict, dict[str, bytes]]:
         "skills/model-fit/agents/openai.yaml"
     ]
     files["assets/icon.png"] = full["assets/icon.png"]
-    packages = sorted(
-        "model_fit"
-        + ("." + name[4:-12].replace("/", ".") if name != "src/__init__.py" else "")
-        for name in files
-        if name.startswith("src/") and name.endswith("/__init__.py")
-    )
-    config = full["pyproject.toml"].decode()
-    import re
-
-    config = re.sub(r"packages = \[.*?\]", "packages = " + json.dumps(packages), config)
-    files["pyproject.toml"] = config.encode()
+    files["pyproject.toml"] = full["pyproject.toml"]
     files["uv.lock"] = full["uv.lock"]
     if any(
-        name.startswith("hooks/") or name.startswith("src/entrypoints/hooks/")
+        name.startswith("hooks/") or name.startswith("src/model_fit/entrypoints/hooks/")
         for name in files
     ):
         raise ValueError("CLI package contains automatic integration")

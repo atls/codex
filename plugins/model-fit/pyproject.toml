@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=69"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"
 
 [project]
 name = "codex-model-fit"
@@ -12,11 +12,5 @@ dependencies = ["pydantic>=2.12,<3", "typing-extensions>=4.14,<5"]
 [project.scripts]
 model-fit = "model_fit.entrypoints.cli.assess:main"
 
-[tool.setuptools]
-packages = ["model_fit", "model_fit.native_input", "model_fit.native_input.types", "model_fit.answer", "model_fit.answer.types", "model_fit.assessment", "model_fit.assessment.exceptions", "model_fit.assessment.types", "model_fit.autoswitch", "model_fit.autoswitch.scenarios", "model_fit.autoswitch.recovery", "model_fit.autoswitch.lifecycle", "model_fit.autoswitch.lifecycle.types", "model_fit.autoswitch.admission", "model_fit.autoswitch.admission.guards", "model_fit.autoswitch.admission.types", "model_fit.autoswitch.exceptions", "model_fit.autoswitch.handoff", "model_fit.autoswitch.handoff.types", "model_fit.autoswitch.recommendation", "model_fit.autoswitch.recommendation.types", "model_fit.autoswitch.state", "model_fit.autoswitch.state.types", "model_fit.autoswitch.types", "model_fit.entrypoints", "model_fit.entrypoints.cli", "model_fit.entrypoints.hooks", "model_fit.entrypoints.hooks.types", "model_fit.infrastructure", "model_fit.infrastructure.adapters", "model_fit.infrastructure.adapters.codex", "model_fit.infrastructure.adapters.codex.transport", "model_fit.infrastructure.adapters.codex.transport.assessment", "model_fit.infrastructure.adapters.codex.transport.assessment.types", "model_fit.infrastructure.adapters.filesystem", "model_fit.infrastructure.adapters.hooks", "model_fit.submission", "model_fit.submission.types"]
-package-dir = { model_fit = "src" }
-
-[tool.setuptools.package-data]
-"model_fit" = ["py.typed"]
-"model_fit.assessment" = ["*.json"]
-"model_fit.answer" = ["*.json"]
+[tool.uv.build-backend]
+module-name = "model_fit"

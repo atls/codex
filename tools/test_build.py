@@ -24,15 +24,14 @@ class DistributionTests(unittest.TestCase):
                 self.assertEqual(content, full[name], name)
         self.assertIn("hooks/hooks.json", full)
         self.assertNotIn("hooks/hooks.json", cli)
-        self.assertIn("src/assessment/assess.py", cli)
+        self.assertIn("src/model_fit/application/assessment/lifecycle.py", cli)
         self.assertFalse(
             any(
                 name.startswith(
                     (
-                        "src/submission/",
-                        "src/autoswitch/",
-                        "src/answer/",
-                        "src/entrypoints/hooks/",
+                        "src/model_fit/application/switch/",
+                        "src/model_fit/application/answer/",
+                        "src/model_fit/entrypoints/hooks/",
                     )
                 )
                 for name in cli

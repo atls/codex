@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 class ApplicationBoundaryTests(unittest.TestCase):
     def test_assessment_runs_with_ports_without_loading_external_adapters(self):
-        program = '\nimport sys\nfrom model_fit.assessment.assess import assess\nfrom model_fit.assessment.validation import empty_decision\nprofile = {"model":"fixture", "effort":"low", "speed":None}\nrequest = {"task":"bounded work", "active_profile":profile}\nclass FixtureCatalog:\n    def supported(self, profile):\n        return True\nmodels = FixtureCatalog()\nresult = assess(request, "fixture", "low", 1, source_reader=lambda:("source",models), evaluator=lambda *args:{**empty_decision(profile,"keep","suitable"), "work_relation":"execution"})\nassert result["decision"] == "keep"\nassert not any(name.startswith(("model_fit.infrastructure", "model_fit.entrypoints")) for name in sys.modules)\n'
+        program = '\nimport sys\nfrom model_fit.application.assessment.lifecycle import assess\nfrom model_fit.application.assessment.helpers.decision import empty_decision\nprofile = {"model":"fixture", "effort":"low", "speed":None}\nrequest = {"task":"bounded work", "active_profile":profile}\nclass FixtureCatalog:\n    def supported(self, profile):\n        return True\nmodels = FixtureCatalog()\nresult = assess(request, "fixture", "low", 1, source_reader=lambda:("source",models), evaluator=lambda *args:{**empty_decision(profile,"keep","suitable"), "work_relation":"execution"})\nassert result["decision"] == "keep"\nassert not any(name.startswith(("model_fit.infrastructure", "model_fit.entrypoints")) for name in sys.modules)\n'
         result = subprocess.run(
             [sys.executable, "-I", "-c", program],
             capture_output=True,

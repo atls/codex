@@ -14,12 +14,15 @@ import model_fit.infrastructure.adapters.codex.sources as SOURCES
 
 ROOT = Path(__file__).resolve().parents[4]
 HERE = ROOT / "evals/model-fit"
-MODULE_PATH = ROOT / "plugins/model-fit/src/triage.py"
+MODULE_PATH = ROOT / "plugins/model-fit/src/model_fit/triage.py"
 import model_fit.entrypoints.cli.assess as TRIAGE
 import model_fit.entrypoints.cli.assess as CLI
 import model_fit.infrastructure.adapters.codex.assessment as ASSESSMENT_CLIENT
-from model_fit.assessment.exceptions.source_unavailable import SourceUnavailable
-from model_fit.assessment.validation import empty_decision, validate
+from model_fit.application.assessment.exceptions.source_unavailable import (
+    SourceUnavailable,
+)
+from model_fit.application.assessment.helpers.decision import empty_decision
+from model_fit.application.assessment.constraints.decision import validate
 from model_fit.infrastructure.adapters.codex.catalog import NativeCatalog
 
 
@@ -284,7 +287,10 @@ class TriageContractTest(unittest.TestCase):
         self.assertEqual(code, 1)
         result = json.loads(visible.getvalue())
         schema = json.loads(
-            (ROOT / "plugins/model-fit/src/assessment/decision.schema.json").read_text()
+            (
+                ROOT
+                / "plugins/model-fit/src/model_fit/application/assessment/decision.schema.json"
+            ).read_text()
         )
         self.assertEqual(set(result), set(schema["required"]))
         self.assertEqual(result["decision"], "unknown")

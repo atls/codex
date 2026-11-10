@@ -1,33 +1,33 @@
 # Model Fit code map
 
-`pyproject.toml` maps `model_fit` directly to `src/`. Scenario names describe the work performed; native and filesystem implementations live under `infrastructure/adapters` and input composition under `entrypoints`.
+`uv_build` discovers `model_fit` in the conventional `src/model_fit/` layout. Application owners live under `application/`; native and filesystem implementations live under `infrastructure/adapters` and input composition under `entrypoints`.
 
 | Responsibility | Implementation |
 | --- | --- |
-| Assess a task and profile | `assessment/assess.py`, `prompt.py`, `validation.py` |
-| Preserve a profile while discussing prior work | `assessment/continuity.py`, `assessment/types/work_relation.py` |
-| Assessment data and dependency declarations | `assessment/types/` |
-| Typed assessment stop conditions | `assessment/exceptions/` |
-| Register, assess or reassess accepted input | `autoswitch/scenarios/accept.py`, `assess.py`, `reassess.py` |
-| Read relevant prior work | `submission/context.py` |
-| Reconcile prior work, assess it and apply the decision | `autoswitch/scenarios/reconcile.py`, `evaluate.py`, `assessment_context.py`, `complete_assessment.py` |
-| Admit tools | `autoswitch/admission/scenario.py`, `autoswitch/admission/guards/` |
-| Authorize a prepared transfer | `autoswitch/admission/authorization.py` |
-| Retain prompt-hook recommendations | `autoswitch/recommendation/prompt.py` |
-| Enqueue the accepted native input once | `autoswitch/scenarios/enqueue.py`, `autoswitch/lifecycle/handoff.py` |
-| Own transfer planning, attempts, receipts and replay | `autoswitch/lifecycle/handoff.py` |
-| Own assessment generation and supersession | `autoswitch/lifecycle/submission.py` |
-| Own admission and retained native profile choice | `autoswitch/lifecycle/profile_choice.py` |
-| Decode phase-specific progress | `autoswitch/state/decoding.py`, `autoswitch/lifecycle/types/progress.py` |
-| Accepted submission data | `submission/types/input.py` |
-| Assessment callbacks | `submission/types/evaluation.py` |
-| Native conversation and its opening contract | `autoswitch/handoff/types/conversation.py` |
-| Recommendation persistence contract | `autoswitch/recommendation/types/storage.py` |
-| Recommendation dictionary declaration | `autoswitch/recommendation/types/record.py` |
-| Transaction storage and companion slot | `autoswitch/state/types/storage.py` |
-| Handoff state and pending assessment | `autoswitch/state/types/record.py` |
-| Typed submission stop conditions | `autoswitch/exceptions/` |
-| Check a bound replay answer | `autoswitch/scenarios/finish.py`, `answer/limits.py`, `answer/relevance.schema.json` |
+| Assess a task and profile | `application/assessment/lifecycle.py`, `prompt.py`, `constraints/request.py`, `constraints/decision.py` |
+| Preserve a profile while discussing prior work | `application/assessment/continuity.py`, `application/assessment/types/work_relation.py` |
+| Assessment data and dependency declarations | `application/assessment/types/` |
+| Typed assessment stop conditions | `application/assessment/exceptions/` |
+| Register, assess or reassess accepted input | `application/switch/scenarios/accept.py`, `assess.py`, `reassess.py` |
+| Read relevant prior work | `application/assessment/helpers/context.py` |
+| Reconcile prior work, assess it and apply the decision | `application/switch/scenarios/reconcile.py`, `evaluate.py`, `assessment_context.py`, `complete_assessment.py` |
+| Admit tools | `application/switch/admission/scenario.py`, `application/switch/admission/guards/` |
+| Authorize a prepared transfer | `application/switch/admission/authorization.py` |
+| Retain prompt-hook recommendations | `application/switch/recommendation/prompt.py` |
+| Enqueue the accepted native input once | `application/switch/scenarios/enqueue.py`, `application/switch/lifecycle/handoff.py` |
+| Own transfer planning, attempts, receipts and replay | `application/switch/lifecycle/handoff.py` |
+| Own assessment generation and supersession | `application/switch/lifecycle/submission.py` |
+| Own admission and retained native profile choice | `application/switch/lifecycle/profile_choice.py` |
+| Decode phase-specific progress | `application/switch/state/decoding.py`, `application/switch/lifecycle/types/progress.py` |
+| Accepted submission data | `application/submission/types/input.py` |
+| Assessment callbacks | `application/assessment/types/execution.py` |
+| Native conversation and its opening contract | `application/switch/handoff/types/conversation.py` |
+| Recommendation persistence contract | `application/switch/recommendation/types/storage.py` |
+| Recommendation dictionary declaration | `application/switch/recommendation/types/record.py` |
+| Transaction storage and companion slot | `application/switch/state/types/storage.py` |
+| Handoff state and pending assessment | `application/switch/state/types/record.py` |
+| Typed submission stop conditions | `application/switch/exceptions/` |
+| Check a bound replay answer | `application/switch/scenarios/finish.py`, `application/answer/limits.py`, `application/answer/relevance.schema.json` |
 | Native Codex profile/history/input and assessment IO | `infrastructure/adapters/codex/` |
 | Locked atomic state, recommendations and audit | `infrastructure/adapters/filesystem/` |
 | Explicit assessment CLI | `entrypoints/cli/assess.py` |

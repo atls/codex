@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[4]
-SCRIPTS = ROOT / "plugins/model-fit/src"
+SCRIPTS = ROOT / "plugins/model-fit/src/model_fit"
 
 
 def load(name, path):
@@ -58,7 +58,7 @@ class AuthIsolationTests(unittest.TestCase):
     def test_relevance_evaluator_cannot_write_through_to_login(self):
         module = load(
             "isolation_replay",
-            SCRIPTS / "../src/infrastructure/adapters/codex/answer.py",
+            SCRIPTS / "infrastructure/adapters/codex/answer.py",
         )
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)

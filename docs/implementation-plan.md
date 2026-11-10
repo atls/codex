@@ -111,7 +111,7 @@ Preserve direct project Yarn commands, Raijin-managed tooling and uv execution.
 
 ## Implementation sequence
 
-- [ ] Establish conventional Python source layout and build backend
+- [x] Establish conventional Python source layout and build backend
 - [ ] Implement complete assessment ownership and strict boundary forms
 - [ ] Consolidate complete handoff ownership and state variants
 - [ ] Implement switch coordination, submission ownership and pure admission

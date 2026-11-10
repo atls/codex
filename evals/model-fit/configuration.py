@@ -81,7 +81,8 @@ def build_suite(surface, runtime):
         ]
     else:
         schema = read_json(
-            SUITE.parents[1] / "plugins/model-fit/src/assessment/decision.schema.json"
+            SUITE.parents[1]
+            / "plugins/model-fit/src/model_fit/application/assessment/decision.schema.json"
         )
         config["providers"] = [
             provider(

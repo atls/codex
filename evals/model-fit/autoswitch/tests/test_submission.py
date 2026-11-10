@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 from assessment_fixture import evaluate_request
 
 import model_fit.entrypoints.hooks.operations as api
-from model_fit.autoswitch.exceptions.unavailable import SubmissionUnavailable
+from model_fit.application.switch.exceptions.unavailable import SubmissionUnavailable
 from model_fit.entrypoints.hooks.instructions import (
     CONTROL_PROMPT,
     assessment_command,
@@ -20,7 +20,7 @@ from model_fit.entrypoints.hooks.instructions import (
     queue_command,
 )
 from model_fit.entrypoints.hooks.presentation import HookPresentation
-from model_fit.native_input.codec import input_digest
+from model_fit.application.submission.helpers.content import input_digest
 from model_fit.infrastructure.adapters.codex.transport.connection import (
     AppServerRPCError,
 )
@@ -135,8 +135,8 @@ class SubmittedInputTests(unittest.TestCase):
         )
 
     def test_previous_result_discussion_admits_work_without_preparing_transfer(self):
-        from model_fit.assessment.assess import assess
-        from model_fit.assessment.validation import empty_decision
+        from model_fit.application.assessment.lifecycle import assess
+        from model_fit.application.assessment.helpers.decision import empty_decision
         from model_fit.infrastructure.adapters.codex.catalog import NativeCatalog
 
         self.profile = {"model": "gpt-6.1-sol", "effort": "medium", "speed": None}
@@ -263,7 +263,9 @@ class SubmittedInputTests(unittest.TestCase):
         self.assertEqual(self.received, [])
 
     def test_reassessment_keeps_new_requirements_when_history_fills_context(self):
-        from model_fit.assessment.validation import validated_request
+        from model_fit.application.assessment.constraints.request import (
+            validated_request,
+        )
 
         api.submit_prompt(self.event)
         self.assess()

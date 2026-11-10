@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[4]
-SCRIPTS = ROOT / "plugins/model-fit/src"
+SCRIPTS = ROOT / "plugins/model-fit/src/model_fit"
 from model_fit.entrypoints.hooks import prompt as HOOK
 
 
@@ -24,7 +24,7 @@ class DesktopHookScopeTests(unittest.TestCase):
         self.home = self.root / "codex-home"
         self.home.mkdir()
         self.plugin = self.home / "plugins/model-fit"
-        self.handler = self.plugin / "src/entrypoints/hooks/cli.py"
+        self.handler = self.plugin / "src/model_fit/entrypoints/hooks/cli.py"
         shutil.copytree(
             SCRIPTS.parent,
             self.plugin,
