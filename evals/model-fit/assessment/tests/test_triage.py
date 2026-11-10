@@ -84,6 +84,7 @@ class TriageContractTest(unittest.TestCase):
         from unittest.mock import MagicMock
 
         active, output = self.saved_output("writer-delegation-only")
+        output["work_relation"] = "execution"
         native = [
             {"type": "text", "text": "Compare attachments", "text_elements": []},
             {"type": "localImage", "path": "/fixture/complex-a.png"},

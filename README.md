@@ -26,6 +26,8 @@ To require a specific available profile, select it in Codex or explicitly instru
 
 An explicit profile choice remains in effect for the same work until you revoke it. When requirements change, ask for a fresh assessment if you want that choice reconsidered. A failed hook, transport or provider request is not evidence that the model itself is too weak.
 
+Questions, critique, corrections and missing parts of the previous result stay on the active model **and reasoning effort**. A short follow-up does not trigger an automatic downgrade. Ask explicitly to reconsider the profile when you want a different choice during that discussion; a genuinely new task can receive its own assessment.
+
 ## Choose how to use it
 
 | Package | Everyday behavior |

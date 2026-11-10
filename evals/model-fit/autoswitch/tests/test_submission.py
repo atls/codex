@@ -134,6 +134,55 @@ class SubmittedInputTests(unittest.TestCase):
             native_factory=lambda cwd: self.reader,
         )
 
+    def test_previous_result_discussion_admits_work_without_preparing_transfer(self):
+        from model_fit.assessment.assess import assess
+        from model_fit.assessment.validation import empty_decision
+        from model_fit.infrastructure.adapters.codex.catalog import NativeCatalog
+
+        self.profile = {"model": "gpt-6.1-sol", "effort": "medium", "speed": None}
+        self.event = {**self.event, "model": self.profile["model"]}
+        models = NativeCatalog(
+            {
+                "gpt-6.1-sol": {
+                    "visibility": "list",
+                    "supported_reasoning_levels": ["low", "medium"],
+                },
+                "gpt-6-luna": {
+                    "visibility": "list",
+                    "supported_reasoning_levels": ["low"],
+                },
+            }
+        )
+        proposal = {
+            **empty_decision(self.profile, "keep", "Fixture proposal"),
+            "decision": "recommend_lighter",
+            "recommended_model": "gpt-6-luna",
+            "recommended_effort": "low",
+            "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+            "official_guidance": "Match the profile to the required work.",
+            "task_inference": "The evaluator proposed a lighter profile.",
+            "work_relation": "discussion",
+        }
+
+        def evaluate(request):
+            return assess(
+                request,
+                "gpt-6.1-sol",
+                "low",
+                1,
+                source_reader=lambda: ("Fixture sources", models),
+                evaluator=lambda *args, **kwargs: proposal,
+            )
+
+        api.submit_prompt(self.event)
+        self.assess(decision=evaluate)
+        state = read_state(state_path("submitted-thread"))
+        self.assertEqual(state["phase"], "passed")
+        self.assertEqual(state["assessment_decision"], "keep")
+        self.assertEqual(state["assessed_profile"], self.profile)
+        self.assertNotIn("target_model", state)
+        self.assertEqual(self.received, [])
+
     def test_submit_defers_lookup_then_assesses_complete_native_body(self):
         with patch.object(
             api, "session_input", side_effect=AssertionError("input not accepted yet")

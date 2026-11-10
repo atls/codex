@@ -12,6 +12,8 @@ from model_fit.assessment.types.evaluator import AssessmentEvaluator
 from model_fit.assessment.types.request import ProfileAssessmentInput
 from model_fit.assessment.types.sources import AssessmentSources
 from model_fit.assessment.prompt import assessment_prompt
+from model_fit.assessment.continuity import apply_work_continuity
+from model_fit.assessment.decoding import decode_evaluation
 from model_fit.assessment.validation import empty_decision, validate, validated_request
 
 
@@ -78,4 +80,8 @@ def assess(
             timeout,
             diagnostics,
         )
-    return validate(output, active, models)
+    relation, proposal = decode_evaluation(output)
+    decision = validate(proposal, active, models)
+    if diagnostics is not None:
+        diagnostics["work_relation"] = relation.value
+    return apply_work_continuity(decision, relation, active)

@@ -11,6 +11,7 @@ from importlib.resources import files
 from pathlib import Path
 from model_fit.native_input.types.json import JsonValue
 from model_fit.assessment.types.profile import ActiveProfile
+from model_fit.assessment.types.work_relation import WorkRelation
 
 from model_fit.infrastructure.adapters.codex.transport.assessment.response import (
     assessment_response,
@@ -38,6 +39,14 @@ def execute_assessment(
 ) -> dict[str, JsonValue]:
     schema = checked_object(json.loads(SCHEMA.read_text()))
     properties = checked_object(schema["properties"])
+    properties["work_relation"] = {
+        "type": "string",
+        "enum": [relation.value for relation in WorkRelation],
+    }
+    required = schema["required"]
+    if not isinstance(required, list):
+        raise ValueError("Assessment schema required fields are unavailable")
+    required.append("work_relation")
     if active_profile["speed"] is None:
         for field in ("active_speed", "recommended_speed"):
             properties[field] = {"type": "null"}

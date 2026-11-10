@@ -47,6 +47,7 @@ def provider_evidence(diagnostics, request, prompt, error=None):
             "user_choice_bypass",
             "source_failure_simulation",
             "source_mode",
+            "work_relation",
         )
     }
     metadata.update(

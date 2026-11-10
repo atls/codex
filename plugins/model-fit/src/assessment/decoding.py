@@ -1,4 +1,15 @@
 from model_fit.assessment.types.decision import AssessmentDecision, DecisionKind
+from model_fit.assessment.types.work_relation import WorkRelation
+from model_fit.native_input.types.json import JsonValue
+from model_fit.native_input.validation import checked_object
+
+
+def decode_evaluation(value: object) -> tuple[WorkRelation, dict[str, JsonValue]]:
+    evaluation = checked_object(value)
+    relation = WorkRelation(required_text(evaluation.get("work_relation")))
+    return relation, {
+        key: item for key, item in evaluation.items() if key != "work_relation"
+    }
 
 
 def decision_kind(value: object) -> DecisionKind:

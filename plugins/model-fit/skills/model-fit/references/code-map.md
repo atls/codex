@@ -5,6 +5,7 @@
 | Responsibility | Implementation |
 | --- | --- |
 | Assess a task and profile | `assessment/assess.py`, `prompt.py`, `validation.py` |
+| Preserve a profile while discussing prior work | `assessment/continuity.py`, `assessment/types/work_relation.py` |
 | Assessment data and dependency declarations | `assessment/types/` |
 | Typed assessment stop conditions | `assessment/exceptions/` |
 | Register, assess or reassess accepted input | `autoswitch/scenarios/accept.py`, `assess.py`, `reassess.py` |

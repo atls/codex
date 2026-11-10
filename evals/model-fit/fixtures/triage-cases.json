@@ -383,5 +383,41 @@
     "quality_requirements": "Account for specific observed violations of required behavior on the same unfinished work. Do not relabel them as hook/transport failures without evidence or declare the active profile verified suitable. Explain the improvement a recommendation is expected to provide; with insufficient data return unknown so the cycle is not presented as successful. Do not impose a global model-family ban or minimum model. Do not perform the task.",
     "behavioral_review": true,
     "expected": "Account for specific observed violations of required behavior on the same unfinished work. Do not relabel them as hook/transport failures without evidence or declare the active profile verified suitable. Explain the improvement a recommendation is expected to provide; with insufficient data return unknown so the cycle is not presented as successful. Do not impose a global model-family ban or minimum model. Do not perform the task."
+  },
+  {
+    "id": "discussion-draft-clarification",
+    "prompt": "What ready-made integration are you referring to? The rest of the draft is correct.",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": null,
+    "fixture_directory": "fixtures/draft-clarification",
+    "expected_decision": "keep"
+  },
+  {
+    "id": "discussion-draft-clarification-ru",
+    "prompt": "Какую готовую интеграцию ты имеешь в виду? В остальном текст верен.",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": null,
+    "fixture_directory": "fixtures/draft-clarification",
+    "expected_decision": "keep"
+  },
+  {
+    "id": "discussion-missing-deliverables",
+    "prompt": "These look good now, but I still do not see articles three and four. The rest is accepted.",
+    "model": "gpt-6.1-sol",
+    "effort": "xhigh",
+    "speed": null,
+    "fixture_directory": "fixtures/missing-deliverables",
+    "expected_decision": "keep"
+  },
+  {
+    "id": "discussion-missing-deliverables-ru",
+    "prompt": "Теперь отлично, только я не вижу третий и четвёртый посты, а остальные принимаются.",
+    "model": "gpt-6.1-sol",
+    "effort": "xhigh",
+    "speed": null,
+    "fixture_directory": "fixtures/missing-deliverables",
+    "expected_decision": "keep"
   }
 ]
