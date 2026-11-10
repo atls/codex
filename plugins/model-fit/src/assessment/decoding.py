@@ -2,6 +2,10 @@ from model_fit.assessment.types.decision import AssessmentDecision, DecisionKind
 from model_fit.assessment.types.work_relation import WorkRelation
 from model_fit.native_input.types.json import JsonValue
 from model_fit.native_input.validation import checked_object
+from pydantic import TypeAdapter, ValidationError
+
+
+DECISION_ADAPTER = TypeAdapter(AssessmentDecision)
 
 
 def decode_evaluation(value: object) -> tuple[WorkRelation, dict[str, JsonValue]]:
@@ -39,18 +43,9 @@ def optional_text(value: object) -> str | None:
 
 
 def decode_decision(value: object) -> AssessmentDecision:
-    if not isinstance(value, dict):
-        raise ValueError("Preflight result is not an object")
-    return {
-        "active_model": required_text(value["active_model"]),
-        "active_effort": required_text(value["active_effort"]),
-        "active_speed": optional_text(value["active_speed"]),
-        "decision": decision_kind(value["decision"]),
-        "recommended_model": optional_text(value["recommended_model"]),
-        "recommended_effort": optional_text(value["recommended_effort"]),
-        "recommended_speed": optional_text(value["recommended_speed"]),
-        "official_source_url": optional_text(value["official_source_url"]),
-        "official_guidance": optional_text(value["official_guidance"]),
-        "task_inference": optional_text(value["task_inference"]),
-        "reason": required_text(value["reason"]),
-    }
+    try:
+        return DECISION_ADAPTER.validate_python(value, strict=True, extra="forbid")
+    except ValidationError:
+        raise ValueError(
+            "Preflight result does not match the decision schema"
+        ) from None

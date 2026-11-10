@@ -99,21 +99,6 @@ def validate(
     output: object, active: ActiveProfile, models: ProfileCatalog
 ) -> AssessmentDecision:
     current_fields = dict(active)
-    expected_fields = {
-        "active_model",
-        "active_effort",
-        "active_speed",
-        "decision",
-        "recommended_model",
-        "recommended_effort",
-        "recommended_speed",
-        "official_source_url",
-        "official_guidance",
-        "task_inference",
-        "reason",
-    }
-    if not isinstance(output, dict) or set(output) != expected_fields:
-        raise ValueError("Preflight result does not match the decision schema")
     result = decode_decision(output)
     observed = dict(result)
     for field in ("model", "effort", "speed"):

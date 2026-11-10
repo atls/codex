@@ -1,4 +1,5 @@
-from typing import Literal, TypeAlias, TypedDict
+from typing import Literal, TypeAlias
+from typing_extensions import TypedDict
 
 DecisionKind: TypeAlias = Literal[
     "keep", "unknown", "recommend_lighter", "recommend_stronger", "recommend_faster"

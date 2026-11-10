@@ -7,7 +7,7 @@ name = "codex-model-fit"
 version = "0.1.0"
 description = "Codex profile assessment and native handoff"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["pydantic>=2.12,<3", "typing-extensions>=4.14,<5"]
 
 [project.scripts]
 model-fit = "model_fit.entrypoints.cli.assess:main"
