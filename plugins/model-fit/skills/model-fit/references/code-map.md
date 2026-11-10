@@ -1,65 +1,77 @@
 # Model Fit code map
 
-`uv_build` discovers `model_fit` in the conventional `src/model_fit/` layout. Application owners live under `application/`; native and filesystem implementations live under `infrastructure/adapters` and input composition under `entrypoints`.
+The Python package uses the conventional `src/model_fit` layout with uv_build.
+Application owns behavior and its contracts. Infrastructure implements external
+IO. Entrypoints decode commands/events, bind implementations and render output.
 
-| Responsibility | Implementation |
+| Responsibility | Owning implementation |
 | --- | --- |
-| Assess a task and profile | `application/assessment/lifecycle.py`, `prompt.py`, `constraints/request.py`, `constraints/decision.py` |
-| Preserve a profile while discussing prior work | `application/assessment/lifecycle.py` (`complete`), `application/assessment/types/work_relation.py` |
-| Assessment data and dependency declarations | `application/assessment/types/` |
-| Typed assessment stop conditions | `application/assessment/exceptions/` |
-| Register, assess or reassess accepted input | `application/switch/scenarios/accept.py`, `assess.py`, `reassess.py` |
-| Read relevant prior work | `application/assessment/helpers/context.py` |
-| Reconcile prior work, assess it and apply the decision | `application/switch/scenarios/reconcile.py`, `evaluate.py`, `assessment_context.py`, `complete_assessment.py` |
-| Admit tools | `application/switch/admission/scenario.py`, `application/switch/admission/guards/` |
-| Authorize a prepared transfer | `application/switch/admission/authorization.py` |
-| Retain prompt-hook recommendations | `application/switch/recommendation/prompt.py` |
-| Enqueue the accepted native input once | `application/handoff/lifecycle.py` |
-| Own transfer planning, attempts, receipts and replay | `application/handoff/lifecycle.py` |
-| Own assessment generation and supersession | `application/switch/lifecycle/submission.py` |
-| Own admission and retained native profile choice | `application/switch/lifecycle/profile_choice.py` |
-| Decode phase-specific progress | `application/switch/state/decoding.py`, `application/handoff/types/progress.py` |
-| Accepted submission data | `application/submission/types/input.py` |
-| Assessment callbacks | `application/assessment/types/execution.py` |
-| Native conversation and its opening contract | `application/handoff/types/conversation.py` |
-| Recommendation persistence contract | `application/assessment/types/cache.py` |
-| Recommendation dictionary declaration | `application/assessment/types/recommendation.py` |
-| Transaction storage and companion slot | `application/switch/state/types/storage.py` |
-| Handoff state and pending assessment | `application/switch/state/types/record.py`, `application/assessment/types/state.py` |
-| Typed submission stop conditions | `application/switch/exceptions/` |
-| Check a bound replay answer | `application/switch/scenarios/finish.py`, `application/answer/limits.py`, `application/answer/relevance.schema.json` |
-| Native Codex profile/history/input and assessment IO | `infrastructure/adapters/codex/` |
-| Locked atomic state, recommendations and audit | `infrastructure/adapters/filesystem/` |
-| Explicit assessment CLI | `entrypoints/cli/assess.py` |
-| Hook and technical CLI composition | `entrypoints/hooks/` |
+| Register, start, evaluate, complete, fail, recover or reassess | `application/assessment/lifecycle.py` |
+| Current-generation qualification | `application/assessment/guards/generation.py` |
+| Request, decision and cache qualification | `application/assessment/constraints/` |
+| Pure working-context assembly | `application/assessment/helpers/context.py` |
+| Assessment inputs, results, profiles, evidence and cache port | `application/assessment/types/` |
+| Plan and prepare a transfer; attempt, acknowledge, accept and confirm queueing | `application/handoff/lifecycle.py` |
+| Reconcile queued input, replay identity and ownership | `application/handoff/lifecycle.py` |
+| Transfer eligibility and continuation predicates | `application/handoff/guards/` |
+| Phase-specific values and source references | `application/handoff/types/` |
+| Refine compatibility snapshots into phase-specific values | `application/handoff/helpers/progress.py` |
+| Atomic coordination of assessment/admission metadata | `application/switch/lifecycle.py` |
+| Native submission, assessment, reassessment and completion orchestration | `application/switch/handlers/` |
+| Tool admission and generation-safe recovery | `application/switch/admission/` |
+| Pure admission predicates | `application/switch/admission/guards/`, `application/switch/guards/` |
+| Accepted input inspection and hashing | `application/submission/helpers/content.py` |
+| Opaque JSON/content validation | `application/submission/constraints/content.py` |
+| Final-answer relevance | `application/answer/relevance.py`, `application/answer/prompts/`, `application/answer/decoding.py` |
+| Explicit JSON assessment CLI | `entrypoints/cli/assess.py` |
+| Hook event decoding/dispatch | `entrypoints/hooks/events/` |
+| Technical assessment/queue commands | `entrypoints/hooks/handlers/` |
+| Native tool-argument translation | `entrypoints/hooks/tool_action.py` |
+| Filesystem executable identity checks before predicates | `infrastructure/adapters/runtime/executable_identity.py` |
+| Native context, profiles, queues and assessment transport | `infrastructure/adapters/codex/` |
+| Shared snapshot storage and compatibility decoding | `infrastructure/adapters/filesystem/state.py`, `state_codec.py`, `slot.py`, `store.py` |
+| Assessment cache persistence | `infrastructure/adapters/filesystem/assessment_cache.py` |
 
-The [Python declaration layout](../../../../../CONTRIBUTING.md#python-declaration-layout) distinguishes type-only modules from executable scenarios. Conversation and its opener share one contract module; transaction storage and its slot share another. Recommendation handling uses one thread-keyed storage contract. The scenarios receive explicit dependencies; there is no global Dependencies container or forwarding Lifecycle class. The original native event reaches the context reader without discarding unknown fields. Media remains opaque native input.
+## State and external effects
 
-## State ownership
+`ProcessSnapshot` is the shared compatibility record. Its phase, a UI setting or
+a native acknowledgement alone does not establish a complete transfer.
+`PreparedHandoff`, `AttemptedHandoff`, `AcceptedHandoff` and `QueuedHandoff` carry
+phase-specific required data. Native source queries receive a `HandoffSource`
+reference rather than the whole process snapshot.
 
-The lifecycle owners act on one actual Codex executor; parent session ID is provenance. The filesystem implementation owns locking and atomic persistence. Assessment generation survives removal of pending state. A superseded assessment cannot modify newer input or publish stale transfer instructions. Stored dictionaries are compatibility projections; prepared, attempted and queued effects require their phase-specific validated data. Legacy prompt-digest evidence remains distinct from native input-digest evidence.
+The coordinator preserves generation and native owner scope. Assessment owns
+its generation issuance and result validity. Handoff owns queue/replay rules.
+The filesystem adapter validates stored shapes with Pydantic; application guards
+qualify transitions. No second store, event-sourced reconstruction or internal
+message bus is involved. Audit records observations and does not authorize work.
 
-| State | Meaning |
-| --- | --- |
-| absent | No decision exists, or a completed handoff was released |
-| submitted | Accepted native input awaits assessment; new input changes generation |
-| passed | The current turn is admitted; keep and unknown remain distinct |
-| ready | Prepared handoff permits the technical profile switch and queue command |
-| attempting | Native queue was called; repeating it is forbidden until its outcome is established |
-| rejected | A confirmed queue rejection was received; a new request can start a new assessment |
-| queued | A receipt exists; replay binds only after checking native input and profile |
+The owned lock spans bounded native queue IO. An attempt is durable before the
+queue call. Every observed receipt identity is saved before checking its input.
+Only a validated receipt produces AcceptedHandoff, which is required to confirm
+queueing. Unknown external effects are not repeated. Source and authoritative
+accepted-input digests remain separate because Codex may normalize local media
+references. Attachments, annotations, ordering and opaque metadata are forwarded
+without reconstructing the native input.
 
-Submission registers metadata and digests, then assessment reads the complete native userMessage. The shared assessor returns a validated decision. Reconciliation and profile-context restoration precede assessment completion. Application results express admission, uncertainty, prepared transfer or confirmed queueing; native hook JSON is rendered only at the executable boundary. Queue execution records attempting before the external call and preserves a received submission ID before checking its payload. A missing or malformed payload leaves that receipt attached to the unresolved attempt; it never permits another submission. The owned per-executor lock spans this bounded native queue operation. The continuation binds by native client identity, accepted input and profile; edited queued input is reassessed, and native profile choice is preserved.
+## Results and failures
 
-Answer checking is a bounded relevance check, not a quality grade. Unknown queue outcomes are not automatically released. Codex owns its profile and queue; audit is not a recovery source of truth.
+Data declarations and behavioral protocols live in one flat `types/` directory
+inside their owner. Pure utilities live in `helpers/`, qualification in
+`guards/`, and input constraints in `constraints/`. Returned evaluation/queue
+errors live in their owner's `errors/`; stopping exceptions live in
+`exceptions/`. Provider RPC exceptions remain in the transport adapter.
 
-## Entry points and errors
+Explicit assessment uses `model-fit` or `python -m model_fit.entrypoints.cli.assess`.
+Automatic commands use `python -m model_fit.entrypoints.hooks.cli`. These command
+contracts do not expose internal Python layout as a second public API. Native
+hook JSON is built at entrypoints from semantic application results.
 
-Hook event handling is in `entrypoints/hooks/events/dispatch.py`. Technical assessment and queue commands are in `entrypoints/hooks/handlers/`. Returned queue rejection is in `application/handoff/errors/`; native RPC exceptions belong to the Codex transport adapter. The accepted implementation plan tracks the remaining state/lifecycle consolidation; the current module map does not establish completion of that work.
+An unavailable assessment preserves the current profile without claiming
+suitability. Recovery requires the current generation and a safe process state.
+An unresolved queue is a separate condition. Relevance checking detects answers
+to another task; it does not grade solution quality.
 
-Explicit assessment: `model-fit` or `python -m model_fit.entrypoints.cli.assess`.
-Automatic CLI: `python -m model_fit.entrypoints.hooks.cli` with `hook`, `lifecycle`, `assess`, `reassess`, `prompt` and `queue`. Internal Python module paths are not another public API.
-
-The explicit assessment CLI exits 2 for invalid input without a decision; an unavailable assessment returns unknown and exits 1. Automatic hooks and their technical CLI use their own continuation and failure statuses. Unknown does not establish suitability. Recognized native context failures become `ContextUnavailable`; a definite native queue rejection is a typed value, while a transport timeout remains an unresolved attempt. Invalid queue inputs and protected lifecycle conflicts have separate exception families. Assessment recovery can admit unknown only through the current generation and a safe local state. See [Desktop hook](desktop-hook.md) for native admission and revocation.
-
-Public synthetic evaluations are organized by scenario under `evals/model-fit`; their Promptfoo implementation is in `infrastructure/adapters/promptfoo`. They are not installed with either plugin. Fixture validation runs independently of package construction.
+Both decision schemas are generated through Pydantic from their declared data
+contracts. Public synthetic evaluations and independent judge calibration live
+under `evals/model-fit` and are not installed in either distribution.

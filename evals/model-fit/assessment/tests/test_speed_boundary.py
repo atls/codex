@@ -5,6 +5,7 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+from jsonschema import Draft202012Validator
 
 import model_fit.entrypoints.cli.assess as cli
 import model_fit.infrastructure.adapters.codex.assessment as client
@@ -56,14 +57,11 @@ class SpeedBoundaryTests(unittest.TestCase):
                         },
                     )
                 schema = app.call.call_args_list[-1].args[1]["outputSchema"]
-                self.assertEqual(
-                    schema["properties"]["recommended_speed"]["type"],
-                    "null" if speed is None else ["string", "null"],
-                )
-                self.assertEqual(
-                    schema["properties"]["active_speed"]["type"],
-                    "null" if speed is None else ["string", "null"],
-                )
+                for field in ("recommended_speed", "active_speed"):
+                    validator = Draft202012Validator(schema["properties"][field])
+                    self.assertTrue(validator.is_valid(None))
+                    self.assertEqual(validator.is_valid("fast"), speed is not None)
+                    self.assertFalse(validator.is_valid(True))
 
     def test_invalid_speed_has_distinct_safe_type_through_cli_boundary(self):
         active = {"model": "gpt-6.1-sol", "effort": "medium", "speed": None}

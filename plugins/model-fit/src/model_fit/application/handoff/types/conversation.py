@@ -1,4 +1,4 @@
-from model_fit.application.switch.state.types.record import HandoffStateRecord
+from model_fit.application.switch.types.state import ProcessSnapshot
 from model_fit.application.submission.types.json import JsonValue
 from contextlib import AbstractContextManager
 from typing import Protocol
@@ -7,6 +7,7 @@ from model_fit.application.handoff.types.accepted_input import (
 )
 from model_fit.application.handoff.types.queue_receipt import NativeQueueReceipt
 from model_fit.application.handoff.errors.queue_rejection import NativeQueueRejection
+from model_fit.application.handoff.types.source import HandoffSource
 
 
 class NativeConversation(Protocol):
@@ -35,10 +36,10 @@ class NativeConversation(Protocol):
     ) -> list[dict[str, JsonValue]]: ...
 
     def handoff_input(
-        self, thread_id: str, state: HandoffStateRecord
+        self, thread_id: str, source: HandoffSource
     ) -> list[dict[str, JsonValue]]: ...
 
-    def replay_finished(self, thread_id: str, state: HandoffStateRecord) -> bool: ...
+    def replay_finished(self, thread_id: str, state: ProcessSnapshot) -> bool: ...
 
     def source_terminal_without_replay(
         self, thread_id: str, source_turn_id: str, current_turn_id: str

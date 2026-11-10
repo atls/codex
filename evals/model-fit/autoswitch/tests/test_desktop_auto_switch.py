@@ -2463,7 +2463,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         with (
             patch.object(HANDOFF_GUARDS, "AppServerReader") as reader,
             patch(
-                "model_fit.infrastructure.adapters.codex.answer.classify_answer",
+                "model_fit.entrypoints.hooks.operations.check_answer",
                 return_value="unrelated",
             ) as classify,
         ):
@@ -2505,7 +2505,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         with (
             patch.object(HANDOFF_GUARDS, "AppServerReader") as reader,
             patch(
-                "model_fit.infrastructure.adapters.codex.answer.classify_answer",
+                "model_fit.entrypoints.hooks.operations.check_answer",
                 return_value="relevant",
             ) as classify,
         ):
@@ -2535,7 +2535,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         with (
             patch.object(HANDOFF_GUARDS, "AppServerReader") as reader,
             patch(
-                "model_fit.infrastructure.adapters.codex.answer.classify_answer",
+                "model_fit.entrypoints.hooks.operations.check_answer",
                 return_value="relevant",
             ) as classify,
         ):
@@ -2574,9 +2574,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         )
         with (
             patch.object(HANDOFF_GUARDS, "AppServerReader") as reader,
-            patch(
-                "model_fit.infrastructure.adapters.codex.answer.classify_answer"
-            ) as classify,
+            patch("model_fit.entrypoints.hooks.operations.check_answer") as classify,
         ):
             reader.return_value.__enter__.return_value.call.side_effect = [
                 self.source_response(original),
@@ -2589,9 +2587,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             classify.assert_not_called()
         with (
             patch.object(HANDOFF_GUARDS, "AppServerReader") as reader,
-            patch(
-                "model_fit.infrastructure.adapters.codex.answer.classify_answer"
-            ) as classify,
+            patch("model_fit.entrypoints.hooks.operations.check_answer") as classify,
         ):
             reader.return_value.__enter__.return_value.call.side_effect = [
                 self.source_response(original),

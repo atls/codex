@@ -7,7 +7,8 @@ import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1]
-from model_fit.infrastructure.adapters.codex.answer import classify_answer
+from model_fit.application.answer.relevance import classify_answer
+from model_fit.infrastructure.adapters.codex.answer import evaluate_relevance
 
 
 def main() -> int:
@@ -25,7 +26,10 @@ def main() -> int:
         started = time.monotonic()
         try:
             observed = classify_answer(
-                case["request"], case["task_context"], case["answer"]
+                case["request"],
+                case["task_context"],
+                case["answer"],
+                evaluator=evaluate_relevance,
             )
             result = {
                 "id": case["id"],

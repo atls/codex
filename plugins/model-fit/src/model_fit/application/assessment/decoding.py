@@ -34,7 +34,7 @@ def optional_text(value: object) -> str | None:
 
 def decode_decision(value: object) -> AssessmentDecision:
     try:
-        return DECISION_ADAPTER.validate_python(value, strict=True, extra="forbid")
+        return DECISION_ADAPTER.validate_python(value, strict=True)
     except ValidationError:
         raise ValueError(
             "Preflight result does not match the decision schema"

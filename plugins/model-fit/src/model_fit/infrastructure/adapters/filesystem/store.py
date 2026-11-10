@@ -1,6 +1,6 @@
 from collections.abc import Iterator
 from model_fit.application.submission.types.json import JsonValue
-from model_fit.application.switch.state.types.record import HandoffStateRecord
+from model_fit.application.switch.types.state import ProcessSnapshot
 from contextlib import contextmanager
 
 import model_fit.infrastructure.adapters.filesystem.state as state
@@ -22,7 +22,7 @@ class FileStore:
         ) as path:
             yield FileSlot(path)
 
-    def snapshot(self, thread_id: str) -> HandoffStateRecord | None:
+    def snapshot(self, thread_id: str) -> ProcessSnapshot | None:
         return state.read_state(state.state_path(thread_id))
 
     def owner(self, thread_id: str) -> dict[str, JsonValue]:

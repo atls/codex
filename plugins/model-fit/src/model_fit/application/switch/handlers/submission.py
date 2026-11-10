@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from model_fit.application.handoff import lifecycle as handoff_lifecycle
-from model_fit.application.switch.lifecycle import submission as submission_lifecycle
+from model_fit.application.switch import lifecycle as switch_lifecycle
 
 
-from model_fit.application.switch.scenarios.evaluate import evaluate
+from model_fit.application.switch.handlers.processing import evaluate
 from model_fit.application.assessment.types.execution import AssessmentRunner
 from model_fit.application.switch.types.audit import AuditWriter
 from model_fit.application.assessment.types.execution import AssessmentContextReader
@@ -25,7 +25,7 @@ from model_fit.application.submission.types.input import SubmissionInput
 from model_fit.application.assessment.types.cache import (
     ResultCache,
 )
-from model_fit.application.switch.state.types.storage import TransferStateStore
+from model_fit.application.switch.types.storage import TransferStateStore
 from model_fit.application.handoff.types.clock import Clock
 
 
@@ -83,7 +83,7 @@ def accept(
         if not immediate:
             if state is not None and state["phase"] == "rejected":
                 handoff_lifecycle.release(slot)
-            submission_lifecycle.register_submission(
+            switch_lifecycle.register_submission(
                 slot, event, codec.prompt_digest(event.text)
             )
     if immediate:

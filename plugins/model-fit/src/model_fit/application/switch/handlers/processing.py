@@ -4,19 +4,15 @@ from model_fit.application.switch.exceptions.context_unavailable import (
     ContextUnavailable,
 )
 
-from model_fit.application.switch.lifecycle import (
-    profile_choice as profile_choice_lifecycle,
-)
+from model_fit.application.switch import lifecycle as switch_lifecycle
 
 
-from model_fit.application.switch.types.reconciliation import ReconciledAssessment
-from model_fit.application.switch.scenarios.reconcile import reconcile
-from model_fit.application.switch.scenarios.assessment_context import (
+from model_fit.application.switch.types.reconciliation import ReconciledSubmission
+from model_fit.application.switch.handlers.reconciliation import reconcile
+from model_fit.application.switch.handlers.context import (
     restore_work_context,
 )
-from model_fit.application.switch.scenarios.complete_assessment import (
-    complete_assessment,
-)
+from model_fit.application.switch.handlers.decision import apply_decision
 from model_fit.application.assessment.types.execution import AssessmentRunner
 from model_fit.application.switch.types.audit import AuditWriter
 from model_fit.application.assessment.types.execution import AssessmentContextReader
@@ -35,7 +31,7 @@ from model_fit.application.submission.types.input import SubmissionInput
 from model_fit.application.assessment.types.cache import (
     ResultCache,
 )
-from model_fit.application.switch.state.types.storage import TransferStateStore
+from model_fit.application.switch.types.storage import TransferStateStore
 from model_fit.application.switch.admission.recommendation import (
     blocking_recommendation,
 )
@@ -64,7 +60,7 @@ def evaluate(
         read_context=read_context,
         store=store,
     )
-    if not isinstance(reconciled, ReconciledAssessment):
+    if not isinstance(reconciled, ReconciledSubmission):
         return reconciled
     pending = reconciled.pending_transfer
     handoff_snapshot = reconciled.snapshot
@@ -106,7 +102,7 @@ def evaluate(
                     },
                 )
                 return blocked
-            profile_choice_lifecycle.admit(slot, turn_id)
+            switch_lifecycle.admit(slot, turn_id)
         audit(
             thread_id,
             turn_id,
@@ -164,7 +160,7 @@ def evaluate(
             "root_session_id": event.session_id or thread_id,
         },
     )
-    return complete_assessment(
+    return apply_decision(
         event,
         request,
         result,

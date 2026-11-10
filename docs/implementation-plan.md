@@ -112,13 +112,14 @@ Preserve direct project Yarn commands, Raijin-managed tooling and uv execution.
 ## Implementation sequence
 
 - [x] Establish conventional Python source layout and build backend
-- [ ] Implement complete assessment ownership and strict boundary forms
-- [ ] Consolidate complete handoff ownership and state variants
-- [ ] Implement switch coordination, submission ownership and pure admission
-- [ ] Separate event boundaries, utilities, failures and composition
+- [x] Implement assessment registration, evaluation, reassessment, completion and failure ownership with strict boundary forms
+- [x] Consolidate handoff planning, preparation, queueing, receipt and replay ownership
+- [x] Carry prepared, attempted, accepted and queued phase-specific values through the queue operation
+- [x] Consolidate shared switch transitions, submission ownership and pure admission
+- [x] Separate event boundaries, utilities, failures, answer relevance and composition
 - [ ] Replace covered evaluator infrastructure with the public SDK
 - [x] Replace custom packaging with workflow composition and native release
-- [ ] Validate plugin-eval and reproduce skill validation
+- [x] Obtain and classify a pinned plugin-eval static report; reproduce skill validation
 - [ ] Complete behavior, typing, packaging and installed-fixture verification
 - [ ] Publish current revision, pass CI and configured exact-head Codex review
 - [ ] Finish cumulative self-review and present for user acceptance
@@ -137,3 +138,23 @@ integration; preserve historical run evidence rather than relabeling it.
 
 Completion requires both structural acceptance against this map and behavioral
 evidence for the current published revision. Track unfinished work explicitly.
+
+## Compatibility and remaining qualification
+
+The shared ProcessSnapshot is a compatibility carrier, not proof of preparation
+or accepted input. Phase-specific values qualify native effects. Field-shape
+checks are performed by Pydantic at storage/provider boundaries; operation
+qualification and generation checks remain owned application rules. Preserve
+unknown receipt outcomes and do not add guessed defaults to legacy records.
+
+The inspected published SDK version is openai-codex 0.167.0. Its high-level input
+reconstructs supported items and cannot carry every opaque native field, while
+its request wait does not expose the per-call deadlines required by the current
+transport. No SDK runtime integration is claimed. Retain only that necessary
+transport until a covered complete unit can replace it without changing those
+contracts; Pydantic, uv_build and native release tools already replace covered
+custom mechanisms.
+
+Current qualification still requires bounded native assessment/relevance checks,
+exact published-head CI, configured Codex review and cumulative self-review.
+Historical model matrices remain historical evidence.

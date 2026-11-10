@@ -1,12 +1,12 @@
 from pydantic import TypeAdapter, ValidationError
 
-from model_fit.application.switch.state.types.record import HandoffStateRecord
+from model_fit.application.switch.types.state import ProcessSnapshot
 
 
-LEGACY_STATE = TypeAdapter(HandoffStateRecord)
+LEGACY_STATE = TypeAdapter(ProcessSnapshot)
 
 
-def decode_state(value: object) -> HandoffStateRecord:
+def decode_state(value: object) -> ProcessSnapshot:
     try:
         return LEGACY_STATE.validate_python(value, strict=True, extra="allow")
     except ValidationError:

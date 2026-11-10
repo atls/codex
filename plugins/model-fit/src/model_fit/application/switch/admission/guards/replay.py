@@ -1,11 +1,11 @@
 from model_fit.application.switch.admission.types.input import ToolAdmissionInput
 from model_fit.application.switch.admission.types.tools import TransferTools
-from model_fit.application.switch.state.types.record import HandoffStateRecord
+from model_fit.application.switch.types.state import ProcessSnapshot
 
 
 def replay_transfer_completed(
     event: ToolAdmissionInput,
-    state: HandoffStateRecord | None,
+    state: ProcessSnapshot | None,
     *,
     actions: TransferTools,
 ) -> bool:

@@ -1,6 +1,4 @@
-from model_fit.application.switch.lifecycle import (
-    profile_choice as profile_choice_lifecycle,
-)
+from model_fit.application.switch import lifecycle as switch_lifecycle
 from collections.abc import Callable
 from model_fit.application.switch.admission.types.input import ToolAdmissionInput
 from model_fit.application.handoff.types.conversation import (
@@ -10,11 +8,10 @@ from model_fit.application.assessment.types.cache import (
     ResultCache,
 )
 from model_fit.application.assessment.lifecycle import load_blocking_recommendation
-from model_fit.application.switch.state.types.record import HandoffStateRecord
-from model_fit.application.switch.state.types.storage import TransferStateStore
+from model_fit.application.switch.types.state import ProcessSnapshot
+from model_fit.application.switch.types.storage import TransferStateStore
 from model_fit.application.switch.types.audit import AuditWriter
 from model_fit.application.assessment import lifecycle as assessment_lifecycle
-from model_fit.application.switch.lifecycle import submission as submission_lifecycle
 from model_fit.application.assessment.types.state import PendingAssessmentRecord
 from model_fit.application.assessment.types.result import UnknownAssessment
 from model_fit.application.submission.types.input import SubmissionInput
@@ -22,7 +19,7 @@ from model_fit.application.submission.types.input import SubmissionInput
 
 def recover_unsubmitted_successor(
     event: ToolAdmissionInput,
-    state: HandoffStateRecord,
+    state: ProcessSnapshot,
     *,
     conversation: NativeConversationFactory,
     working_directory: Callable[[], str],
@@ -56,7 +53,7 @@ def recover_unsubmitted_successor(
                     )
                     is None
                 ):
-                    profile_choice_lifecycle.admit(
+                    switch_lifecycle.admit(
                         slot,
                         turn_id,
                         "unknown",
@@ -97,7 +94,7 @@ def admit_assessment_recovery(
                 operation="assessment",
                 turn_id=event.turn_id,
             ) as slot:
-                continued = submission_lifecycle.abstain_assessment(slot, pending)
+                continued = switch_lifecycle.abstain_assessment(slot, pending)
         except BlockingIOError:
             continued = False
         if continued:

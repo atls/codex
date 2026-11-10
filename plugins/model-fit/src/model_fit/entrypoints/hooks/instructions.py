@@ -6,7 +6,7 @@ import shlex
 import sys
 from pathlib import Path
 from model_fit.entrypoints.hooks.types.output import HookOutput
-from model_fit.application.switch.state.types.record import HandoffStateRecord
+from model_fit.application.switch.types.state import ProcessSnapshot
 
 from model_fit.application.handoff.control_message import CONTROL_PROMPT
 
@@ -17,9 +17,7 @@ HANDOFF_CANCELLED_CONTEXT = "Model Fit: the previous technical handoff was cance
 REPLAY_STOP_REASON = "The last answer addressed a different task. Compare it with this turn's original request and continue the unfinished work. Do not repeat completed actions; check their results before acting again."
 
 
-def control_context(
-    thread_id: str, turn_id: str, state: HandoffStateRecord
-) -> HookOutput:
+def control_context(thread_id: str, turn_id: str, state: ProcessSnapshot) -> HookOutput:
     model = state["target_model"]
     effort = state["target_effort"]
     command = queue_command("current", "source")

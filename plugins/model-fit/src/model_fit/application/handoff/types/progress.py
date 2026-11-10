@@ -30,9 +30,13 @@ class AttemptedHandoff:
 
 
 @dataclass(frozen=True)
-class QueuedHandoff:
+class AcceptedHandoff:
     source_turn_id: str
     target: TransferTarget
     submission_id: str
     input_evidence: TransferInputEvidence
+
+
+@dataclass(frozen=True)
+class QueuedHandoff(AcceptedHandoff):
     replay_turn_id: str | None

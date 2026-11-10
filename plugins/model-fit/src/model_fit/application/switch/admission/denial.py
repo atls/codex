@@ -1,4 +1,4 @@
-from model_fit.application.switch.state.types.record import HandoffStateRecord
+from model_fit.application.switch.types.state import ProcessSnapshot
 from model_fit.application.switch.admission.types.result import (
     AllowedTool,
     DeniedTool,
@@ -14,7 +14,7 @@ from model_fit.application.switch.admission.guards.replay import (
 
 def deny_replay_transfer(
     event: ToolAdmissionInput,
-    state: HandoffStateRecord | None,
+    state: ProcessSnapshot | None,
     *,
     actions: TransferTools,
     audit: AuditWriter,
@@ -37,7 +37,7 @@ def deny_replay_transfer(
 
 def deny_unprepared_transfer(
     event: ToolAdmissionInput,
-    state: HandoffStateRecord | None,
+    state: ProcessSnapshot | None,
     *,
     actions: TransferTools,
     audit: AuditWriter,

@@ -1,23 +1,80 @@
 from __future__ import annotations
 
-from model_fit.application.assessment.types.profile import ActiveProfile
-from model_fit.application.switch.state.types.record import HandoffStateRecord
 from typing import overload
-
+from model_fit.application.switch.guards.progress import (
+    require_registration_state,
+    require_admission_state,
+    require_consumption,
+)
+from model_fit.application.assessment.guards.generation import generation_known
 from model_fit.application.assessment.guards.generation import require_current
 from model_fit.application.assessment import lifecycle as assessment_lifecycle
 from model_fit.application.assessment.types.state import PendingAssessmentRecord
 from model_fit.application.submission.types.input import SubmissionInput
-from model_fit.application.switch.state.types.storage import TransferStateSlot
+from model_fit.application.assessment.types.profile import ActiveProfile
+from model_fit.application.switch.types.state import ProcessSnapshot
+from model_fit.application.switch.types.storage import TransferStateSlot
 
-from model_fit.application.switch.state.commit import save_snapshot
-from model_fit.application.switch.lifecycle.profile_choice import admit
+
+def save_snapshot(slot: TransferStateSlot, state: ProcessSnapshot) -> ProcessSnapshot:
+    current = slot.load()
+    pending = state.get("pending_assessment")
+    generation = pending.get("generation") if pending is not None else None
+    if generation is None and current is not None:
+        current_pending = current.get("pending_assessment")
+        generation = (
+            current_pending.get("generation", current.get("assessment_generation"))
+            if current_pending is not None
+            else current.get("assessment_generation")
+        )
+    if generation is not None:
+        state = {**state, "assessment_generation": generation}
+    slot.save(state)
+    return state
+
+
+def admit(
+    slot: TransferStateSlot,
+    turn_id: str,
+    decision: str | None = None,
+    profile_context_turn_id: str | None = None,
+    native_profile: ActiveProfile | None = None,
+    *,
+    supersede_assessment: bool = False,
+) -> None:
+    current = slot.load()
+    require_admission_state(current)
+    state: ProcessSnapshot = {"phase": "passed", "source_turn_id": turn_id}
+    if current is not None and current.get("assessed_profile") is not None:
+        state["assessed_profile"] = current["assessed_profile"]
+    if (
+        current is not None
+        and (current.get("pending_assessment") or {}).get("turn_id") == turn_id
+    ):
+        state["pending_assessment"] = current["pending_assessment"]
+    if decision is not None:
+        state["assessment_decision"] = decision
+    if profile_context_turn_id is not None:
+        state["profile_context_turn_id"] = profile_context_turn_id
+        if native_profile is not None:
+            state["native_profile"] = native_profile
+        elif (
+            current is not None
+            and current.get("profile_context_turn_id") == profile_context_turn_id
+            and (current.get("native_profile") is not None)
+        ):
+            state["native_profile"] = current["native_profile"]
+    if supersede_assessment:
+        state["assessment_generation"] = assessment_lifecycle.new_generation()
+        slot.save(state)
+    else:
+        save_snapshot(slot, state)
 
 
 @overload
 def require_submission(
     slot: TransferStateSlot, expected: PendingAssessmentRecord
-) -> HandoffStateRecord: ...
+) -> ProcessSnapshot: ...
 
 
 @overload
@@ -26,7 +83,7 @@ def require_submission(slot: TransferStateSlot, expected: None) -> None: ...
 
 def require_submission(
     slot: TransferStateSlot, expected: PendingAssessmentRecord | None
-) -> HandoffStateRecord | None:
+) -> ProcessSnapshot | None:
     if expected is None:
         return None
     current = slot.load()
@@ -45,11 +102,8 @@ def register_submission(
     assessment: PendingAssessmentRecord | None = None,
 ) -> PendingAssessmentRecord:
     current = slot.load()
-    if slot.unsafe() or (
-        current is not None and current["phase"] in {"attempting", "rejected"}
-    ):
-        raise RuntimeError("Cannot replace an unresolved transfer with a submission")
-    state: HandoffStateRecord = current or {
+    require_registration_state(current, unsafe=slot.unsafe())
+    state: ProcessSnapshot = current or {
         "phase": "submitted",
         "source_turn_id": event.turn_id,
     }
@@ -91,7 +145,7 @@ def abstain_assessment(
     state = slot.load()
     if (
         state is None
-        or not pending.get("generation")
+        or not generation_known(pending.get("generation"))
         or state.get("assessment_generation") != pending["generation"]
         or (state.get("pending_assessment") not in (None, pending))
         or (state["phase"] not in {"submitted", "passed", "ready"})
@@ -112,7 +166,7 @@ def finish_assessment(
         state.get("pending_assessment") == pending
         or (
             state.get("pending_assessment") is None
-            and pending.get("generation") is not None
+            and generation_known(pending.get("generation"))
             and (state.get("assessment_generation") == pending["generation"])
         )
     ):
@@ -126,12 +180,7 @@ def consume_submission(
     slot: TransferStateSlot, turn_id: str, pending: PendingAssessmentRecord
 ) -> None:
     current = slot.load()
-    if (
-        current is None
-        or current["phase"] != "queued"
-        or current.get("pending_assessment") != pending
-    ):
-        raise RuntimeError("Native queue receipt changed during assessment")
+    require_consumption(current, pending)
     save_snapshot(
         slot,
         {

@@ -1,8 +1,7 @@
 from __future__ import annotations
+from model_fit.application.handoff.helpers.source import handoff_source
 
-from model_fit.application.switch.lifecycle import (
-    profile_choice as profile_choice_lifecycle,
-)
+from model_fit.application.switch import lifecycle as switch_lifecycle
 
 
 from contextlib import AbstractContextManager
@@ -19,7 +18,7 @@ from model_fit.application.switch.types.disposition import (
     UnrelatedAnswer,
 )
 
-from model_fit.application.switch.state.types.storage import TransferStateStore
+from model_fit.application.switch.types.storage import TransferStateStore
 
 
 def finish(
@@ -55,7 +54,7 @@ def finish(
             and state["phase"] == "ready"
             and (turn_id in {state["source_turn_id"], state.get("control_turn_id")})
         ):
-            profile_choice_lifecycle.admit(slot, turn_id)
+            switch_lifecycle.admit(slot, turn_id)
             audit(
                 thread_id,
                 turn_id,
@@ -82,7 +81,7 @@ def finish(
             content = app.accepted_input(thread_id, turn_id).content
             verified_input = content
         else:
-            content = app.handoff_input(thread_id, state)
+            content = app.handoff_input(thread_id, handoff_source(state))
             replay = app.replay_input(thread_id, turn_id)
             if replay is None:
                 audit(thread_id, turn_id, "auto_stop_steered_or_unverified")

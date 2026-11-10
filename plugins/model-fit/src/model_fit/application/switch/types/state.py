@@ -4,7 +4,7 @@ from typing_extensions import TypedDict
 from model_fit.application.assessment.types.profile import ActiveProfile
 
 
-class HandoffStateRecord(TypedDict, total=False):
+class ProcessSnapshot(TypedDict, total=False):
     phase: Required[
         Literal["ready", "submitted", "attempting", "queued", "rejected", "passed"]
     ]

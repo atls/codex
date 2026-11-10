@@ -2,10 +2,7 @@ from __future__ import annotations
 from model_fit.application.assessment import lifecycle as assessment_lifecycle
 from model_fit.application.assessment.constraints.request import require_reassessment
 
-from model_fit.application.switch.lifecycle import (
-    profile_choice as profile_choice_lifecycle,
-)
-from model_fit.application.switch.lifecycle import submission as submission_lifecycle
+from model_fit.application.switch import lifecycle as switch_lifecycle
 
 
 from collections.abc import Callable
@@ -27,9 +24,9 @@ from model_fit.application.submission.types.input import SubmissionInput
 from model_fit.application.assessment.types.cache import (
     ResultCache,
 )
-from model_fit.application.switch.state.types.storage import TransferStateStore
+from model_fit.application.switch.types.storage import TransferStateStore
 from model_fit.application.handoff.types.clock import Clock
-from model_fit.application.switch.scenarios.assess import assess
+from model_fit.application.switch.handlers.assessment import assess
 
 
 def reassess(
@@ -111,13 +108,13 @@ def reassess(
             },
         )
         request = refreshed.request
-        pending = submission_lifecycle.register_submission(
+        pending = switch_lifecycle.register_submission(
             slot, event, codec.prompt_digest(source), assessment=refreshed.submission
         )
         if snapshot["phase"] == "queued":
-            submission_lifecycle.consume_submission(slot, turn_id, pending)
+            switch_lifecycle.consume_submission(slot, turn_id, pending)
             if (model, effort) != (snapshot["target_model"], snapshot["target_effort"]):
-                profile_choice_lifecycle.admit(
+                switch_lifecycle.admit(
                     slot,
                     turn_id,
                     "native_override",

@@ -6,7 +6,7 @@ from model_fit.application.assessment.types.decision import AssessmentDecision
 from model_fit.application.assessment.types.evidence import (
     RecommendationEvidence,
 )
-from model_fit.application.switch.state.types.record import HandoffStateRecord
+from model_fit.application.switch.types.state import ProcessSnapshot
 
 
 class WorkContext(Enum):
@@ -51,7 +51,7 @@ class QueuePending:
 class PreparedTransfer:
     thread_id: str
     turn_id: str
-    state: HandoffStateRecord
+    state: ProcessSnapshot
 
 
 @dataclass(frozen=True)

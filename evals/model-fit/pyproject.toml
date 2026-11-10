@@ -9,6 +9,7 @@ codex-model-fit = { path = "../../plugins/model-fit", editable = true }
 
 [dependency-groups]
 dev = [
+    "jsonschema>=4.26,<5",
     "mypy>=2.4.1",
     "pyyaml>=6,<7",
 ]

@@ -2,7 +2,7 @@ import shlex
 from model_fit.application.submission.types.json import JsonValue
 from model_fit.application.submission.constraints.content import checked_object
 from model_fit.application.switch.admission.types.input import ToolAdmissionInput
-from model_fit.application.switch.state.types.record import HandoffStateRecord
+from model_fit.application.switch.types.state import ProcessSnapshot
 
 from model_fit.application.handoff.control_message import (
     CONTROL_PROMPT,
@@ -26,7 +26,7 @@ class NativeTransferTools:
         )
 
     def matches_profile_switch(
-        self, request: ToolAdmissionInput, state: HandoffStateRecord
+        self, request: ToolAdmissionInput, state: ProcessSnapshot
     ) -> bool:
         native = checked_object(request.source)
         arguments = native.get("tool_input")
@@ -44,7 +44,7 @@ class NativeTransferTools:
         )
 
     def matches_queue(
-        self, request: ToolAdmissionInput, state: HandoffStateRecord
+        self, request: ToolAdmissionInput, state: ProcessSnapshot
     ) -> bool:
         native = checked_object(request.source)
         arguments = native.get("tool_input")
@@ -60,7 +60,7 @@ class NativeTransferTools:
         )
 
     def bound_transfer_input(
-        self, request: ToolAdmissionInput, state: HandoffStateRecord
+        self, request: ToolAdmissionInput, state: ProcessSnapshot
     ) -> dict[str, JsonValue] | None:
         native = checked_object(request.source)
         arguments = native.get("tool_input")

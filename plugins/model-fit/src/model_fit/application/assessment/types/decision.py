@@ -1,11 +1,13 @@
 from typing import Literal, TypeAlias
 from typing_extensions import TypedDict
+from pydantic import ConfigDict, with_config
 
 DecisionKind: TypeAlias = Literal[
-    "keep", "unknown", "recommend_lighter", "recommend_stronger", "recommend_faster"
+    "keep", "recommend_lighter", "recommend_stronger", "recommend_faster", "unknown"
 ]
 
 
+@with_config(ConfigDict(extra="forbid"))
 class AssessmentDecision(TypedDict):
     active_model: str
     active_effort: str

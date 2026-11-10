@@ -48,6 +48,25 @@ fixture without evaluation files. Native installation tests also build through
 that action before testing cached hooks, trust and revocation. The Python package
 uses the conventional `src/model_fit` layout and `uv_build` discovery.
 
+The public decision JSON Schema is generated from `AssessmentDecision` with
+Pydantic. After changing that accepted wire contract, regenerate its checked-in
+schema from the repository root:
+
+```sh
+uv run --project plugins/model-fit --locked python - <<'PY'
+import json
+from pathlib import Path
+from model_fit.application.assessment.decoding import DECISION_ADAPTER
+
+Path("plugins/model-fit/src/model_fit/application/assessment/decision.schema.json").write_text(
+    json.dumps(DECISION_ADAPTER.json_schema(), indent=2) + "\n"
+)
+PY
+```
+
+Contract tests validate accepted and rejected public values with the independent
+JSON Schema validator; they do not require a particular nullable-schema spelling.
+
 ## Change behavior carefully
 
 Keep scenarios focused on a user's next task. Data declarations, protocols, exceptions and adapters should communicate their actual responsibility. Preserve manual profile choice, opaque native input, generation cancellation, one queue/replay cycle and conservative handling of unknown outcomes.
@@ -60,7 +79,7 @@ Run the relevant deterministic checks for a change. The public test suite makes 
 
 Keep declarations in a single `types/` directory under the scenario that owns their contract. Do not add subdirectories for dataclasses, protocols, dictionary declarations or aliases. The declaration itself shows its Python form; the path distinguishes declarations from executable logic. Create only the types actually consumed by that scenario.
 
-For example, `application/switch/scenarios/finish.py` checks a completed answer; `application/answer/types/input.py` declares its input. Closely related companion declarations can share a module, such as a conversation protocol and its opening callback, or a decision dictionary and its Literal alias.
+For example, `application/switch/handlers/completion.py` checks a completed answer; `application/answer/types/input.py` declares its input. Closely related companion declarations can share a module, such as a conversation protocol and its opening callback, or a decision dictionary and its Literal alias.
 
 ## Submit a change
 

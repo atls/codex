@@ -1,5 +1,5 @@
 from __future__ import annotations
-from model_fit.application.switch.lifecycle import submission as submission_lifecycle
+from model_fit.application.switch import lifecycle as switch_lifecycle
 from model_fit.application.assessment.types.request import ProfileAssessmentInput
 from model_fit.application.assessment.types.decision import AssessmentDecision
 from model_fit.application.submission.helpers import content as codec
@@ -12,7 +12,7 @@ from model_fit.application.submission.types.input import SubmissionInput
 from model_fit.application.assessment.types.cache import (
     ResultCache,
 )
-from model_fit.application.switch.state.types.storage import TransferStateStore
+from model_fit.application.switch.types.storage import TransferStateStore
 
 from model_fit.application.assessment.lifecycle import load_blocking_recommendation
 
@@ -60,7 +60,7 @@ def retain_manual_recommendation(
         operation="prompt_submit",
         turn_id=event.turn_id,
     ) as slot:
-        submission_lifecycle.require_submission(slot, expected_submission)
+        switch_lifecycle.require_submission(slot, expected_submission)
         current = slot.load()
         submitted = (
             current is not None

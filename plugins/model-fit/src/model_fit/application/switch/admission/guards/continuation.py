@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from model_fit.application.switch.state.types.record import HandoffStateRecord
+from model_fit.application.switch.types.state import ProcessSnapshot
 
 from model_fit.application.switch.admission.types.tools import TransferTools
 from model_fit.application.switch.admission.types.input import ToolAdmissionInput
@@ -8,7 +8,7 @@ from model_fit.application.switch.admission.types.input import ToolAdmissionInpu
 
 def can_continue_admitted_tool(
     event: ToolAdmissionInput,
-    state: HandoffStateRecord | None,
+    state: ProcessSnapshot | None,
     *,
     actions: TransferTools,
 ) -> bool:
@@ -31,7 +31,7 @@ def can_continue_admitted_tool(
 
 def can_continue_failed_assessment(
     event: ToolAdmissionInput,
-    state: HandoffStateRecord | None,
+    state: ProcessSnapshot | None,
     *,
     actions: TransferTools,
 ) -> bool:

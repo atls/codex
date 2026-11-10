@@ -1,8 +1,9 @@
+from model_fit.application.handoff.types.source import HandoffSource
 from collections.abc import Callable
 from types import TracebackType
 from typing import Self
 
-from model_fit.application.switch.state.types.record import HandoffStateRecord
+from model_fit.application.switch.types.state import ProcessSnapshot
 from model_fit.infrastructure.adapters.codex.transport.reader import AppServerReader
 from model_fit.application.submission.types.json import JsonValue
 from model_fit.application.submission.constraints.content import (
@@ -104,13 +105,13 @@ class ConversationGateway:
         )
 
     def handoff_input(
-        self, thread_id: str, state: HandoffStateRecord
+        self, thread_id: str, source: HandoffSource
     ) -> list[dict[str, JsonValue]]:
         return checked_content(
-            conversation.handoff_input(self.reader, thread_id, state)
+            conversation.handoff_input(self.reader, thread_id, source)
         )
 
-    def replay_finished(self, thread_id: str, state: HandoffStateRecord) -> bool:
+    def replay_finished(self, thread_id: str, state: ProcessSnapshot) -> bool:
         return conversation.replay_finished(self.reader, thread_id, state)
 
     def source_terminal_without_replay(

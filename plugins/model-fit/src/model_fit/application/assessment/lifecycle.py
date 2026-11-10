@@ -1,6 +1,10 @@
 """Own assessment registration, execution and evaluation progress."""
 
 from __future__ import annotations
+
+from model_fit.application.assessment.constraints.context import MAX_CONTEXT_CHARS
+
+
 from model_fit.application.assessment.types.result import UnknownAssessment
 from model_fit.application.assessment.helpers.failure import evaluation_error
 from model_fit.application.assessment.types.cache import ResultCache
@@ -91,7 +95,7 @@ def assess(
 
 
 def register(event: SubmissionInput, prompt_hash: str) -> PendingAssessmentRecord:
-    generation = uuid4().hex
+    generation = new_generation()
     pending: PendingAssessmentRecord = {
         "thread_id": event.thread_id,
         "turn_id": event.turn_id,
@@ -172,6 +176,11 @@ def reassess(
     updated: ProfileAssessmentInput = {
         **request,
         "active_profile": profile,
-        "context": context + (request.get("context") or "")[: 20000 - len(context)],
+        "context": context
+        + (request.get("context") or "")[: MAX_CONTEXT_CHARS - len(context)],
     }
     return Reassessment(register(event, prompt_digest(event.text)), updated)
+
+
+def new_generation() -> str:
+    return uuid4().hex

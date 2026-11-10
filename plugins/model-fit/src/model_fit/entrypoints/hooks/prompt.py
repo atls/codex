@@ -11,7 +11,7 @@ import os
 import subprocess
 import sys
 
-from model_fit.application.switch.recommendation.prompt import decide as decide_prompt
+from model_fit.application.switch.handlers.prompt import decide as decide_prompt
 from model_fit.entrypoints.hooks.presentation import render_disposition
 from model_fit.infrastructure.adapters.codex.assessment import triage
 from model_fit.application.submission.helpers.content import (

@@ -1,3 +1,5 @@
+from model_fit.application.answer.types.result import AnswerVerdict
+import model_fit.application.answer.relevance as answer_check
 from model_fit.entrypoints.hooks.types.output import HookOutput
 from model_fit.application.switch.admission.types.result import DeniedTool
 from collections.abc import Callable
@@ -12,11 +14,11 @@ import time
 from model_fit.entrypoints.hooks.delivery import deliver_disposition
 
 import model_fit.infrastructure.adapters.codex.answer as answer_relevance
-from model_fit.application.switch.scenarios.finish import (
+from model_fit.application.switch.handlers.completion import (
     finish as run_guard_replay_answer,
 )
 from model_fit.application.handoff.lifecycle import enqueue as run_enqueue
-from model_fit.application.switch.admission.scenario import guard_tool as run_guard_tool
+from model_fit.application.switch.admission.handler import guard_tool as run_guard_tool
 from model_fit.application.switch.admission.guards.continuation import (
     can_continue_admitted_tool as continue_tool,
 )
@@ -43,9 +45,11 @@ from model_fit.infrastructure.adapters.filesystem.assessment_cache import (
     FileAssessmentCache,
 )
 from model_fit.infrastructure.adapters.filesystem.store import FileStore
-from model_fit.application.switch.scenarios.accept import accept as run_submit
-from model_fit.application.switch.scenarios.assess import assess as run_assess_submitted
-from model_fit.application.switch.scenarios.reassess import reassess as run_reassess
+from model_fit.application.switch.handlers.submission import accept as run_submit
+from model_fit.application.switch.handlers.assessment import (
+    assess as run_assess_submitted,
+)
+from model_fit.application.switch.handlers.reassessment import reassess as run_reassess
 
 
 def native_conversation(
@@ -114,7 +118,7 @@ def guard_replay_answer(
         answer_input(event),
         audit=record_audit,
         conversation=native_conversation(native_factory),
-        relevance=answer_relevance.classify_answer,
+        relevance=check_answer,
         store=FileStore(),
     )
     return deliver_disposition(result, store=FileStore(), audit=record_audit)
@@ -198,4 +202,10 @@ def can_continue_admitted_tool(event: dict[str, JsonValue]) -> bool:
         tool_input(event),
         FileStore().snapshot(tool_input(event).thread_id),
         actions=NativeTransferTools(),
+    )
+
+
+def check_answer(request: str, context: str, answer: str) -> AnswerVerdict:
+    return answer_check.classify_answer(
+        request, context, answer, evaluator=answer_relevance.evaluate_relevance
     )

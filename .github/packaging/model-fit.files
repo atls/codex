@@ -3,6 +3,7 @@ assets/
 hooks/
 scripts/
 skills/
+skills/model-fit/references/assessment-policy.md
 src/model_fit/
 pyproject.toml
 uv.lock

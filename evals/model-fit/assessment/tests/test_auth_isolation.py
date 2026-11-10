@@ -21,6 +21,37 @@ def load(name, path):
 
 
 class AuthIsolationTests(unittest.TestCase):
+    def test_missing_selected_assets_do_not_use_a_foreign_user_skill(self):
+        from model_fit.application.assessment.exceptions.source_unavailable import (
+            SourceUnavailable,
+        )
+        from model_fit.infrastructure.adapters.codex.transport.assessment import session
+
+        for missing in ("skill", "policy"):
+            with (
+                self.subTest(missing=missing),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                root = Path(directory)
+                foreign = root / "home/skills/model-fit"
+                foreign.mkdir(parents=True)
+                (foreign / "SKILL.md").write_text("Foreign user policy")
+                selected = root / "selected"
+                selected.mkdir()
+                if missing == "policy":
+                    (selected / "SKILL.md").write_text("Selected policy entrypoint")
+                with (
+                    patch.dict(os.environ, {"CODEX_HOME": str(root / "home")}),
+                    patch.object(session, "SKILL", selected),
+                    patch.object(
+                        session,
+                        "authenticated_home",
+                        side_effect=AssertionError("Credentials are not needed"),
+                    ),
+                    self.assertRaises(SourceUnavailable),
+                ):
+                    session.AppServer(root)
+
     def test_app_servers_can_replace_private_auth_without_changing_login(self):
         for name, path in (
             (
@@ -57,6 +88,8 @@ class AuthIsolationTests(unittest.TestCase):
                         app.home.cleanup()
 
     def test_relevance_evaluator_cannot_write_through_to_login(self):
+        from model_fit.application.answer.relevance import classify_answer
+
         module = load(
             "isolation_replay",
             SCRIPTS / "infrastructure/adapters/codex/answer.py",
@@ -86,7 +119,13 @@ class AuthIsolationTests(unittest.TestCase):
                 patch.object(module.subprocess, "run", side_effect=execute),
             ):
                 self.assertEqual(
-                    module.classify_answer("request", "context", "answer"), "relevant"
+                    classify_answer(
+                        "request",
+                        "context",
+                        "answer",
+                        evaluator=module.evaluate_relevance,
+                    ),
+                    "relevant",
                 )
             self.assertEqual(source.read_bytes(), original)
 

@@ -14,7 +14,7 @@ from typing import Iterator
 from model_fit.application.submission.types.json import JsonValue
 
 from model_fit.infrastructure.adapters.codex.identity import SESSION_ID_PATTERN
-from model_fit.application.switch.state.types.record import HandoffStateRecord
+from model_fit.application.switch.types.state import ProcessSnapshot
 from model_fit.infrastructure.adapters.filesystem.state_codec import decode_state
 
 STATE_DIRECTORY = ".tmp/model-fit-auto-switch"
@@ -95,13 +95,13 @@ def lock_owner(thread_id: str) -> dict[str, JsonValue]:
     return details
 
 
-def read_state(path: Path) -> HandoffStateRecord | None:
+def read_state(path: Path) -> ProcessSnapshot | None:
     if not path.exists():
         return None
     return decode_state(json.loads(path.read_text()))
 
 
-def write_state(path: Path, state: HandoffStateRecord) -> None:
+def write_state(path: Path, state: ProcessSnapshot) -> None:
     temporary = None
     try:
         with tempfile.NamedTemporaryFile(

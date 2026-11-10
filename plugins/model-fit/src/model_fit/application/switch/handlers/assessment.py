@@ -6,20 +6,19 @@ from model_fit.application.switch.exceptions.context_unavailable import (
     ContextUnavailable,
 )
 
+from model_fit.application.handoff.types.replay import ReplayBound, OwnerProfileChanged
 from model_fit.application.handoff import lifecycle as handoff_lifecycle
-from model_fit.application.switch.lifecycle import (
-    profile_choice as profile_choice_lifecycle,
-)
-from model_fit.application.switch.lifecycle import submission as submission_lifecycle
+from model_fit.application.switch import lifecycle as switch_lifecycle
 
 
 from collections.abc import Callable
 
+from model_fit.application.assessment.guards.generation import require_generation
 from model_fit.application.assessment.types.profile import ActiveProfile
 from model_fit.application.assessment.types.state import PendingAssessmentRecord
 from model_fit.application.assessment.exceptions.superseded import AssessmentSuperseded
 from model_fit.application.switch.exceptions.unavailable import SubmissionUnavailable
-from model_fit.application.switch.scenarios.evaluate import evaluate
+from model_fit.application.switch.handlers.processing import evaluate
 from model_fit.application.assessment.types.execution import AssessmentRunner
 from model_fit.application.switch.types.audit import AuditWriter
 from model_fit.application.assessment.types.execution import AssessmentContextReader
@@ -43,7 +42,7 @@ from model_fit.application.submission.types.input import SubmissionInput
 from model_fit.application.assessment.types.cache import (
     ResultCache,
 )
-from model_fit.application.switch.state.types.storage import TransferStateStore
+from model_fit.application.switch.types.storage import TransferStateStore
 from model_fit.application.switch.admission.recommendation import (
     blocking_recommendation,
 )
@@ -87,7 +86,7 @@ def assess(
                 return TurnNotice(
                     "Model Fit: assessment is already running; wait for the first invocation's result."
                 )
-            pending = submission_lifecycle.start_assessment(slot)
+            pending = switch_lifecycle.start_assessment(slot)
         event = decode(pending, "")
         if event.thread_id != thread_id:
             raise ValueError("Submitted input belongs to another Codex thread")
@@ -109,7 +108,7 @@ def assess(
                     turn_id=event.turn_id,
                 ) as slot:
                     current = slot.load()
-                    submission_lifecycle.require_submission(slot, pending)
+                    switch_lifecycle.require_submission(slot, pending)
                     blocked = blocking_recommendation(
                         event,
                         prompt_hash=pending["prompt_hash"],
@@ -118,8 +117,8 @@ def assess(
                     )
                     if blocked is not None:
                         recommendations.clear(thread_id)
-                    profile_choice_lifecycle.admit(slot, event.turn_id, "unknown")
-                    submission_lifecycle.finish_assessment(slot, pending)
+                    switch_lifecycle.admit(slot, event.turn_id, "unknown")
+                    switch_lifecycle.finish_assessment(slot, pending)
                 audit(
                     thread_id,
                     event.turn_id,
@@ -156,8 +155,8 @@ def assess(
                     with store.transaction(
                         thread_id, operation="assessment", turn_id=event.turn_id
                     ) as slot:
-                        submission_lifecycle.require_submission(slot, pending)
-                        profile_choice_lifecycle.admit(
+                        switch_lifecycle.require_submission(slot, pending)
+                        switch_lifecycle.admit(
                             slot,
                             event.turn_id,
                             "native_override",
@@ -174,59 +173,39 @@ def assess(
                         },
                     )
                 if state["phase"] == "queued":
-                    matches = accepted.client_message_id == state.get(
-                        "queued_client_message_id", state["source_turn_id"]
-                    )
                     with store.transaction(
                         thread_id, operation="assessment", turn_id=event.turn_id
                     ) as slot:
-                        current = submission_lifecycle.require_submission(slot, pending)
-                        if state["queued_submission_id"] in queued:
-                            raise RuntimeError(
-                                "Previous native submission is still queued"
-                            )
-                        unchanged = codec.input_digest(accepted.content) == state.get(
-                            "queued_input_digest"
+                        current = switch_lifecycle.require_submission(slot, pending)
+                        replay = handoff_lifecycle.reconcile_accepted(
+                            slot,
+                            current,
+                            turn_id=event.turn_id,
+                            accepted=accepted,
+                            profile=request["active_profile"],
+                            queued_ids=queued,
                         )
-                        if matches and (
-                            request["active_profile"]["model"],
-                            request["active_profile"]["effort"],
-                        ) != (state["target_model"], state["target_effort"]):
-                            submission_lifecycle.consume_submission(
-                                slot, event.turn_id, pending
-                            )
-                            profile_choice_lifecycle.admit(
-                                slot,
-                                event.turn_id,
-                                "native_override",
-                                event.turn_id,
-                                native_profile=request["active_profile"],
-                            )
-                            submission_lifecycle.finish_assessment(slot, pending)
-                            audit(
-                                thread_id, event.turn_id, "auto_native_profile_override"
-                            )
-                            return ContinueWork(
-                                "Model Fit: the native owner changed the profile after queueing. The current profile is retained; its suitability was not reassessed here. Perform the current original request with all current attachments and annotations."
-                            )
-                        if matches and unchanged:
-                            handoff_lifecycle.bind_replay(slot, current, event.turn_id)
+                        if isinstance(replay, ReplayBound):
                             audit(thread_id, event.turn_id, "auto_replay")
                             return ContinueWork(WorkContext.REPLAY)
-                        submission_lifecycle.consume_submission(
-                            slot, event.turn_id, pending
-                        )
-                        if not matches and (
-                            request["active_profile"]["model"],
-                            request["active_profile"]["effort"],
-                        ) != (state["target_model"], state["target_effort"]):
-                            profile_choice_lifecycle.admit(
+                        if isinstance(replay, OwnerProfileChanged):
+                            switch_lifecycle.admit(
                                 slot,
                                 event.turn_id,
                                 "native_override",
                                 event.turn_id,
                                 native_profile=request["active_profile"],
                             )
+                            if replay.same_source:
+                                switch_lifecycle.finish_assessment(slot, pending)
+                                audit(
+                                    thread_id,
+                                    event.turn_id,
+                                    "auto_native_profile_override",
+                                )
+                                return ContinueWork(
+                                    "Model Fit: the native owner changed the profile after queueing. The current profile is retained; its suitability was not reassessed here. Perform the current original request with all current attachments and annotations."
+                                )
                             audit(
                                 thread_id,
                                 event.turn_id,
@@ -240,7 +219,7 @@ def assess(
                         thread_id,
                         event.turn_id,
                         "auto_native_input_changed"
-                        if matches
+                        if replay.same_source
                         else "auto_native_queue_detached",
                     )
                 request = {**request, "input": accepted.content}
@@ -274,14 +253,15 @@ def assess(
                         thread_id, operation="assessment", turn_id=event.turn_id
                     ) as slot:
                         current = slot.load()
-                        if (
-                            current is None
-                            or current.get("assessment_generation")
-                            != pending["generation"]
-                        ):
-                            raise AssessmentSuperseded(
-                                thread_id, event.turn_id, pending["generation"]
-                            )
+                        require_generation(
+                            thread_id,
+                            event.turn_id,
+                            pending["generation"],
+                            current.get("assessment_generation")
+                            if current is not None
+                            else None,
+                        )
+                        assert current is not None
                         if current["phase"] not in {"ready", "passed", "submitted"}:
                             raise RuntimeError(
                                 "Native choice cannot discard unresolved transfer"
@@ -295,14 +275,14 @@ def assess(
                             )
                         ):
                             recommendations.clear(thread_id)
-                        profile_choice_lifecycle.admit(
+                        switch_lifecycle.admit(
                             slot,
                             event.turn_id,
                             "native_override",
                             event.turn_id,
                             native_profile=selected,
                         )
-                        submission_lifecycle.finish_assessment(
+                        switch_lifecycle.finish_assessment(
                             slot, pending, assessed_profile=selected
                         )
                     audit(
@@ -321,17 +301,18 @@ def assess(
                 thread_id, operation="assessment", turn_id=event.turn_id
             ) as slot:
                 current = slot.load()
-                if (
-                    current is None
-                    or current.get("assessment_generation") != pending["generation"]
-                ):
-                    raise AssessmentSuperseded(
-                        thread_id, event.turn_id, pending["generation"]
-                    )
+                require_generation(
+                    thread_id,
+                    event.turn_id,
+                    pending["generation"],
+                    current.get("assessment_generation")
+                    if current is not None
+                    else None,
+                )
                 if output is not None and blocks_work(output):
-                    submission_lifecycle.fail_assessment(slot, pending)
+                    switch_lifecycle.fail_assessment(slot, pending)
                 else:
-                    submission_lifecycle.finish_assessment(
+                    switch_lifecycle.finish_assessment(
                         slot, pending, assessed_profile=request["active_profile"]
                     )
             audit(
@@ -360,7 +341,7 @@ def assess(
                     operation="assessment",
                     turn_id=event.turn_id,
                 ) as slot:
-                    submission_lifecycle.fail_assessment(
+                    switch_lifecycle.fail_assessment(
                         slot, pending, reason="assessment_failed"
                     )
             except BlockingIOError:

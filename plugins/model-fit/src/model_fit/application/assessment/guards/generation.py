@@ -14,3 +14,17 @@ def require_current(
 def require_waiting(pending: PendingAssessmentRecord) -> None:
     if pending["status"] != "waiting":
         raise RuntimeError("Submitted Model Fit input is not awaiting assessment")
+
+
+def generation_known(value: str | int | None) -> bool:
+    return type(value) is int or (isinstance(value, str) and bool(value))
+
+
+def require_generation(
+    thread_id: str,
+    turn_id: str,
+    expected: str | int,
+    observed: str | int | None,
+) -> None:
+    if not generation_known(expected) or observed != expected:
+        raise AssessmentSuperseded(thread_id, turn_id, expected)

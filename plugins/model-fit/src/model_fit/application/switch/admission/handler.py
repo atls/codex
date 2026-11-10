@@ -18,7 +18,7 @@ from model_fit.application.handoff.types.conversation import (
 from model_fit.application.assessment.types.cache import (
     ResultCache,
 )
-from model_fit.application.switch.state.types.storage import TransferStateStore
+from model_fit.application.switch.types.storage import TransferStateStore
 from model_fit.application.switch.admission.types.input import ToolAdmissionInput
 from model_fit.application.switch.admission.guards.continuation import (
     can_continue_failed_assessment,

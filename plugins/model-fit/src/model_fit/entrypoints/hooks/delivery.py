@@ -1,6 +1,6 @@
 from model_fit.entrypoints.hooks.types.output import HookOutput
-from model_fit.application.handoff.lifecycle import preparation_is_current
-from model_fit.application.switch.state.types.storage import TransferStateStore
+from model_fit.application.handoff.guards.authorization import preparation_is_current
+from model_fit.application.switch.types.storage import TransferStateStore
 from model_fit.application.switch.types.audit import AuditWriter
 from model_fit.application.switch.types.disposition import (
     PreparedTransfer,

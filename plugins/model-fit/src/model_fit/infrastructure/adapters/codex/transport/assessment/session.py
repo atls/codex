@@ -8,6 +8,9 @@ import subprocess
 from pathlib import Path
 
 from model_fit.infrastructure.adapters.codex.authentication import authenticated_home
+from model_fit.application.assessment.exceptions.source_unavailable import (
+    SourceUnavailable,
+)
 from model_fit.infrastructure.adapters.codex.transport.connection import (
     AppServerConnection,
 )
@@ -24,12 +27,11 @@ class AppServer(AppServerConnection):
         codex_path: str = "codex",
     ) -> None:
         if skill_dir is None:
-            skill_dir = (
-                SKILL
-                if (SKILL / "SKILL.md").is_file()
-                else Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
-                / "skills/model-fit"
-            )
+            skill_dir = SKILL
+            if not (skill_dir / "references/assessment-policy.md").is_file():
+                raise SourceUnavailable("Model Fit assessment policy")
+        if not (skill_dir / "SKILL.md").is_file():
+            raise SourceUnavailable("Model Fit skill")
         self.home = authenticated_home("model-fit-preflight-home-")
         installed = Path(self.home.name) / "skills/model-fit"
         installed.parent.mkdir(parents=True)

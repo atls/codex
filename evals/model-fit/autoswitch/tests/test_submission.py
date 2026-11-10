@@ -1419,9 +1419,7 @@ class SubmittedInputTests(unittest.TestCase):
     def test_keep_stop_does_not_judge_multimodal_input_as_plain_text(self):
         api.submit_prompt(self.event)
         self.assess()
-        with patch(
-            "model_fit.infrastructure.adapters.codex.answer.classify_answer"
-        ) as judge:
+        with patch("model_fit.entrypoints.hooks.operations.check_answer") as judge:
             result = api.guard_replay_answer(
                 {
                     **self.event,
@@ -1445,7 +1443,7 @@ class SubmittedInputTests(unittest.TestCase):
         self.assess()
         answer = "The virtual machine stopped responding four days ago; here are its old kernel logs."
         with patch(
-            "model_fit.infrastructure.adapters.codex.answer.classify_answer",
+            "model_fit.entrypoints.hooks.operations.check_answer",
             return_value="unrelated",
         ) as judge:
             result = api.guard_replay_answer(
@@ -1482,16 +1480,14 @@ class SubmittedInputTests(unittest.TestCase):
             with (
                 self.subTest(verdict=verdict),
                 patch(
-                    "model_fit.infrastructure.adapters.codex.answer.classify_answer",
+                    "model_fit.entrypoints.hooks.operations.check_answer",
                     return_value=verdict,
                 ),
             ):
                 self.assertIsNone(
                     api.guard_replay_answer(event, native_factory=lambda _: self.reader)
                 )
-        with patch(
-            "model_fit.infrastructure.adapters.codex.answer.classify_answer"
-        ) as judge:
+        with patch("model_fit.entrypoints.hooks.operations.check_answer") as judge:
             self.assertIsNone(
                 api.guard_replay_answer(
                     {**event, "stop_hook_active": True},
@@ -1512,7 +1508,7 @@ class SubmittedInputTests(unittest.TestCase):
             return "unrelated"
 
         with patch(
-            "model_fit.infrastructure.adapters.codex.answer.classify_answer",
+            "model_fit.entrypoints.hooks.operations.check_answer",
             side_effect=changed,
         ):
             self.assertIsNone(
@@ -1545,7 +1541,7 @@ class SubmittedInputTests(unittest.TestCase):
             return "unrelated"
 
         with patch(
-            "model_fit.infrastructure.adapters.codex.answer.classify_answer",
+            "model_fit.entrypoints.hooks.operations.check_answer",
             side_effect=steered,
         ):
             result = api.guard_replay_answer(
@@ -1563,9 +1559,7 @@ class SubmittedInputTests(unittest.TestCase):
         self.content = [{"type": "text", "text": "Prepare the local form."}]
         api.submit_prompt(self.event)
         self.assess(decision=lambda _: {"decision": "unknown"})
-        with patch(
-            "model_fit.infrastructure.adapters.codex.answer.classify_answer"
-        ) as judge:
+        with patch("model_fit.entrypoints.hooks.operations.check_answer") as judge:
             self.assertIsNone(
                 api.guard_replay_answer(
                     {
@@ -1585,9 +1579,7 @@ class SubmittedInputTests(unittest.TestCase):
                 "assessment_decision": "keep",
             },
         )
-        with patch(
-            "model_fit.infrastructure.adapters.codex.answer.classify_answer"
-        ) as judge:
+        with patch("model_fit.entrypoints.hooks.operations.check_answer") as judge:
             self.assertIsNone(
                 api.guard_replay_answer(
                     {

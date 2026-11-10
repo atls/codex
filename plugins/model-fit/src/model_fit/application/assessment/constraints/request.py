@@ -1,3 +1,4 @@
+from model_fit.application.assessment.constraints.context import valid_context
 from model_fit.application.assessment.helpers.context import requirements_context
 from model_fit.application.assessment.decoding import decode_profile
 from model_fit.application.assessment.types.profile import ActiveProfile
@@ -29,7 +30,7 @@ def validated_request(
     if not isinstance(task, str) or not task.strip():
         raise ValueError("Task or native input is required")
     context = request.get("context")
-    if context is not None and (not isinstance(context, str) or len(context) > 20000):
+    if not valid_context(context):
         raise ValueError("Task context must be at most 20000 characters")
     prior = request.get("prior_choice")
     if prior is not None:
@@ -56,5 +57,5 @@ def validated_request(
 def require_reassessment(requirements: str) -> None:
     if not isinstance(requirements, str) or not requirements.strip():
         raise ValueError("Changed requirements must be nonempty")
-    if len(requirements_context(requirements)) > 20000:
+    if not valid_context(requirements_context(requirements)):
         raise ValueError("Changed requirements exceed the assessment context limit")

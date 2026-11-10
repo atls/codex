@@ -1,6 +1,15 @@
+"""Build bounded assessment context from explicit native facts."""
+
 from __future__ import annotations
 
-"Extract bounded working context from native conversation messages."
+from model_fit.application.assessment.constraints.context import MAX_CONTEXT_CHARS
+from model_fit.application.assessment.types.request import ProfileAssessmentInput
+from model_fit.application.assessment.types.context import (
+    ContextAugmentation,
+    NativeProfileObservation,
+    PriorClarification,
+)
+
 from collections.abc import Mapping, Sequence
 from model_fit.application.submission.types.json import JsonValue
 from model_fit.application.submission.constraints.content import checked_content
@@ -90,3 +99,45 @@ def requirements_context(requirements: str) -> str:
         + requirements
         + "\n\n"
     )
+
+
+def restore_context(
+    request: ProfileAssessmentInput, augmentation: ContextAugmentation
+) -> ProfileAssessmentInput:
+    updated: ProfileAssessmentInput = {**request}
+    if isinstance(augmentation.choice, NativeProfileObservation):
+        label = "Retained native chat owner's profile choice for the current work:\n"
+        if augmentation.choice.current_turn:
+            clarification = (
+                "When checking the accepted current message, the native profile differs from the previous handoff profile: it is now "
+                + str(augmentation.choice.profile)
+                + ". Account for this fresh choice on the current request. Retain it unless the current user message explicitly requests profile reselection or a profile change. This records a choice, not evidence of suitability or a minimum model."
+            )
+        else:
+            clarification = (
+                "After the previous request was queued, the native chat owner changed the profile to "
+                + str(augmentation.choice.profile)
+                + ". Retain the selected profile for the same work until the user separately authorizes a change. This records a choice, not an assessment of suitability or a minimum model."
+            )
+    elif isinstance(augmentation.choice, PriorClarification):
+        label = "Previous user clarification that cancelled the handoff; account for it on the same work:\n"
+        clarification = augmentation.choice.text
+    if augmentation.choice is not None:
+        updated["context"] = (
+            label + clarification + "\n\n" + (updated.get("context") or "")
+        )[:MAX_CONTEXT_CHARS]
+    unfinished = augmentation.unfinished
+    if unfinished is not None:
+        if unfinished.content is not None:
+            updated["input"] = (
+                unfinished.content
+                if unfinished.replaces_current
+                else unfinished.content + updated.get("input", [])
+            )
+        updated["context"] = (
+            "Original unfinished user request:\n"
+            + unfinished.prompt
+            + "\n\n"
+            + (updated.get("context") or "")
+        )[:MAX_CONTEXT_CHARS]
+    return updated

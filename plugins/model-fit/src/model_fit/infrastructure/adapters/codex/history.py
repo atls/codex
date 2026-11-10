@@ -1,8 +1,10 @@
+from __future__ import annotations
+from model_fit.application.handoff.types.source import HandoffSource
+
 """Read native Desktop state, source messages and queue lifecycle."""
 
-from __future__ import annotations
 
-from model_fit.application.switch.state.types.record import HandoffStateRecord
+from model_fit.application.switch.types.state import ProcessSnapshot
 
 import time
 from typing import Iterator
@@ -110,16 +112,16 @@ def source_input(
 
 
 def handoff_input(
-    app: AppServerReader, thread_id: str, state: HandoffStateRecord
+    app: AppServerReader, thread_id: str, source: HandoffSource
 ) -> list[dict[str, JsonValue]]:
     content = source_input(
         app,
         thread_id,
-        state["source_turn_id"],
+        source.turn_id,
         include_steering=True,
-        expected_prompt=state.get("prompt"),
+        expected_prompt=source.expected_prompt,
     )
-    for continuation in state.get("continuation_turn_ids", []):
+    for continuation in source.continuation_turn_ids:
         content.extend(
             source_input(app, thread_id, continuation, include_steering=True)
         )
@@ -173,7 +175,7 @@ def handoff_turns(
 
 
 def replay_finished(
-    app: AppServerReader, thread_id: str, state: HandoffStateRecord
+    app: AppServerReader, thread_id: str, state: ProcessSnapshot
 ) -> bool:
     for turn in handoff_turns(app, thread_id):
         replay_turn_id = state.get("replay_turn_id")
