@@ -16,6 +16,7 @@ from model_fit.autoswitch.types.disposition import (
 from model_fit.autoswitch.disposition import assessment_disposition
 
 from model_fit.autoswitch.recommendation.check import recommended_profile
+from model_fit.autoswitch.recommendation.identity import assessment_hash
 
 
 def decide(
@@ -40,10 +41,11 @@ def decide(
         pending = None
     if pending is not None and pending["prompt_hash"] == digest(request["task"]):
         if pending["active_profile"] == request["active_profile"]:
-            if observe is not None:
-                observe("cached_" + pending["result"]["decision"])
-            return assessment_disposition(pending["result"])
-        if recommended_profile(pending) == request["active_profile"]:
+            if pending.get("assessment_hash") == assessment_hash(request):
+                if observe is not None:
+                    observe("cached_" + pending["result"]["decision"])
+                return assessment_disposition(pending["result"])
+        elif recommended_profile(pending) == request["active_profile"]:
             recommendations.clear(thread_id, missing_ok=True)
             if observe is not None:
                 observe("selected")

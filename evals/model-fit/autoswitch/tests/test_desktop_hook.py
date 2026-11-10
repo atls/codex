@@ -462,6 +462,60 @@ class DesktopHookTests(unittest.TestCase):
                     HOOK.pending_path("thread-b").read_bytes(), other_before
                 )
 
+    def test_cached_proposal_cannot_bypass_changed_context_or_input(self):
+        from model_fit.assessment.validation import empty_decision
+
+        request = {
+            "task": "Explain this result.",
+            "context": "The original deliverable is being executed.",
+            "active_profile": self.active,
+            "input": [
+                {"type": "text", "text": "Explain this result.", "text_elements": []}
+            ],
+        }
+        proposal = {
+            **empty_decision(self.active, "keep", "Fixture proposal"),
+            "decision": "recommend_stronger",
+            "recommended_model": "gpt-6.1-sol",
+            "recommended_effort": "medium",
+            "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+            "official_guidance": "Match the model to the required work.",
+            "task_inference": "A different profile was previously proposed.",
+        }
+        for changed in ("context", "input", "legacy_cache"):
+            with (
+                self.subTest(changed=changed),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                path = Path(directory) / "pending.json"
+                with patch.object(HOOK, "triage", return_value=proposal):
+                    self.assertEqual(HOOK.decide(request, path)["decision"], "block")
+                followup = dict(request)
+                if changed == "context":
+                    followup["context"] = (
+                        "The user is reviewing an omission in the completed result."
+                    )
+                elif changed == "input":
+                    followup["input"] = [
+                        {
+                            "type": "text",
+                            "text": "Explain this result.",
+                            "text_elements": [
+                                {"placeholder": "selected previous answer"}
+                            ],
+                        }
+                    ]
+                else:
+                    cached = json.loads(path.read_text())
+                    cached.pop("assessment_hash", None)
+                    path.write_text(json.dumps(cached))
+                with patch.object(
+                    HOOK, "triage", return_value={"decision": "keep"}
+                ) as triage:
+                    self.assertIsNone(HOOK.decide(followup, path))
+                    triage.assert_called_once_with(followup)
+                self.assertFalse(path.exists())
+
     def test_pending_mismatch_blocks_retry_without_another_model_call(self):
         request = {"task": self.event["prompt"], "active_profile": self.active}
         decision = {

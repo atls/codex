@@ -7,6 +7,7 @@ from model_fit.assessment.types.decision import AssessmentDecision
 from model_fit.autoswitch.recommendation.types.record import RecommendationRecord
 from model_fit.assessment.validation import validated_active_profile
 from model_fit.autoswitch.recommendation.decoding import decode_evidence
+from model_fit.autoswitch.recommendation.identity import assessment_hash
 
 from model_fit.assessment.validation import RECOMMENDATIONS
 from model_fit.native_input.codec import prompt_digest as prompt_hash
@@ -24,11 +25,12 @@ def load_pending(path: Path) -> RecommendationRecord | None:
     if not path.exists():
         return None
     pending = json.loads(path.read_text())
-    if not isinstance(pending, dict) or set(pending) != {
-        "prompt_hash",
-        "active_profile",
-        "result",
-    }:
+    required = {"prompt_hash", "active_profile", "result"}
+    if (
+        not isinstance(pending, dict)
+        or not required.issubset(pending)
+        or not set(pending).issubset(required | {"assessment_hash"})
+    ):
         raise ValueError("Invalid pending recommendation")
     if not isinstance(pending["prompt_hash"], str) or not isinstance(
         pending["active_profile"], dict
@@ -39,13 +41,19 @@ def load_pending(path: Path) -> RecommendationRecord | None:
         or pending["result"].get("decision") not in RECOMMENDATIONS
     ):
         raise ValueError("Invalid pending recommendation")
-    return {
+    record: RecommendationRecord = {
         "prompt_hash": pending["prompt_hash"],
         "active_profile": validated_active_profile(
             {"active_profile": pending["active_profile"]}
         ),
         "result": decode_evidence(pending["result"]),
     }
+    if "assessment_hash" in pending:
+        fingerprint = pending["assessment_hash"]
+        if not isinstance(fingerprint, str):
+            raise ValueError("Invalid assessment input hash")
+        record["assessment_hash"] = fingerprint
+    return record
 
 
 def save_pending(
@@ -56,6 +64,7 @@ def save_pending(
         "prompt_hash": prompt_hash(request["task"]),
         "active_profile": request["active_profile"],
         "result": result,
+        "assessment_hash": assessment_hash(request),
     }
     temporary_path = None
     try:
