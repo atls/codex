@@ -11,6 +11,9 @@ import unittest
 import sys
 import zipfile
 from pathlib import Path
+from contextlib import ExitStack
+
+from native_process import native_process
 
 from model_fit.infrastructure.adapters.codex.transport.connection import (
     AppServerConnection,
@@ -26,7 +29,10 @@ class PluginInstallationTests(unittest.TestCase):
 
     def install_trust_and_revoke(self, marketplace):
         repository = Path(__file__).resolve().parents[4]
-        with tempfile.TemporaryDirectory(prefix="model-fit-plugin-test-") as directory:
+        with (
+            tempfile.TemporaryDirectory(prefix="model-fit-plugin-test-") as directory,
+            ExitStack() as processes,
+        ):
             home = Path(directory) / "home"
             home.mkdir()
             (home / "config.toml").write_text(
@@ -126,29 +132,31 @@ class PluginInstallationTests(unittest.TestCase):
                 ],
                 ["codex", "plugin", "add", plugin_id, "--json"],
             ):
-                installed = subprocess.run(
+                with native_process(
                     command,
                     env=environment,
-                    capture_output=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
                     text=True,
-                    check=False,
-                    timeout=60,
+                ) as installed:
+                    _, error = installed.communicate(timeout=60)
+                    self.assertEqual(installed.returncode, 0, error)
+            process = processes.enter_context(
+                native_process(
+                    [
+                        "codex",
+                        "app-server",
+                        "--listen",
+                        "stdio://",
+                        "-c",
+                        "features.hooks=true",
+                    ],
+                    env=environment,
+                    cwd=directory,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
                 )
-                self.assertEqual(installed.returncode, 0, installed.stderr)
-            process = subprocess.Popen(
-                [
-                    "codex",
-                    "app-server",
-                    "--listen",
-                    "stdio://",
-                    "-c",
-                    "features.hooks=true",
-                ],
-                env=environment,
-                cwd=directory,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
             )
             with AppServerConnection(
                 process, {"name": "model_fit_plugin_test", "version": "1"}
@@ -259,20 +267,22 @@ class PluginInstallationTests(unittest.TestCase):
             }
             with self.assertRaises(FileNotFoundError):
                 (home / ".tmp/model-fit-auto-switch/fixture-thread.json").read_bytes()
-            process = subprocess.Popen(
-                [
-                    "codex",
-                    "app-server",
-                    "--listen",
-                    "stdio://",
-                    "-c",
-                    "features.hooks=true",
-                ],
-                env=environment,
-                cwd=directory,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
+            process = processes.enter_context(
+                native_process(
+                    [
+                        "codex",
+                        "app-server",
+                        "--listen",
+                        "stdio://",
+                        "-c",
+                        "features.hooks=true",
+                    ],
+                    env=environment,
+                    cwd=directory,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                )
             )
             with AppServerConnection(
                 process, {"name": "model_fit_revoke_test", "version": "1"}
