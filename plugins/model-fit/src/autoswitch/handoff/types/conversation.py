@@ -7,6 +7,7 @@ from model_fit.autoswitch.handoff.types.accepted_input import (
 )
 from model_fit.autoswitch.handoff.types.queue_receipt import (
     NativeQueueReceipt,
+    NativeQueueRejection,
 )
 
 
@@ -21,7 +22,7 @@ class NativeConversation(Protocol):
 
     def enqueue(
         self, thread_id: str, turn_id: str, content: list[dict[str, JsonValue]]
-    ) -> NativeQueueReceipt: ...
+    ) -> NativeQueueReceipt | NativeQueueRejection: ...
 
     def delete(self, thread_id: str, submission_id: str) -> bool: ...
 
@@ -52,5 +53,5 @@ class NativeConversation(Protocol):
 
 class NativeConversationFactory(Protocol):
     def __call__(
-        self, cwd: object, /
+        self, cwd: str | None, /
     ) -> AbstractContextManager[NativeConversation]: ...

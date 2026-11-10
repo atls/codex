@@ -7,15 +7,13 @@ from model_fit.submission.types.input import SubmissionInput
 from model_fit.autoswitch.admission.types.input import ToolAdmissionInput
 from model_fit.infrastructure.adapters.codex.identity import executor_thread_id
 
-MISSING_DIRECTORY = object()
-
 
 def prompt_input(native: dict[str, JsonValue]) -> SubmissionInput:
     return SubmissionInput(
         executor_thread_id(native),
         required_text(native["turn_id"]),
         required_text(native["prompt"]),
-        native.get("cwd", MISSING_DIRECTORY),
+        optional_text(native.get("cwd")),
         optional_text(native.get("model")),
         native,
         session_id=required_text(native["session_id"]),
@@ -35,7 +33,7 @@ def answer_input(native: dict[str, JsonValue]) -> ReplayAnswerInput:
         optional_text(native.get("turn_id")),
         optional_text(native.get("last_assistant_message")),
         native.get("stop_hook_active") is True,
-        native.get("cwd", MISSING_DIRECTORY),
+        optional_text(native.get("cwd")),
         native,
     )
 

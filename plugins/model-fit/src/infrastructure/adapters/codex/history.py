@@ -5,8 +5,14 @@ from __future__ import annotations
 from model_fit.autoswitch.state.types.record import HandoffStateRecord
 
 import time
-from typing import Any, Iterator
-from model_fit.native_input.validation import checked_content, checked_object
+from typing import Iterator
+from model_fit.native_input.types.json import JsonValue
+from model_fit.native_input.validation import (
+    checked_content,
+    checked_object,
+    native_optional_text,
+    native_text,
+)
 from model_fit.assessment.types.request import ProfileAssessmentInput
 from model_fit.assessment.decoding import optional_text
 
@@ -36,16 +42,16 @@ TERMINAL_TURN_STATUSES = {"completed", "failed", "interrupted"}
 
 def source_messages(
     app: AppServerReader, thread_id: str, turn_id: str, include_steering: bool = True
-) -> list[dict[str, Any]]:
+) -> list[dict[str, JsonValue]]:
     cursor = None
     seen_cursors: set[str] = set()
-    messages = []
+    messages: list[dict[str, JsonValue]] = []
     deadline = time.monotonic() + INPUT_SCAN_TIMEOUT_SECONDS
     while True:
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise TimeoutError("Source input pagination timed out")
-        params: dict[str, Any] = {
+        params: dict[str, JsonValue] = {
             "threadId": thread_id,
             "turnId": turn_id,
             "limit": QUEUE_PAGE_LIMIT,
@@ -55,8 +61,8 @@ def source_messages(
         result = app.call(
             "thread/items/list", params, min(RPC_TIMEOUT_SECONDS, remaining)
         )
-        for entry in result["data"]:
-            item = entry["item"]
+        for entry in checked_content(result["data"]):
+            item = checked_object(entry["item"])
             if item.get("type") == "userMessage":
                 content = item.get("content")
                 if (
@@ -68,7 +74,7 @@ def source_messages(
                 messages.append(item)
                 if not include_steering:
                     return messages
-        cursor = result.get("nextCursor")
+        cursor = native_optional_text(result.get("nextCursor"))
         if cursor is None:
             if messages:
                 return messages
@@ -84,7 +90,7 @@ def source_input(
     turn_id: str,
     include_steering: bool = False,
     expected_prompt: str | None = None,
-) -> list[dict[str, Any]]:
+) -> list[dict[str, JsonValue]]:
     messages = source_messages(app, thread_id, turn_id, include_steering)
     first = checked_content(messages[0]["content"])
     if expected_prompt is not None and hook_prompt(first) != expected_prompt:
@@ -94,14 +100,15 @@ def source_input(
     return [
         value
         for message in messages
-        if input_text(message["content"]).strip() not in CONTROL_PROMPTS
-        for value in message["content"]
+        if input_text(checked_content(message["content"])).strip()
+        not in CONTROL_PROMPTS
+        for value in checked_content(message["content"])
     ]
 
 
 def handoff_input(
     app: AppServerReader, thread_id: str, state: HandoffStateRecord
-) -> list[dict[str, Any]]:
+) -> list[dict[str, JsonValue]]:
     content = source_input(
         app,
         thread_id,
@@ -121,12 +128,15 @@ def queued_ids(app: AppServerReader, thread_id: str) -> set[str]:
     cursor = None
     seen_cursors: set[str] = set()
     for _ in range(MAX_QUEUE_PAGES):
-        params: dict[str, Any] = {"threadId": thread_id, "limit": QUEUE_PAGE_LIMIT}
+        params: dict[str, JsonValue] = {
+            "threadId": thread_id,
+            "limit": QUEUE_PAGE_LIMIT,
+        }
         if cursor is not None:
             params["cursor"] = cursor
         result = app.call("thread/queue/list", params, RPC_TIMEOUT_SECONDS)
-        ids.update((item["id"] for item in result["data"]))
-        cursor = result.get("nextCursor")
+        ids.update(native_text(item["id"]) for item in checked_content(result["data"]))
+        cursor = native_optional_text(result.get("nextCursor"))
         if cursor is None:
             return ids
         if cursor in seen_cursors:
@@ -135,11 +145,13 @@ def queued_ids(app: AppServerReader, thread_id: str) -> set[str]:
     raise ValueError("Queue exceeds the bounded Model Fit scan")
 
 
-def handoff_turns(app: AppServerReader, thread_id: str) -> Iterator[dict[str, Any]]:
+def handoff_turns(
+    app: AppServerReader, thread_id: str
+) -> Iterator[dict[str, JsonValue]]:
     cursor = None
     seen_cursors: set[str] = set()
     for _ in range(MAX_QUEUE_PAGES):
-        params = {
+        params: dict[str, JsonValue] = {
             "threadId": thread_id,
             "limit": TURN_PAGE_LIMIT,
             "itemsView": "summary",
@@ -147,8 +159,8 @@ def handoff_turns(app: AppServerReader, thread_id: str) -> Iterator[dict[str, An
         if cursor is not None:
             params["cursor"] = cursor
         result = app.call("thread/turns/list", params, RPC_TIMEOUT_SECONDS)
-        yield from result["data"]
-        cursor = result.get("nextCursor")
+        yield from checked_content(result["data"])
+        cursor = native_optional_text(result.get("nextCursor"))
         if cursor is None:
             return
         if cursor in seen_cursors:
@@ -182,10 +194,10 @@ def replay_finished(
             {"threadId": thread_id, "turnId": turn["id"], "limit": 10},
             RPC_TIMEOUT_SECONDS,
         )["data"]
-        for entry in items:
-            item = entry["item"]
+        for entry in checked_content(items):
+            item = checked_object(entry["item"])
             if item.get("type") == "userMessage":
-                content = item.get("content", [])
+                content = checked_content(item.get("content", []))
                 matches = (
                     input_digest(content) == state["queued_input_digest"]
                     if "queued_input_digest" in state
@@ -224,7 +236,7 @@ def unsubmitted_successor(
         },
         RPC_TIMEOUT_SECONDS,
     )
-    turns = page["data"]
+    turns = checked_content(page["data"])
     if (
         len(turns) != 2
         or turns[0].get("id") != current_turn_id
@@ -242,7 +254,7 @@ def unsubmitted_successor(
     cursor = None
     seen = set()
     for _ in range(MAX_INPUT_PAGES):
-        params = {
+        params: dict[str, JsonValue] = {
             "threadId": thread_id,
             "turnId": current_turn_id,
             "limit": QUEUE_PAGE_LIMIT,
@@ -250,9 +262,14 @@ def unsubmitted_successor(
         if cursor is not None:
             params["cursor"] = cursor
         items = app.call("thread/items/list", params, RPC_TIMEOUT_SECONDS)
-        if any((entry["item"].get("type") == "userMessage" for entry in items["data"])):
+        if any(
+            (
+                checked_object(entry["item"]).get("type") == "userMessage"
+                for entry in checked_content(items["data"])
+            )
+        ):
             return False
-        cursor = items.get("nextCursor")
+        cursor = native_optional_text(items.get("nextCursor"))
         if cursor is None:
             return True
         if cursor in seen:
@@ -298,17 +315,19 @@ def session_input(source: object) -> ProfileAssessmentInput:
     ):
         raise ValueError("Incomplete Desktop hook input")
     with AppServerReader(cwd) as app:
-        thread = app.call(
-            "thread/read", {"threadId": session_id, "includeTurns": False}, 10
-        )["thread"]
+        thread = checked_object(
+            app.call(
+                "thread/read", {"threadId": session_id, "includeTurns": False}, 10
+            )["thread"]
+        )
         effort = thread.get("reasoningEffort")
         if thread.get("model") != model or not isinstance(effort, str):
             raise ValueError("Active model or reasoning effort is unavailable")
-        turns = []
+        turns: list[dict[str, JsonValue]] = []
         cursor = None
         seen_cursors = set()
         for _ in range(CONTEXT_PAGE_LIMIT):
-            params = {
+            params: dict[str, JsonValue] = {
                 "threadId": session_id,
                 "limit": TURN_PAGE_LIMIT,
                 "itemsView": "summary",
@@ -316,8 +335,8 @@ def session_input(source: object) -> ProfileAssessmentInput:
             if cursor is not None:
                 params["cursor"] = cursor
             page = app.call("thread/turns/list", params, 10)
-            turns.extend(page.get("data", []))
-            cursor = page.get("nextCursor")
+            turns.extend(checked_content(page.get("data", [])))
+            cursor = native_optional_text(page.get("nextCursor"))
             if cursor is None:
                 break
             if cursor in seen_cursors:
@@ -340,10 +359,13 @@ def session_input(source: object) -> ProfileAssessmentInput:
         deadline = time.monotonic() + INPUT_SCAN_TIMEOUT_SECONDS
         for turn in turns[:CONTEXT_TURN_LIMIT]:
             if not turn.get("id") or any(
-                (item.get("type") == "userMessage" for item in turn.get("items", []))
+                (
+                    item.get("type") == "userMessage"
+                    for item in checked_content(turn.get("items", []))
+                )
             ):
                 continue
-            items: list[dict[str, Any]] = []
+            items: list[dict[str, JsonValue]] = []
             cursor = None
             seen = set()
             for _ in range(MAX_INPUT_PAGES):
@@ -360,8 +382,11 @@ def session_input(source: object) -> ProfileAssessmentInput:
                     },
                     min(RPC_TIMEOUT_SECONDS, remaining),
                 )
-                items.extend((entry["item"] for entry in result["data"]))
-                cursor = result.get("nextCursor")
+                items.extend(
+                    checked_object(entry["item"])
+                    for entry in checked_content(result["data"])
+                )
+                cursor = native_optional_text(result.get("nextCursor"))
                 if cursor is None:
                     break
                 if cursor in seen:
@@ -371,9 +396,10 @@ def session_input(source: object) -> ProfileAssessmentInput:
                 raise ValueError(
                     "Native working context pagination exceeded the supported bound"
                 )
-            turn["items"] = [
+            previous_items = checked_content(turn.get("items", []))
+            turn["items"] = list[JsonValue](
                 item for item in items if item.get("type") == "functionCallOutput"
-            ] + turn.get("items", [])
+            ) + list[JsonValue](previous_items)
     request: ProfileAssessmentInput = {
         "task": prompt
         or "Attachment-only request; account for the current work context.",

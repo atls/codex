@@ -6,3 +6,8 @@ from dataclasses import dataclass
 class NativeQueueReceipt:
     submission_id: str
     accepted_input: list[dict[str, JsonValue]] | None
+
+
+@dataclass(frozen=True)
+class NativeQueueRejection:
+    error: RuntimeError

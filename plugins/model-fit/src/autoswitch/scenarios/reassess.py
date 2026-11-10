@@ -33,7 +33,6 @@ def reassess(
     decode: Callable[[PendingAssessmentRecord, str], SubmissionInput],
     *,
     assessor: AssessmentRunner,
-    assessment_failure: tuple[type[Exception], ...],
     audit: AuditWriter,
     recommendations: RecommendationStore,
     caller_thread: str | None,
@@ -131,7 +130,6 @@ def reassess(
     return assess(
         decode,
         assessor=assessor,
-        assessment_failure=assessment_failure,
         audit=audit,
         recommendations=recommendations,
         caller_thread=caller_thread,

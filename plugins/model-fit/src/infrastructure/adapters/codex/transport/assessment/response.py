@@ -1,21 +1,29 @@
 import json
 from pathlib import Path
-from typing import Any
+from model_fit.native_input.validation import (
+    checked_object,
+    checked_content,
+    native_text,
+)
+from model_fit.native_input.types.json import JsonValue
 
 
 def assessment_response(
-    events: list[dict[str, Any]], skill_file: Path, diagnostics: dict[str, Any] | None
-) -> dict[str, Any]:
-    messages = []
-    tool_types = []
+    events: list[dict[str, JsonValue]],
+    skill_file: Path,
+    diagnostics: dict[str, JsonValue] | None,
+) -> dict[str, JsonValue]:
+    messages: list[str] = []
+    tool_types: list[JsonValue] = []
     skill_item_seen = False
     for event in events:
-        item = (event.get("params") or {}).get("item") or {}
+        params = checked_object(event.get("params") or {})
+        item = checked_object(params.get("item") or {})
         if (
             event.get("method") == "item/completed"
             and item.get("type") == "agentMessage"
         ):
-            messages.append(item.get("text") or "")
+            messages.append(native_text(item.get("text") or ""))
         if (
             event.get("method") == "item/completed"
             and item.get("type") == "userMessage"
@@ -25,7 +33,7 @@ def assessment_response(
                     content.get("type") == "skill"
                     and content.get("name") == "model-fit"
                     and (content.get("path") == str(skill_file))
-                    for content in item.get("content", [])
+                    for content in checked_content(item.get("content", []))
                 )
             )
         if event.get("method") == "item/started" and item.get("type") not in (
@@ -34,7 +42,7 @@ def assessment_response(
             "reasoning",
         ):
             tool_types.append(item.get("type"))
-            actions = item.get("commandActions") or []
+            actions = checked_content(item.get("commandActions") or [])
             if (
                 item.get("type") != "commandExecution"
                 or not actions
@@ -57,4 +65,4 @@ def assessment_response(
     output = json.loads(messages[-1])
     if not isinstance(output, dict):
         raise ValueError("Preflight decision is not an object")
-    return output
+    return checked_object(output)

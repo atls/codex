@@ -1,3 +1,4 @@
+from model_fit.entrypoints.hooks.types.output import HookOutput
 from model_fit.autoswitch.admission.types.result import DeniedTool
 from collections.abc import Callable
 from model_fit.native_input.types.json import JsonValue
@@ -5,7 +6,6 @@ from model_fit.assessment.types.request import ProfileAssessmentInput
 from model_fit.submission.types.evaluation import AssessmentRunner
 from model_fit.autoswitch.handoff.types.conversation import NativeConversationFactory
 import os
-import subprocess
 import time
 from model_fit.entrypoints.hooks.delivery import deliver_disposition
 
@@ -18,7 +18,6 @@ from model_fit.autoswitch.admission.guards.continuation import (
 )
 from model_fit.infrastructure.adapters.hooks.tools import NativeTransferTools
 from model_fit.entrypoints.hooks.input import (
-    MISSING_DIRECTORY,
     answer_input,
     prompt_input,
     submitted_prompt,
@@ -35,9 +34,6 @@ from model_fit.infrastructure.adapters.codex.history import (
     queued_ids,
     session_input,
 )
-from model_fit.infrastructure.adapters.codex.transport.rpc_error import (
-    AppServerRPCError,
-)
 from model_fit.infrastructure.adapters.filesystem.audit import record_audit
 from model_fit.infrastructure.adapters.filesystem.recommendations import (
     FileRecommendations,
@@ -52,8 +48,8 @@ def native_conversation(
     native_factory: Callable[[str], AppServerReader] | None = None,
 ) -> NativeConversationFactory:
 
-    def open_conversation(cwd: object) -> ConversationGateway:
-        if cwd is MISSING_DIRECTORY:
+    def open_conversation(cwd: str | None) -> ConversationGateway:
+        if cwd is None:
             raise KeyError("cwd")
         if not isinstance(cwd, str):
             raise ValueError("Native working directory is unavailable")
@@ -76,7 +72,6 @@ def enqueue_handoff(
         caller_thread=os.environ.get("CODEX_THREAD_ID"),
         clock=time.time,
         conversation=native_conversation(native_factory),
-        queue_rejection=AppServerRPCError,
         store=FileStore(),
         working_directory=os.getcwd,
     )
@@ -86,7 +81,7 @@ def enqueue_handoff(
     }
 
 
-def guard_tool(event: dict[str, JsonValue]) -> dict[str, JsonValue] | None:
+def guard_tool(event: dict[str, JsonValue]) -> HookOutput | None:
     result = run_guard_tool(
         tool_input(event),
         actions=NativeTransferTools(),
@@ -110,7 +105,7 @@ def guard_replay_answer(
     event: dict[str, JsonValue],
     *,
     native_factory: Callable[[str], AppServerReader] | None = None,
-) -> dict[str, JsonValue] | None:
+) -> HookOutput | None:
     result = run_guard_replay_answer(
         answer_input(event),
         audit=record_audit,
@@ -127,7 +122,7 @@ def submit_prompt(
     context_reader: Callable[[object], ProfileAssessmentInput] | None = None,
     assessor: AssessmentRunner | None = None,
     native_factory: Callable[[str], AppServerReader] | None = None,
-) -> dict[str, JsonValue] | None:
+) -> HookOutput | None:
     result = run_submit(
         prompt_input(event),
         assessor=assessor or triage,
@@ -148,19 +143,10 @@ def assess_submitted(
     context_reader: Callable[[object], ProfileAssessmentInput] | None = None,
     assessor: AssessmentRunner | None = None,
     native_factory: Callable[[str], AppServerReader] | None = None,
-) -> dict[str, JsonValue]:
+) -> HookOutput:
     result = run_assess_submitted(
         submitted_prompt,
         assessor=assessor or triage,
-        assessment_failure=(
-            OSError,
-            ValueError,
-            KeyError,
-            TypeError,
-            RuntimeError,
-            TimeoutError,
-            subprocess.SubprocessError,
-        ),
         audit=record_audit,
         recommendations=FileRecommendations(),
         caller_thread=os.environ.get("CODEX_THREAD_ID"),
@@ -182,20 +168,11 @@ def reassess(
     context_reader: Callable[[object], ProfileAssessmentInput] | None = None,
     assessor: AssessmentRunner | None = None,
     native_factory: Callable[[str], AppServerReader] | None = None,
-) -> dict[str, JsonValue]:
+) -> HookOutput:
     result = run_reassess(
         requirements,
         submitted_prompt,
         assessor=assessor or triage,
-        assessment_failure=(
-            OSError,
-            ValueError,
-            KeyError,
-            TypeError,
-            RuntimeError,
-            TimeoutError,
-            subprocess.SubprocessError,
-        ),
         audit=record_audit,
         recommendations=FileRecommendations(),
         caller_thread=os.environ.get("CODEX_THREAD_ID"),

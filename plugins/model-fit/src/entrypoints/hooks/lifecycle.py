@@ -6,7 +6,12 @@ import json
 import os
 import subprocess
 import sys
-from typing import Any
+from model_fit.native_input.types.json import JsonValue
+from model_fit.native_input.validation import (
+    checked_object,
+    native_optional_text,
+    native_text,
+)
 
 from model_fit.autoswitch.exceptions.unavailable import SubmissionUnavailable
 from model_fit.entrypoints.hooks.activation import (
@@ -154,7 +159,7 @@ def assess_current(
 def handle_lifecycle(
     *,
     check_admission: bool = False,
-    event: dict[str, Any] | None = None,
+    event: dict[str, JsonValue] | None = None,
     expected_thread: str | None = None,
 ) -> int:
     auto_thread = expected_thread or os.environ.get(AUTO_THREAD_ENV)
@@ -162,16 +167,18 @@ def handle_lifecycle(
     event_name = None
     try:
         if event is None:
-            event = json.load(sys.stdin)
+            event = checked_object(json.load(sys.stdin))
         if not isinstance(event, dict):
             raise ValueError("Invalid Desktop hook event")
         if not auto_thread or executor_thread_id(event) != auto_thread:
             return 0
-        event_name = event.get("hook_event_name")
-        turn_id = event.get("turn_id")
+        event_name = native_optional_text(event.get("hook_event_name"))
+        turn_id = native_optional_text(event.get("turn_id"))
         admitted = (
             automatic_allowed(
-                event_name or "", event.get("cwd") or os.getcwd(), direct=True
+                event_name or "",
+                native_text(event.get("cwd") or os.getcwd()),
+                direct=True,
             )
             if check_admission
             else True
@@ -195,7 +202,7 @@ def handle_lifecycle(
                 and (output.get("decision") == "block")
             ):
                 current_admission = automatic_allowed(
-                    "Stop", event.get("cwd") or os.getcwd(), direct=True
+                    "Stop", native_text(event.get("cwd") or os.getcwd()), direct=True
                 )
                 if current_admission is not True:
                     if current_admission is None:

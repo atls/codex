@@ -38,6 +38,14 @@ uv run --project plugins/model-fit --locked python -m unittest discover -s tools
 
 The builder reads plugin sources, manifests and LICENSE. It does not require evaluation fixtures. Development tools and tests must stay outside the installation archives.
 
+Check the installed Python package from the repository root:
+
+```sh
+uv run --project evals/model-fit --locked --no-editable --reinstall-package codex-model-fit mypy --strict --disallow-any-explicit -p model_fit
+```
+
+This checks the wheel's real `model_fit` namespace, including entrypoints and adapters. After deleting or moving modules locally, remove the generated `plugins/model-fit/build/` directory before rebuilding the wheel; setuptools can otherwise retain deleted files in its build output. CI starts from a clean checkout.
+
 ## Change behavior carefully
 
 Keep scenarios focused on a user's next task. Data declarations, protocols, exceptions and adapters should communicate their actual responsibility. Preserve manual profile choice, opaque native input, generation cancellation, one queue/replay cycle and conservative handling of unknown outcomes.
@@ -50,7 +58,7 @@ Run the relevant deterministic checks for a change. The public test suite makes 
 
 Keep declarations in a single `types/` directory under the scenario that owns their contract. Do not add subdirectories for dataclasses, protocols, dictionary declarations or aliases. The declaration itself shows its Python form; the path distinguishes declarations from executable logic. Create only the types actually consumed by that scenario.
 
-For example, `answer/check.py` executes answer checking; `answer/types/input.py` declares its input. Closely related companion declarations can share a module, such as a conversation protocol and its opening callback, or a decision dictionary and its Literal alias.
+For example, `autoswitch/scenarios/finish.py` checks a completed answer; `answer/types/input.py` declares its input. Closely related companion declarations can share a module, such as a conversation protocol and its opening callback, or a decision dictionary and its Literal alias.
 
 ## Submit a change
 

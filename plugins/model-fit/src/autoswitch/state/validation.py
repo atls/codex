@@ -38,7 +38,7 @@ def pending_record(value: object) -> TypeGuard[PendingAssessmentRecord]:
     )
     if any(key in value and not isinstance(value[key], str) for key in strings):
         return False
-    for key in ("agent_id", "active_model"):
+    for key in ("agent_id", "active_model", "working_directory"):
         if key in value and value[key] is not None and not isinstance(value[key], str):
             return False
     if "empty_text" in value and not isinstance(value["empty_text"], bool):

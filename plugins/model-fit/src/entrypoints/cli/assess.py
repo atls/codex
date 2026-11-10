@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+from model_fit.infrastructure.adapters.codex.transport.assessment.types.runtime import (
+    AssessmentRuntimeFactory,
+)
+
 from pathlib import Path
 from model_fit.assessment.types.catalog import ProfileCatalog
 from model_fit.assessment.types.request import ProfileAssessmentInput
 from model_fit.assessment.types.decision import AssessmentDecision
 from model_fit.native_input.types.json import JsonValue
-from model_fit.infrastructure.adapters.codex.transport.assessment.session import (
-    AppServer,
-)
 import argparse
 import json
 import subprocess
@@ -33,7 +34,7 @@ def assess(
     diagnostics: dict[str, JsonValue] | None = None,
     *,
     codex_path: str = "codex",
-    runtime_factory: type[AppServer] | None = None,
+    runtime_factory: AssessmentRuntimeFactory | None = None,
     skill_directory: Path | None = None,
 ) -> AssessmentDecision:
     if source_bundle is not None and isinstance(source_bundle[1], dict):

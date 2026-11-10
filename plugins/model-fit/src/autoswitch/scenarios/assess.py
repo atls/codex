@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from model_fit.autoswitch.recovery.assessment import recover_assessment
+
 from model_fit.autoswitch.exceptions.context_unavailable import ContextUnavailable
 
 from model_fit.autoswitch.lifecycle import handoff as handoff_lifecycle
@@ -45,7 +47,6 @@ def assess(
     decode: Callable[[PendingAssessmentRecord, str], SubmissionInput],
     *,
     assessor: AssessmentRunner,
-    assessment_failure: tuple[type[Exception], ...],
     audit: AuditWriter,
     recommendations: RecommendationStore,
     caller_thread: str | None,
@@ -340,43 +341,11 @@ def assess(
         except AssessmentSuperseded:
             raise
         except Exception as error:
-            if isinstance(error, assessment_failure):
-                try:
-                    with store.transaction(
-                        thread_id,
-                        nonblocking=True,
-                        operation="assessment",
-                        turn_id=event.turn_id,
-                    ) as slot:
-                        continued = submission_lifecycle.abstain_assessment(
-                            slot, pending
-                        )
-                except BlockingIOError:
-                    continued = False
-                if continued:
-                    audit(
-                        thread_id,
-                        event.turn_id,
-                        "auto_assessment_error:" + type(error).__name__,
-                        {
-                            "hook_event": "assessment",
-                            "reason_code": "assessment_failed_continue",
-                            "assessment_generation": pending["generation"],
-                        },
-                        error=error,
-                    )
-                    audit(
-                        thread_id,
-                        event.turn_id,
-                        "auto_unknown",
-                        {
-                            "hook_event": "assessment",
-                            "reason_code": "assessment_failed_continue",
-                        },
-                    )
-                    return UnknownAssessment(
-                        "The evaluator is unavailable (" + type(error).__name__ + ")."
-                    )
+            recovered = recover_assessment(
+                event, pending, error, store=store, audit=audit
+            )
+            if recovered is not None:
+                return recovered
             try:
                 with store.transaction(
                     thread_id,

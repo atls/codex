@@ -1,4 +1,4 @@
-from typing import Any
+from model_fit.native_input.types.json import JsonValue
 
 
 class AppServerRPCError(RuntimeError):
@@ -7,8 +7,8 @@ class AppServerRPCError(RuntimeError):
         message: str,
         *,
         method: str | None = None,
-        code: Any = None,
-        thread_id: Any = None,
+        code: JsonValue = None,
+        thread_id: JsonValue = None,
     ) -> None:
         super().__init__(f"{method}: {message}" if method else message)
         self.method = method

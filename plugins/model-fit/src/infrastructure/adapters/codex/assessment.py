@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from model_fit.infrastructure.adapters.codex.transport.assessment.types.runtime import (
+    AssessmentRuntimeFactory,
+)
+
 from pathlib import Path
 from model_fit.assessment.types.evaluator import AssessmentEvaluator
 from model_fit.native_input.types.json import JsonValue
@@ -68,7 +72,7 @@ def triage(request: ProfileAssessmentInput) -> AssessmentDecision:
 def native_evaluator(
     request: ProfileAssessmentInput,
     codex_path: str,
-    runtime_factory: type[AppServer] | None,
+    runtime_factory: AssessmentRuntimeFactory | None,
     skill_directory: Path | None,
 ) -> AssessmentEvaluator:
     from model_fit.infrastructure.adapters.codex.transport.assessment.execution import (

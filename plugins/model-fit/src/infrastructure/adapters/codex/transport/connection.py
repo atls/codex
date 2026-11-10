@@ -7,7 +7,9 @@ import os
 import select
 import subprocess
 import time
-from typing import Any, Self
+from typing import Self
+from model_fit.native_input.types.json import JsonValue
+from model_fit.native_input.validation import checked_object, native_text
 
 from model_fit.infrastructure.adapters.codex.transport.rpc_error import (
     AppServerRPCError,
@@ -28,14 +30,17 @@ class AppServerConnection:
         self.process = process
         self.pending = b""
         self.next_id = 0
-        self.events: list[dict[str, Any]] = []
+        self.events: list[dict[str, JsonValue]] = []
         self.timeout_message = timeout_message
         self.closed_message = closed_message
         self.close_timeout = close_timeout
         try:
             self.call(
                 "initialize",
-                {"clientInfo": client_info, "capabilities": {"experimentalApi": True}},
+                {
+                    "clientInfo": dict[str, JsonValue](client_info),
+                    "capabilities": {"experimentalApi": True},
+                },
                 initialize_timeout,
             )
             self.send({"method": "initialized", "params": {}})
@@ -69,12 +74,12 @@ class AppServerConnection:
                     except OSError:
                         pass
 
-    def send(self, message: dict[str, Any]) -> None:
+    def send(self, message: dict[str, JsonValue]) -> None:
         assert self.process.stdin is not None
         self.process.stdin.write((json.dumps(message) + "\n").encode())
         self.process.stdin.flush()
 
-    def read(self, deadline: float) -> dict[str, Any]:
+    def read(self, deadline: float) -> dict[str, JsonValue]:
         assert self.process.stdout is not None
         while b"\n" not in self.pending:
             remaining = deadline - time.monotonic()
@@ -89,13 +94,11 @@ class AppServerConnection:
             self.pending += chunk
         line, self.pending = self.pending.split(b"\n", 1)
         message: object = json.loads(line)
-        if not isinstance(message, dict):
-            raise ValueError("App-server message must be an object")
-        return message
+        return checked_object(message)
 
     def call(
-        self, method: str, params: dict[str, Any], timeout: float
-    ) -> dict[str, Any]:
+        self, method: str, params: dict[str, JsonValue], timeout: float
+    ) -> dict[str, JsonValue]:
         request_id = self.next_id
         self.next_id += 1
         self.send({"method": method, "id": request_id, "params": params})
@@ -110,7 +113,7 @@ class AppServerConnection:
                     ):
                         raise ValueError("Malformed app-server error")
                     raise AppServerRPCError(
-                        error["message"],
+                        native_text(error["message"]),
                         method=method,
                         code=error.get("code"),
                         thread_id=params.get("threadId"),
@@ -131,8 +134,8 @@ class AppServerConnection:
                 event = self.events[offset]
                 offset += 1
                 if event.get("method") == "turn/completed":
-                    params = event.get("params") or {}
-                    turn = params.get("turn") or {}
+                    params = checked_object(event.get("params") or {})
+                    turn = checked_object(params.get("turn") or {})
                     if (
                         params.get("threadId") == thread_id
                         and turn.get("id") == turn_id

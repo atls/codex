@@ -24,7 +24,7 @@ def finish(
     event: ReplayAnswerInput,
     *,
     audit: AuditWriter,
-    conversation: Callable[[object], AbstractContextManager[NativeConversation]],
+    conversation: Callable[[str | None], AbstractContextManager[NativeConversation]],
     relevance: Callable[[str, str, str], str],
     store: TransferStateStore,
 ) -> TurnDisposition | None:

@@ -1,3 +1,4 @@
+from model_fit.entrypoints.hooks.types.output import HookOutput
 from model_fit.autoswitch.lifecycle.handoff import preparation_is_current
 from model_fit.autoswitch.state.types.storage import TransferStateStore
 from model_fit.autoswitch.types.audit import AuditWriter
@@ -6,12 +7,11 @@ from model_fit.entrypoints.hooks.presentation import (
     HookPresentation,
     render_disposition,
 )
-from model_fit.native_input.types.json import JsonValue
 
 
 def deliver_disposition(
     result: TurnDisposition | None, *, store: TransferStateStore, audit: AuditWriter
-) -> dict[str, JsonValue] | None:
+) -> HookOutput | None:
     output = render_disposition(result)
     if isinstance(result, PreparedTransfer) and not preparation_is_current(
         store.snapshot(result.thread_id), result.state

@@ -7,14 +7,17 @@
 | Assess a task and profile | `assessment/assess.py`, `prompt.py`, `validation.py` |
 | Assessment data and dependency declarations | `assessment/types/` |
 | Typed assessment stop conditions | `assessment/exceptions/` |
-| Register, assess or reassess accepted input | `submission/accept.py`, `assess.py`, `reassess.py` |
+| Register, assess or reassess accepted input | `autoswitch/scenarios/accept.py`, `assess.py`, `reassess.py` |
 | Read relevant prior work | `submission/context.py` |
-| Prepare profile handoff | `autoswitch/handoff/prepare.py`, `assessment_outcome.py` |
-| Admit tools | `autoswitch/admission/check.py`, `autoswitch/admission/continuation.py` |
+| Reconcile prior work, assess it and apply the decision | `autoswitch/scenarios/reconcile.py`, `evaluate.py`, `assessment_context.py`, `complete_assessment.py` |
+| Admit tools | `autoswitch/admission/scenario.py`, `autoswitch/admission/guards/` |
 | Authorize a prepared transfer | `autoswitch/admission/authorization.py` |
 | Retain prompt-hook recommendations | `autoswitch/recommendation/prompt.py` |
-| Enqueue the accepted native input once | `autoswitch/handoff/enqueue.py`, `autoswitch/handoff/expiry.py` |
-| Own durable handoff transitions | `autoswitch/state/transitions.py` |
+| Enqueue the accepted native input once | `autoswitch/scenarios/enqueue.py`, `autoswitch/lifecycle/handoff.py` |
+| Own transfer planning, attempts, receipts and replay | `autoswitch/lifecycle/handoff.py` |
+| Own assessment generation and supersession | `autoswitch/lifecycle/submission.py` |
+| Own admission and retained native profile choice | `autoswitch/lifecycle/profile_choice.py` |
+| Decode phase-specific progress | `autoswitch/state/decoding.py`, `autoswitch/lifecycle/types/progress.py` |
 | Accepted submission data | `submission/types/input.py` |
 | Assessment callbacks | `submission/types/evaluation.py` |
 | Native conversation and its opening contract | `autoswitch/handoff/types/conversation.py` |
@@ -23,7 +26,7 @@
 | Transaction storage and companion slot | `autoswitch/state/types/storage.py` |
 | Handoff state and pending assessment | `autoswitch/state/types/record.py` |
 | Typed submission stop conditions | `autoswitch/exceptions/` |
-| Check a bound replay answer | `answer/check.py`, `limits.py`, `relevance.schema.json` |
+| Check a bound replay answer | `autoswitch/scenarios/finish.py`, `answer/limits.py`, `answer/relevance.schema.json` |
 | Native Codex profile/history/input and assessment IO | `infrastructure/adapters/codex/` |
 | Locked atomic state, recommendations and audit | `infrastructure/adapters/filesystem/` |
 | Explicit assessment CLI | `entrypoints/cli/assess.py` |
@@ -33,7 +36,7 @@ The [Python declaration layout](../../../../../CONTRIBUTING.md#python-declaratio
 
 ## State ownership
 
-`autoswitch/state/transitions.py` owns changes for one actual Codex executor; parent session ID is provenance. The filesystem implementation owns locking and atomic persistence. Assessment generation survives removal of pending state. A superseded assessment cannot modify newer input.
+The lifecycle owners act on one actual Codex executor; parent session ID is provenance. The filesystem implementation owns locking and atomic persistence. Assessment generation survives removal of pending state. A superseded assessment cannot modify newer input or publish stale transfer instructions. Stored dictionaries are compatibility projections; prepared, attempted and queued effects require their phase-specific validated data. Legacy prompt-digest evidence remains distinct from native input-digest evidence.
 
 | State | Meaning |
 | --- | --- |
@@ -45,7 +48,7 @@ The [Python declaration layout](../../../../../CONTRIBUTING.md#python-declaratio
 | rejected | A confirmed queue rejection was received; a new request can start a new assessment |
 | queued | A receipt exists; replay binds only after checking native input and profile |
 
-Submission registers metadata and digests, then assessment reads the complete native userMessage. The shared assessor returns a validated decision. Handoff preparation processes that decision. Queue execution records attempting before the external call and verifies the receipt. The continuation binds by native client identity, accepted input and profile; edited queued input is reassessed, and native profile choice is preserved.
+Submission registers metadata and digests, then assessment reads the complete native userMessage. The shared assessor returns a validated decision. Reconciliation and profile-context restoration precede assessment completion. Application results express admission, uncertainty, prepared transfer or confirmed queueing; native hook JSON is rendered only at the executable boundary. Queue execution records attempting before the external call and preserves a received submission ID before checking its payload. A missing or malformed payload leaves that receipt attached to the unresolved attempt; it never permits another submission. The owned per-executor lock spans this bounded native queue operation. The continuation binds by native client identity, accepted input and profile; edited queued input is reassessed, and native profile choice is preserved.
 
 Answer checking is a bounded relevance check, not a quality grade. Unknown queue outcomes are not automatically released. Codex owns its profile and queue; audit is not a recovery source of truth.
 
@@ -54,6 +57,6 @@ Answer checking is a bounded relevance check, not a quality grade. Unknown queue
 Explicit assessment: `model-fit` or `python -m model_fit.entrypoints.cli.assess`.
 Automatic CLI: `python -m model_fit.entrypoints.hooks.cli` with `hook`, `lifecycle`, `assess`, `reassess`, `prompt` and `queue`. Internal Python module paths are not another public API.
 
-Invalid input exits 2 without a decision. Unavailable assessment returns unknown and exits 1. Unknown does not establish suitability. Typed exceptions preserve distinct causes and caller handling; a technical relocation does not rename serialized diagnostic codes. See [Desktop hook](desktop-hook.md) for native admission and revocation.
+Invalid input exits 2 without a decision. Unavailable assessment returns unknown and exits 1. Unknown does not establish suitability. Recognized native context failures become `ContextUnavailable`; a definite native queue rejection is a typed value, while a transport timeout remains an unresolved attempt. Invalid queue inputs and protected lifecycle conflicts have separate exception families. Assessment recovery can admit unknown only through the current generation and a safe local state. See [Desktop hook](desktop-hook.md) for native admission and revocation.
 
 Public synthetic evaluations are organized by scenario under `evals/model-fit`; their Promptfoo implementation is in `infrastructure/adapters/promptfoo`. They are not installed with either plugin. Fixture validation runs independently of package construction.

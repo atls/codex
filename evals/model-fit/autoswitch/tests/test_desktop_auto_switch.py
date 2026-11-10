@@ -946,30 +946,57 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             )
         self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
 
-    def test_empty_native_receipt_preserves_unknown_attempt_and_cannot_be_retried(self):
-        path = self.stage()
-        content = [
-            {"type": "text", "text": self.prompt},
-            {"type": "image", "url": "image"},
-        ]
-        with patch.object(HANDOFF_QUEUE, "AppServerReader") as reader:
-            app = reader.return_value.__enter__.return_value
-            app.call.side_effect = [
-                {"thread": {"model": "gpt-6-sol", "reasoningEffort": "medium"}},
-                self.source_response(content),
-                {"queuedSubmission": {"id": "queued-1", "input": []}},
-            ]
-            with self.assertRaisesRegex(ValueError, "receipt input is unavailable"):
-                HANDOFF_QUEUE.enqueue_handoff(self.thread_id, self.turn_id)
-            self.assertNotIn(
-                "thread/queue/delete", [c.args[0] for c in app.call.call_args_list]
-            )
-        self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "attempting")
-        self.assertEqual(
-            HANDOFF_STATE.read_state(path)["queued_submission_id"], "queued-1"
+    def test_incomplete_native_receipt_preserves_unknown_attempt_and_cannot_be_retried(
+        self,
+    ):
+        receipts = (
+            {"id": "queued-1", "input": []},
+            {"id": "queued-1"},
+            {"id": "queued-1", "input": {"invalid": True}},
+            {"id": "queued-1", "input": [None]},
         )
-        with self.assertRaisesRegex(RuntimeError, "do not retry"):
-            HANDOFF_QUEUE.enqueue_handoff(self.thread_id, self.turn_id)
+        for receipt in receipts:
+            with self.subTest(receipt=receipt):
+                path = self.stage()
+                content = [
+                    {"type": "text", "text": self.prompt},
+                    {"type": "image", "url": "image"},
+                ]
+                with patch.object(HANDOFF_QUEUE, "AppServerReader") as reader:
+                    app = reader.return_value.__enter__.return_value
+                    app.call.side_effect = [
+                        {"thread": {"model": "gpt-6-sol", "reasoningEffort": "medium"}},
+                        self.source_response(content),
+                        {"queuedSubmission": receipt},
+                    ]
+                    with self.assertRaisesRegex(
+                        ValueError, "receipt input is unavailable"
+                    ):
+                        HANDOFF_QUEUE.enqueue_handoff(self.thread_id, self.turn_id)
+                    self.assertNotIn(
+                        "thread/queue/delete",
+                        [c.args[0] for c in app.call.call_args_list],
+                    )
+                self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "attempting")
+                self.assertEqual(
+                    HANDOFF_STATE.read_state(path)["queued_submission_id"], "queued-1"
+                )
+                with self.assertRaisesRegex(RuntimeError, "do not retry"):
+                    HANDOFF_QUEUE.enqueue_handoff(self.thread_id, self.turn_id)
+
+    def test_incomplete_preparation_cannot_start_native_queue_io(self):
+        for missing in ("target_effort", "created_at", "prompt"):
+            with self.subTest(missing=missing):
+                path = self.stage()
+                state = HANDOFF_STATE.read_state(path)
+                state.pop(missing)
+                HANDOFF_STATE.write_state(path, state)
+                before = path.read_bytes()
+                with patch.object(HANDOFF_QUEUE, "AppServerReader") as reader:
+                    with self.assertRaises(ValueError):
+                        HANDOFF_QUEUE.enqueue_handoff(self.thread_id, self.turn_id)
+                    reader.assert_not_called()
+                self.assertEqual(path.read_bytes(), before)
 
     def test_terminal_turn_with_lost_attachment_does_not_confirm_replay(self):
         queued = copy.deepcopy(

@@ -5,7 +5,11 @@ from typing import Self
 from model_fit.autoswitch.state.types.record import HandoffStateRecord
 from model_fit.infrastructure.adapters.codex.transport.reader import AppServerReader
 from model_fit.native_input.types.json import JsonValue
-from model_fit.native_input.validation import checked_content, native_content
+from model_fit.native_input.validation import (
+    checked_content,
+    checked_object,
+    native_content,
+)
 from model_fit.native_input.codec import input_text
 from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPTS
 from model_fit.assessment.decoding import required_text, optional_text
@@ -17,6 +21,10 @@ from model_fit.autoswitch.handoff.types.accepted_input import (
 )
 from model_fit.autoswitch.handoff.types.queue_receipt import (
     NativeQueueReceipt,
+    NativeQueueRejection,
+)
+from model_fit.infrastructure.adapters.codex.transport.rpc_error import (
+    AppServerRPCError,
 )
 
 
@@ -45,12 +53,14 @@ class ConversationGateway:
         self.manager.__exit__(exception_type, error, traceback)
 
     def parent_thread_id(self, thread_id: str) -> str | None:
-        parent = self.reader.call(
-            "thread/read",
-            {"threadId": thread_id, "includeTurns": False},
-            conversation.RPC_TIMEOUT_SECONDS,
-        )["thread"]["parentThreadId"]
-        return optional_text(parent)
+        thread = checked_object(
+            self.reader.call(
+                "thread/read",
+                {"threadId": thread_id, "includeTurns": False},
+                conversation.RPC_TIMEOUT_SECONDS,
+            )["thread"]
+        )
+        return optional_text(thread["parentThreadId"])
 
     def latest_turn_id(self, thread_id: str) -> str | None:
         page = self.reader.call(
@@ -63,7 +73,8 @@ class ConversationGateway:
             },
             conversation.RPC_TIMEOUT_SECONDS,
         )
-        return required_text(page["data"][0]["id"]) if page["data"] else None
+        turns = checked_content(page["data"])
+        return required_text(turns[0]["id"]) if turns else None
 
     def queued_ids(self, thread_id: str) -> set[str]:
         return self.queue_reader(self.reader, thread_id)
@@ -85,7 +96,7 @@ class ConversationGateway:
             if index == 0
             or input_text(checked_content(message["content"])).strip()
             not in CONTROL_PROMPTS
-            for value in message["content"]
+            for value in checked_content(message["content"])
         ]
         return AcceptedNativeInput(
             message_id=required_text(messages[0]["id"]),
@@ -123,16 +134,24 @@ class ConversationGateway:
 
     def enqueue(
         self, thread_id: str, turn_id: str, content: list[dict[str, JsonValue]]
-    ) -> NativeQueueReceipt:
-        result = self.reader.call(
-            "thread/queue/add",
-            {"threadId": thread_id, "clientUserMessageId": turn_id, "input": content},
-            conversation.RPC_TIMEOUT_SECONDS,
-        )
-        receipt = result["queuedSubmission"]
-        content = receipt["input"]
+    ) -> NativeQueueReceipt | NativeQueueRejection:
+        try:
+            result = self.reader.call(
+                "thread/queue/add",
+                {
+                    "threadId": thread_id,
+                    "clientUserMessageId": turn_id,
+                    "input": list[JsonValue](content),
+                },
+                conversation.RPC_TIMEOUT_SECONDS,
+            )
+        except AppServerRPCError as error:
+            return NativeQueueRejection(error)
+        receipt = checked_object(result["queuedSubmission"])
+        accepted_content = receipt.get("input")
         return NativeQueueReceipt(
-            required_text(receipt["id"]), content if native_content(content) else None
+            required_text(receipt["id"]),
+            accepted_content if native_content(accepted_content) else None,
         )
 
     def delete(self, thread_id: str, submission_id: str) -> bool:
@@ -158,9 +177,9 @@ class ConversationGateway:
             conversation.RPC_TIMEOUT_SECONDS,
         )
         messages = [
-            row["item"]
-            for row in replay["data"]
-            if row["item"].get("type") == "userMessage"
+            item
+            for row in checked_content(replay["data"])
+            if (item := checked_object(row["item"])).get("type") == "userMessage"
         ]
         if replay.get("nextCursor") or len(messages) != 1:
             return None

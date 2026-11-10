@@ -1,11 +1,11 @@
 """Opt-in Desktop hook that runs Model Fit triage before a user turn."""
 
 from __future__ import annotations
+from model_fit.entrypoints.hooks.types.output import HookOutput
 
 from pathlib import Path
 from collections.abc import Callable
 from model_fit.assessment.types.request import ProfileAssessmentInput
-from model_fit.native_input.types.json import JsonValue
 import json
 import os
 import subprocess
@@ -30,7 +30,7 @@ def decide(
     request: ProfileAssessmentInput,
     path: Path,
     observe: Callable[[str], bool | None] | None = None,
-) -> dict[str, JsonValue] | None:
+) -> HookOutput | None:
     result = decide_prompt(
         request,
         thread_id=path.stem,

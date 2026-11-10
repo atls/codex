@@ -7,7 +7,7 @@ class PendingAssessmentRecord(TypedDict, total=False):
     turn_id: str
     root_session_id: str
     agent_id: str | None
-    working_directory: object
+    working_directory: str | None
     active_model: str | None
     prompt_hash: str
     empty_text: bool

@@ -1,3 +1,4 @@
+from model_fit.native_input.types.json import JsonValue
 from dataclasses import dataclass
 
 
@@ -7,5 +8,5 @@ class ReplayAnswerInput:
     turn_id: str | None
     answer: str | None
     stop_hook_active: bool | None
-    working_directory: object
-    source: object
+    working_directory: str | None
+    source: dict[str, JsonValue]

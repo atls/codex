@@ -13,6 +13,50 @@ from model_fit.autoswitch.state.commit import save_snapshot
 from model_fit.autoswitch.handoff.types.queue_receipt import NativeQueueReceipt
 from model_fit.native_input.types.json import JsonValue
 from model_fit.native_input import codec
+from model_fit.autoswitch.exceptions.invalid_handoff import InvalidHandoff
+from model_fit.autoswitch.exceptions.handoff_conflict import HandoffConflict
+from model_fit.autoswitch.state.decoding import (
+    prepared_handoff,
+    attempted_handoff,
+    queued_handoff,
+)
+from model_fit.autoswitch.lifecycle.types.progress import PreparedHandoff
+from model_fit.autoswitch.lifecycle.types.progress import QueuedHandoff
+from model_fit.autoswitch.types.queue import QueueConfirmation
+from model_fit.autoswitch.handoff.expiry import HANDOFF_TTL_SECONDS
+
+
+def require_queue_executor(caller_thread: str | None, thread_id: str) -> None:
+    if caller_thread and caller_thread != thread_id:
+        raise InvalidHandoff("foreign_executor")
+
+
+def queue_preparation(
+    state: HandoffStateRecord | None, source_turn_id: str, now: float
+) -> PreparedHandoff | QueueConfirmation:
+    if state is None or state["source_turn_id"] != source_turn_id:
+        raise InvalidHandoff("not_prepared")
+    if state["phase"] == "queued":
+        if not state.get("queued_submission_id"):
+            raise InvalidHandoff("invalid_state")
+        return QueueConfirmation(state["queued_submission_id"], already_confirmed=True)
+    if state.get("pending_assessment") is not None:
+        raise HandoffConflict("pending_assessment")
+    if state["phase"] == "rejected":
+        raise HandoffConflict("rejected")
+    if state["phase"] != "ready":
+        raise HandoffConflict("outcome_unknown")
+    prepared = prepared_handoff(state)
+    if now - prepared.authorized_at > HANDOFF_TTL_SECONDS:
+        raise InvalidHandoff("expired")
+    return prepared
+
+
+def require_transfer_profile(
+    prepared: PreparedHandoff, selected: tuple[str | None, str | None]
+) -> None:
+    if selected != (prepared.target.model, prepared.target.effort):
+        raise InvalidHandoff("profile_not_applied")
 
 
 def plan_transfer(
@@ -105,7 +149,8 @@ def continue_transfer(
 def bind_replay(
     slot: TransferStateSlot, state: HandoffStateRecord, turn_id: str
 ) -> None:
-    if state["phase"] != "queued" or state.get("replay_turn_id") not in (None, turn_id):
+    queued = queued_handoff(state)
+    if queued.replay_turn_id not in (None, turn_id):
         raise RuntimeError("Replay does not belong to this queued transfer")
     state.pop("pending_assessment", None)
     state["replay_turn_id"] = turn_id
@@ -118,8 +163,7 @@ def begin_queue(
     client_message_id: str,
     content: list[dict[str, JsonValue]],
 ) -> None:
-    if state["phase"] != "ready":
-        raise RuntimeError("Only a prepared transfer can enter the queue")
+    prepared_handoff(state)
     state["queued_client_message_id"] = client_message_id
     state.pop("prompt")
     state["source_input_digest"] = codec.input_digest(content)
@@ -133,8 +177,7 @@ def begin_queue(
 def receipt(
     slot: TransferStateSlot, state: HandoffStateRecord, submission: NativeQueueReceipt
 ) -> None:
-    if state["phase"] != "attempting":
-        raise RuntimeError("Queue receipt requires an active attempt")
+    attempted_handoff(state)
     state["queued_submission_id"] = submission.submission_id
     # A native acknowledgement must survive malformed content: retrying an
     # externally accepted submission is unsafe even when its payload is unknown.
@@ -154,12 +197,20 @@ def reject(slot: TransferStateSlot, state: HandoffStateRecord) -> None:
 
 def confirm_queue(
     slot: TransferStateSlot, state: HandoffStateRecord, timestamp: float
-) -> None:
-    if state["phase"] != "attempting" or not state.get("queued_submission_id"):
+) -> QueuedHandoff:
+    attempt = attempted_handoff(state)
+    if not attempt.submission_id:
         raise RuntimeError("Queue confirmation requires its native receipt")
     state["phase"] = "queued"
     state["queued_at"] = int(timestamp)
     save_snapshot(slot, state)
+    return QueuedHandoff(
+        attempt.source_turn_id,
+        attempt.target,
+        attempt.submission_id,
+        attempt.input_evidence,
+        None,
+    )
 
 
 def release(slot: TransferStateSlot) -> None:

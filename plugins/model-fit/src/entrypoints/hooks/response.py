@@ -8,7 +8,8 @@ from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPTS
 """Render Model Fit outcomes as native hook responses."""
 
 
-from typing import Any
+from model_fit.entrypoints.hooks.types.output import HookOutput
+from model_fit.native_input.types.json import JsonValue
 
 from model_fit.assessment.validation import RECOMMENDATIONS
 from model_fit.autoswitch.recommendation.validation import require_recommendation
@@ -21,8 +22,11 @@ from model_fit.entrypoints.hooks.native_contract import PROFILE_SWITCH_TOOLS
 
 
 def inactive_hook(
-    event: dict[str, Any], *, unavailable: bool = False, admitted_tool: bool = False
-) -> dict[str, Any] | None:
+    event: dict[str, JsonValue],
+    *,
+    unavailable: bool = False,
+    admitted_tool: bool = False,
+) -> HookOutput | None:
     if event.get("hook_event_name") == "UserPromptSubmit":
         return admission_unavailable_context() if unavailable else inactive_context()
     if unavailable:
@@ -51,13 +55,13 @@ def inactive_hook(
     return None
 
 
-def unknown(message: str | None = None) -> dict[str, Any]:
+def unknown(message: str | None = None) -> HookOutput:
     return {"systemMessage": (message + " " if message else "") + UNKNOWN_CONTEXT}
 
 
 def hook_output(
     result: AssessmentDecision | RecommendationEvidence,
-) -> dict[str, Any] | None:
+) -> HookOutput | None:
     decision = result["decision"]
     if decision == "keep":
         return None
@@ -77,7 +81,7 @@ def hook_output(
     }
 
 
-def deny_tool(reason: str) -> dict[str, Any]:
+def deny_tool(reason: str) -> HookOutput:
     return {
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
@@ -87,7 +91,7 @@ def deny_tool(reason: str) -> dict[str, Any]:
     }
 
 
-def allow_tool(updated_input: dict[str, Any]) -> dict[str, Any]:
+def allow_tool(updated_input: dict[str, JsonValue]) -> HookOutput:
     return {
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",

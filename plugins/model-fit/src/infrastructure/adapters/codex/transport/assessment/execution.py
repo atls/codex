@@ -1,12 +1,16 @@
+from model_fit.infrastructure.adapters.codex.transport.assessment.types.runtime import (
+    AssessmentRuntimeFactory,
+)
 import json
+from model_fit.native_input.validation import (
+    checked_object,
+    checked_content,
+    native_text,
+)
 from importlib.resources import files
 from pathlib import Path
-from typing import Any
-from model_fit.assessment.types.profile import ActiveProfile
 from model_fit.native_input.types.json import JsonValue
-from model_fit.infrastructure.adapters.codex.transport.assessment.session import (
-    AppServer,
-)
+from model_fit.assessment.types.profile import ActiveProfile
 
 from model_fit.infrastructure.adapters.codex.transport.assessment.response import (
     assessment_response,
@@ -26,16 +30,17 @@ def execute_assessment(
     timeout: int,
     diagnostics: dict[str, JsonValue] | None,
     codex_path: str,
-    runtime_factory: type[AppServer],
+    runtime_factory: AssessmentRuntimeFactory,
     skill_directory: Path | None,
     *,
     native_input: list[dict[str, JsonValue]] | None = None,
     active_profile: ActiveProfile,
-) -> dict[str, Any]:
-    schema = json.loads(SCHEMA.read_text())
+) -> dict[str, JsonValue]:
+    schema = checked_object(json.loads(SCHEMA.read_text()))
+    properties = checked_object(schema["properties"])
     if active_profile["speed"] is None:
         for field in ("active_speed", "recommended_speed"):
-            schema["properties"][field] = {"type": "null"}
+            properties[field] = {"type": "null"}
     with assessment_workspace() as scratch:
         runtime_options = (
             {"skill_dir": skill_directory} if skill_directory is not None else {}
@@ -47,15 +52,15 @@ def execute_assessment(
                 )
                 available = [
                     skill
-                    for group in listed.get("data", [])
-                    for skill in group.get("skills", [])
+                    for group in checked_content(listed.get("data", []))
+                    for skill in checked_content(group.get("skills", []))
                 ]
                 if not any(
                     (
                         skill.get("name") == "model-fit"
                         and skill.get("enabled") is True
                         and (
-                            Path(skill.get("path", "")).resolve()
+                            Path(native_text(skill.get("path", ""))).resolve()
                             == app.skill_file.resolve()
                         )
                         for skill in available
@@ -64,18 +69,20 @@ def execute_assessment(
                     raise RuntimeError(
                         "Model Fit is absent from app-server skills/list"
                     )
-                thread = app.call(
-                    "thread/start",
-                    {
-                        "model": evaluator_model,
-                        "cwd": str(scratch),
-                        "approvalPolicy": "never",
-                        "sandbox": "read-only",
-                        "ephemeral": True,
-                        "developerInstructions": instructions,
-                    },
-                    15,
-                )["thread"]
+                thread = checked_object(
+                    app.call(
+                        "thread/start",
+                        {
+                            "model": evaluator_model,
+                            "cwd": str(scratch),
+                            "approvalPolicy": "never",
+                            "sandbox": "read-only",
+                            "ephemeral": True,
+                            "developerInstructions": instructions,
+                        },
+                        15,
+                    )["thread"]
+                )
                 response = app.call(
                     "turn/start",
                     {
@@ -95,14 +102,18 @@ def execute_assessment(
                     },
                     15,
                 )
-                status = app.wait_turn(thread["id"], response["turn"]["id"], timeout)
+                status = app.wait_turn(
+                    native_text(thread["id"]),
+                    native_text(checked_object(response["turn"])["id"]),
+                    timeout,
+                )
                 events = app.events
             finally:
                 if diagnostics is not None:
-                    diagnostics["events"] = list(app.events)
+                    diagnostics["events"] = list[JsonValue](app.events)
                     diagnostics["usage"] = next(
                         (
-                            (event.get("params") or {}).get("tokenUsage")
+                            checked_object(event.get("params") or {}).get("tokenUsage")
                             for event in reversed(app.events)
                             if event.get("method") == "thread/tokenUsage/updated"
                         ),

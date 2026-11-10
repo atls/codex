@@ -5,7 +5,7 @@ from __future__ import annotations
 import shlex
 import sys
 from pathlib import Path
-from typing import Any
+from model_fit.entrypoints.hooks.types.output import HookOutput
 from model_fit.autoswitch.state.types.record import HandoffStateRecord
 
 from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPT
@@ -19,7 +19,7 @@ REPLAY_STOP_REASON = "The last answer addressed a different task. Compare it wit
 
 def control_context(
     thread_id: str, turn_id: str, state: HandoffStateRecord
-) -> dict[str, Any]:
+) -> HookOutput:
     model = state["target_model"]
     effort = state["target_effort"]
     command = queue_command("current", "source")
@@ -45,7 +45,7 @@ def assessment_command() -> str:
     return _cli_command("assess")
 
 
-def pending_context() -> dict[str, Any]:
+def pending_context() -> HookOutput:
     return {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
@@ -54,7 +54,7 @@ def pending_context() -> dict[str, Any]:
     }
 
 
-def inactive_context() -> dict[str, Any]:
+def inactive_context() -> HookOutput:
     return {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
@@ -63,7 +63,7 @@ def inactive_context() -> dict[str, Any]:
     }
 
 
-def admission_unavailable_context() -> dict[str, Any]:
+def admission_unavailable_context() -> HookOutput:
     return {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
@@ -72,7 +72,7 @@ def admission_unavailable_context() -> dict[str, Any]:
     }
 
 
-def queued_context() -> dict[str, Any]:
+def queued_context() -> HookOutput:
     return {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",

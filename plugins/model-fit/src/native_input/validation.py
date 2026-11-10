@@ -3,6 +3,16 @@ from typing import TypeGuard
 from model_fit.native_input.types.json import JsonValue
 
 
+def native_text(value: object) -> str:
+    if not isinstance(value, str):
+        raise ValueError("Native text field is unavailable")
+    return value
+
+
+def native_optional_text(value: object) -> str | None:
+    return None if value is None else native_text(value)
+
+
 def json_value(value: object) -> TypeGuard[JsonValue]:
     if value is None or isinstance(value, (str, int, float, bool)):
         return True

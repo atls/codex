@@ -1,3 +1,4 @@
+from model_fit.native_input.types.json import JsonValue
 from dataclasses import dataclass
 
 
@@ -5,4 +6,4 @@ from dataclasses import dataclass
 class ToolAdmissionInput:
     thread_id: str
     turn_id: str | None
-    source: object
+    source: dict[str, JsonValue]

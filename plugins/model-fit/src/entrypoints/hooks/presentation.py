@@ -1,7 +1,6 @@
-from typing import Any
+from model_fit.entrypoints.hooks.types.output import HookOutput
 from typing import assert_never
 
-from model_fit.native_input.types.json import JsonValue
 from model_fit.autoswitch.types.disposition import (
     AssessmentPending,
     BlockedTurn,
@@ -35,13 +34,13 @@ class HookPresentation:
     control_context = staticmethod(instructions.control_context)
     queue_command = staticmethod(instructions.queue_command)
 
-    def block(self, reason: str) -> dict[str, Any]:
+    def block(self, reason: str) -> HookOutput:
         return {"decision": "block", "reason": reason}
 
-    def warning(self, message: str) -> dict[str, Any]:
+    def warning(self, message: str) -> HookOutput:
         return {"systemMessage": message}
 
-    def context(self, context: str) -> dict[str, Any]:
+    def context(self, context: str) -> HookOutput:
         return {
             "hookSpecificOutput": {
                 "hookEventName": "UserPromptSubmit",
@@ -49,21 +48,19 @@ class HookPresentation:
             }
         }
 
-    def with_context(
-        self, output: dict[str, Any] | None, context: str
-    ) -> dict[str, Any]:
+    def with_context(self, output: HookOutput | None, context: str) -> HookOutput:
         return {**(output or {}), **self.context(context)}
 
-    def extend_reason(self, output: dict[str, Any], text: str) -> None:
+    def extend_reason(self, output: HookOutput, text: str) -> None:
         output["reason"] += text
 
-    def is_block(self, output: dict[str, Any]) -> bool:
+    def is_block(self, output: HookOutput) -> bool:
         return output.get("decision") == "block"
 
-    def assessed(self) -> dict[str, Any]:
+    def assessed(self) -> HookOutput:
         return self.context(instructions.ASSESSED_CONTEXT)
 
-    def prompt_outcome(self, output: dict[str, Any] | None) -> str:
+    def prompt_outcome(self, output: HookOutput | None) -> str:
         if output is None:
             return "auto_pass"
         context = output.get("hookSpecificOutput", {}).get("additionalContext")
@@ -76,7 +73,7 @@ class HookPresentation:
         return "auto_block" if output.get("decision") == "block" else "auto_unknown"
 
 
-def render_disposition(result: TurnDisposition | None) -> dict[str, JsonValue] | None:
+def render_disposition(result: TurnDisposition | None) -> HookOutput | None:
     if result is None:
         return None
     renderer = HookPresentation()
