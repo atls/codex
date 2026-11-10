@@ -24,7 +24,7 @@ These are requests and preferences, not magic commands that force one universal 
 
 To require a specific available profile, select it in Codex or explicitly instruct Codex to use it. Ask for a fresh assessment when you want that choice reconsidered.
 
-An explicit profile choice remains in effect for the same work until you revoke it or the requirements materially change. A failed hook, transport or provider request is not evidence that the model itself is too weak.
+An explicit profile choice remains in effect for the same work until you revoke it. When requirements change, ask for a fresh assessment if you want that choice reconsidered. A failed hook, transport or provider request is not evidence that the model itself is too weak.
 
 ## Choose how to use it
 
