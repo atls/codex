@@ -6,14 +6,16 @@ import json
 import re
 import subprocess
 import sys
-from typing import Any
 
 from model_fit.assessment.exceptions.source_unavailable import SourceUnavailable
 from model_fit.assessment.exceptions.unknown_speed_change import UnknownSpeedChange
 from model_fit.assessment.validation import RECOMMENDATIONS
+from model_fit.assessment.types.request import ProfileAssessmentInput
+from model_fit.assessment.types.decision import AssessmentDecision
+from model_fit.assessment.decoding import decode_decision
 
 
-def triage(request: dict[str, Any]) -> dict[str, Any]:
+def triage(request: ProfileAssessmentInput) -> AssessmentDecision:
     process = subprocess.run(
         [sys.executable, "-m", "model_fit.entrypoints.cli.assess", "--timeout", "45"],
         input=json.dumps(request, ensure_ascii=False),
@@ -54,7 +56,7 @@ def triage(request: dict[str, Any]) -> dict[str, Any]:
         result["decision"] == "unknown"
     ):
         raise ValueError("Triage exit status contradicts its decision")
-    return result
+    return decode_decision(result)
 
 
 def native_evaluator(request, codex_path, runtime_factory, skill_directory):

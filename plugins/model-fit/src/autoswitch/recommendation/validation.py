@@ -1,9 +1,10 @@
-from typing import Any
+from model_fit.assessment.types.decision import AssessmentDecision
+from model_fit.autoswitch.recommendation.types.evidence import RecommendationEvidence
 
 from model_fit.assessment.validation import RECOMMENDATIONS
 
 
-def require_recommendation(result: dict[str, Any]) -> None:
+def require_recommendation(result: AssessmentDecision | RecommendationEvidence) -> None:
     if result["decision"] not in RECOMMENDATIONS:
         raise ValueError("Blocking recommendation is unavailable")
     model = result.get("recommended_model") or result["active_model"]

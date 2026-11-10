@@ -1,3 +1,5 @@
+from model_fit.assessment.types.decision import AssessmentDecision
+from model_fit.autoswitch.recommendation.types.evidence import RecommendationEvidence
 from typing import Any, Protocol
 
 
@@ -12,7 +14,9 @@ class HookOutputRenderer(Protocol):
 
     def pending_context(self) -> dict[str, Any]: ...
 
-    def hook_output(self, result: dict[str, Any]) -> dict[str, Any] | None: ...
+    def hook_output(
+        self, result: AssessmentDecision | RecommendationEvidence
+    ) -> dict[str, Any] | None: ...
 
     def allow_tool(self, updated_input: dict[str, Any]) -> dict[str, Any]: ...
 

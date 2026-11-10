@@ -2,7 +2,11 @@ import json
 import os
 import tempfile
 from pathlib import Path
-from typing import Any
+from model_fit.assessment.types.request import ProfileAssessmentInput
+from model_fit.assessment.types.decision import AssessmentDecision
+from model_fit.autoswitch.recommendation.types.record import RecommendationRecord
+from model_fit.assessment.validation import validated_active_profile
+from model_fit.autoswitch.recommendation.decoding import decode_evidence
 
 from model_fit.assessment.validation import RECOMMENDATIONS
 from model_fit.native_input.codec import prompt_digest as prompt_hash
@@ -16,7 +20,7 @@ def pending_path(session_id: str) -> Path:
     return home / ".tmp/model-fit-hook-pending" / f"{session_id}.json"
 
 
-def load_pending(path: Path) -> dict[str, Any] | None:
+def load_pending(path: Path) -> RecommendationRecord | None:
     if not path.exists():
         return None
     pending = json.loads(path.read_text())
@@ -35,10 +39,18 @@ def load_pending(path: Path) -> dict[str, Any] | None:
         or pending["result"].get("decision") not in RECOMMENDATIONS
     ):
         raise ValueError("Invalid pending recommendation")
-    return pending
+    return {
+        "prompt_hash": pending["prompt_hash"],
+        "active_profile": validated_active_profile(
+            {"active_profile": pending["active_profile"]}
+        ),
+        "result": decode_evidence(pending["result"]),
+    }
 
 
-def save_pending(path: Path, request: dict[str, Any], result: dict[str, Any]) -> None:
+def save_pending(
+    path: Path, request: ProfileAssessmentInput, result: AssessmentDecision
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True, mode=448)
     data = {
         "prompt_hash": prompt_hash(request["task"]),

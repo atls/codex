@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from model_fit.assessment.types.decision import AssessmentDecision
+from model_fit.autoswitch.recommendation.types.evidence import RecommendationEvidence
+
 from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPTS
 
 """Render Model Fit outcomes as native hook responses."""
@@ -52,7 +55,9 @@ def unknown(message: str | None = None) -> dict[str, Any]:
     return {"systemMessage": (message + " " if message else "") + UNKNOWN_CONTEXT}
 
 
-def hook_output(result: dict[str, Any]) -> dict[str, Any] | None:
+def hook_output(
+    result: AssessmentDecision | RecommendationEvidence,
+) -> dict[str, Any] | None:
     decision = result["decision"]
     if decision == "keep":
         return None

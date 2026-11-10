@@ -3,6 +3,9 @@ from __future__ import annotations
 from typing import Any
 
 from model_fit.assessment.validation import validated_active_profile
+from model_fit.assessment.types.profile import ActiveProfile
+from model_fit.assessment.types.request import ProfileAssessmentInput
+from model_fit.assessment.types.decision import AssessmentDecision
 from model_fit.autoswitch.recommendation.validation import require_recommendation
 from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.recommendation.types.record import (
@@ -18,12 +21,13 @@ from model_fit.autoswitch.recommendation.types.storage import (
 from model_fit.autoswitch.state.types.storage import TransferStateStore
 
 
-def recommended_profile(pending: RecommendationRecord) -> dict[str, Any]:
+def recommended_profile(pending: RecommendationRecord) -> ActiveProfile:
     active = pending["active_profile"]
     result = pending["result"]
     return {
-        field: result.get(f"recommended_{field}") or active[field]
-        for field in ("model", "effort", "speed")
+        "model": result.get("recommended_model") or active["model"],
+        "effort": result.get("recommended_effort") or active["effort"],
+        "speed": result.get("recommended_speed") or active["speed"],
     }
 
 
@@ -31,7 +35,7 @@ def load_blocking_recommendation(
     thread_id: str,
     *,
     recommendations: RecommendationStore,
-) -> dict[str, Any] | None:
+) -> RecommendationRecord | None:
     if recommendations.unsafe(thread_id):
         raise ValueError("Blocking recommendation cannot be a symlink")
     cached = recommendations.load(thread_id)
@@ -47,13 +51,12 @@ def load_blocking_recommendation(
     if (
         not active["model"]
         or not active["effort"]
-        or any(
-            (
-                f"active_{field}" not in cached["result"]
-                or cached["result"][f"active_{field}"] != active[field]
-                for field in active
-            )
+        or not {"active_model", "active_effort", "active_speed"}.issubset(
+            cached["result"]
         )
+        or cached["result"].get("active_model") != active["model"]
+        or cached["result"].get("active_effort") != active["effort"]
+        or cached["result"].get("active_speed") != active["speed"]
     ):
         raise ValueError("Blocking recommendation profile is inconsistent")
     require_recommendation(cached["result"])
@@ -90,8 +93,8 @@ def blocking_recommendation(
 
 def retain_manual_recommendation(
     event: SubmissionInput,
-    request: dict[str, Any],
-    result: dict[str, Any],
+    request: ProfileAssessmentInput,
+    result: AssessmentDecision,
     output: dict[str, Any],
     *,
     expected_submission: PendingAssessmentRecord | None = None,

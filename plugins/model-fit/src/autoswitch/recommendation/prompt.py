@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from model_fit.assessment.validation import RECOMMENDATIONS
+from model_fit.assessment.types.request import ProfileAssessmentInput
+from model_fit.submission.types.evaluation import AssessmentRunner
 from model_fit.autoswitch.recommendation.types.storage import (
     RecommendationStore,
 )
@@ -11,15 +13,15 @@ from model_fit.autoswitch.recommendation.check import recommended_profile
 
 
 def decide(
-    request: dict[str, Any],
+    request: ProfileAssessmentInput,
     *,
     thread_id: str,
     recommendations: RecommendationStore,
-    assessor: Callable,
+    assessor: AssessmentRunner,
     presentation: HookOutputRenderer,
     digest: Callable[[str], str],
     observe: Callable[[str], None] | None = None,
-):
+) -> dict[str, Any] | None:
     pending = recommendations.load(thread_id)
     if pending is not None and pending["prompt_hash"] != digest(request["task"]):
         try:
