@@ -5,7 +5,7 @@
 | Responsibility | Implementation |
 | --- | --- |
 | Assess a task and profile | `application/assessment/lifecycle.py`, `prompt.py`, `constraints/request.py`, `constraints/decision.py` |
-| Preserve a profile while discussing prior work | `application/assessment/continuity.py`, `application/assessment/types/work_relation.py` |
+| Preserve a profile while discussing prior work | `application/assessment/lifecycle.py` (`complete`), `application/assessment/types/work_relation.py` |
 | Assessment data and dependency declarations | `application/assessment/types/` |
 | Typed assessment stop conditions | `application/assessment/exceptions/` |
 | Register, assess or reassess accepted input | `application/switch/scenarios/accept.py`, `assess.py`, `reassess.py` |
@@ -22,10 +22,10 @@
 | Accepted submission data | `application/submission/types/input.py` |
 | Assessment callbacks | `application/assessment/types/execution.py` |
 | Native conversation and its opening contract | `application/handoff/types/conversation.py` |
-| Recommendation persistence contract | `application/switch/recommendation/types/storage.py` |
-| Recommendation dictionary declaration | `application/switch/recommendation/types/record.py` |
+| Recommendation persistence contract | `application/assessment/types/cache.py` |
+| Recommendation dictionary declaration | `application/assessment/types/recommendation.py` |
 | Transaction storage and companion slot | `application/switch/state/types/storage.py` |
-| Handoff state and pending assessment | `application/switch/state/types/record.py` |
+| Handoff state and pending assessment | `application/switch/state/types/record.py`, `application/assessment/types/state.py` |
 | Typed submission stop conditions | `application/switch/exceptions/` |
 | Check a bound replay answer | `application/switch/scenarios/finish.py`, `application/answer/limits.py`, `application/answer/relevance.schema.json` |
 | Native Codex profile/history/input and assessment IO | `infrastructure/adapters/codex/` |

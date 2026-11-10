@@ -22,7 +22,7 @@ import model_fit.entrypoints.hooks.operations as HANDOFF_PREPARATION
 import model_fit.entrypoints.hooks.operations as HANDOFF_RECOMMENDATION
 import model_fit.application.submission.helpers.content as HANDOFF_INPUT
 import model_fit.infrastructure.adapters.codex.transport.connection as CODEX_CONNECTION
-import model_fit.infrastructure.adapters.filesystem.pending as RECOMMENDATION_STORE
+import model_fit.infrastructure.adapters.filesystem.assessment_cache as RECOMMENDATION_STORE
 import model_fit.infrastructure.adapters.filesystem.state as HANDOFF_STATE
 import model_fit.entrypoints.hooks.handlers.assessment as CLI
 import model_fit.entrypoints.hooks.events.dispatch as EVENTS
@@ -585,7 +585,7 @@ class UnavailableSourceTests(unittest.TestCase):
 
         def keep(_):
             with HANDOFF_RECOMMENDATION.FileStore().transaction("thread"):
-                HANDOFF_RECOMMENDATION.FileRecommendations().save(
+                HANDOFF_RECOMMENDATION.FileAssessmentCache().save(
                     "thread", {**request, "task": "another work"}, self.recommendation()
                 )
             return {"decision": "keep"}

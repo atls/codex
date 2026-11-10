@@ -1,3 +1,4 @@
+from model_fit.application.assessment.helpers.context import requirements_context
 from model_fit.application.assessment.decoding import decode_profile
 from model_fit.application.assessment.types.profile import ActiveProfile
 from model_fit.application.assessment.types.user_choice import RetainedProfileChoice
@@ -50,3 +51,10 @@ def validated_request(
         else None
     )
     return (task, active, context, choice)
+
+
+def require_reassessment(requirements: str) -> None:
+    if not isinstance(requirements, str) or not requirements.strip():
+        raise ValueError("Changed requirements must be nonempty")
+    if len(requirements_context(requirements)) > 20000:
+        raise ValueError("Changed requirements exceed the assessment context limit")

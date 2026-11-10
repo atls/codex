@@ -1,5 +1,5 @@
 from model_fit.application.assessment.types.decision import AssessmentDecision
-from model_fit.application.switch.recommendation.types.evidence import (
+from model_fit.application.assessment.types.evidence import (
     RecommendationEvidence,
 )
 

@@ -1,4 +1,6 @@
 from __future__ import annotations
+from model_fit.application.assessment import lifecycle as assessment_lifecycle
+from model_fit.application.assessment.constraints.request import require_reassessment
 
 from model_fit.application.switch.lifecycle import (
     profile_choice as profile_choice_lifecycle,
@@ -8,7 +10,7 @@ from model_fit.application.switch.lifecycle import submission as submission_life
 
 from collections.abc import Callable
 
-from model_fit.application.switch.state.types.record import PendingAssessmentRecord
+from model_fit.application.assessment.types.state import PendingAssessmentRecord
 from model_fit.application.switch.exceptions.unavailable import SubmissionUnavailable
 from model_fit.application.assessment.types.execution import AssessmentRunner
 from model_fit.application.switch.types.audit import AuditWriter
@@ -22,8 +24,8 @@ from model_fit.application.switch.types.disposition import (
 )
 
 from model_fit.application.submission.types.input import SubmissionInput
-from model_fit.application.switch.recommendation.types.storage import (
-    RecommendationStore,
+from model_fit.application.assessment.types.cache import (
+    ResultCache,
 )
 from model_fit.application.switch.state.types.storage import TransferStateStore
 from model_fit.application.handoff.types.clock import Clock
@@ -36,7 +38,7 @@ def reassess(
     *,
     assessor: AssessmentRunner,
     audit: AuditWriter,
-    recommendations: RecommendationStore,
+    recommendations: ResultCache,
     caller_thread: str | None,
     clock: Clock,
     conversation: NativeConversationFactory,
@@ -44,15 +46,7 @@ def reassess(
     store: TransferStateStore,
     working_directory: Callable[[], str],
 ) -> TurnDisposition:
-    if not isinstance(requirements, str) or not requirements.strip():
-        raise ValueError("Changed requirements must be nonempty")
-    requirements_context = (
-        "New requirements discovered by the executor after reading sources (not a new user message):\n"
-        + requirements
-        + "\n\n"
-    )
-    if len(requirements_context) > 20000:
-        raise ValueError("Changed requirements exceed the assessment context limit")
+    require_reassessment(requirements)
     thread_id = caller_thread
     if not thread_id:
         raise SubmissionUnavailable(None, "native_thread_required")
@@ -101,23 +95,24 @@ def reassess(
         parent_id or thread_id,
     )
     request = read_context(event)
-    request = {
-        **request,
-        "active_profile": {
-            "model": model,
-            "effort": effort,
-            "speed": request["active_profile"].get("speed"),
-        },
-        "context": requirements_context
-        + (request.get("context") or "")[: 20000 - len(requirements_context)],
-    }
     with store.transaction(
         thread_id, operation="reassessment", turn_id=turn_id
     ) as slot:
         if slot.load() != snapshot:
             raise SubmissionUnavailable(thread_id, "reassessment_turn_changed")
+        refreshed = assessment_lifecycle.reassess(
+            event,
+            request,
+            requirements,
+            {
+                "model": model,
+                "effort": effort,
+                "speed": request["active_profile"].get("speed"),
+            },
+        )
+        request = refreshed.request
         pending = submission_lifecycle.register_submission(
-            slot, event, codec.prompt_digest(source)
+            slot, event, codec.prompt_digest(source), assessment=refreshed.submission
         )
         if snapshot["phase"] == "queued":
             submission_lifecycle.consume_submission(slot, turn_id, pending)

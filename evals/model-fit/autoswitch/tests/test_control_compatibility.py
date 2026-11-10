@@ -5,7 +5,7 @@ from model_fit.application.handoff.control_message import (
     CONTROL_PROMPTS,
 )
 from model_fit.application.switch.admission.types.input import ToolAdmissionInput
-from model_fit.infrastructure.adapters.hooks.tools import NativeTransferTools
+from model_fit.entrypoints.hooks.tool_action import NativeTransferTools
 from model_fit.application.assessment.helpers.context import recent_context
 
 

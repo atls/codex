@@ -1,6 +1,4 @@
 import shlex
-import sys
-from pathlib import Path
 from model_fit.application.submission.types.json import JsonValue
 from model_fit.application.submission.constraints.content import checked_object
 from model_fit.application.switch.admission.types.input import ToolAdmissionInput
@@ -18,35 +16,13 @@ from model_fit.entrypoints.hooks.native_contract import PROFILE_SWITCH_TOOLS
 
 
 class NativeTransferTools:
-    @staticmethod
-    def _command_arguments(value: object) -> list[str] | None:
-        if not isinstance(value, str):
-            return None
-        try:
-            command = shlex.split(value)
-            if not command:
-                return None
-            candidate, active = (Path(command[0]), Path(sys.executable))
-            if (
-                not candidate.is_absolute()
-                or candidate.parent.resolve() != active.parent.resolve()
-                or (not candidate.samefile(active))
-            ):
-                return None
-        except (OSError, ValueError):
-            return None
-        return command[1:]
-
     def matches_assessment(self, request: ToolAdmissionInput) -> bool:
         native = checked_object(request.source)
         arguments = native.get("tool_input")
         return (
             isinstance(arguments, dict)
             and native.get("tool_name") == "Bash"
-            and (
-                self._command_arguments(arguments.get("command"))
-                == shlex.split(assessment_command())[1:]
-            )
+            and (request.command_arguments == shlex.split(assessment_command())[1:])
         )
 
     def matches_profile_switch(
@@ -76,7 +52,7 @@ class NativeTransferTools:
             isinstance(arguments, dict)
             and native.get("tool_name") == "Bash"
             and (
-                self._command_arguments(arguments.get("command"))
+                request.command_arguments
                 == shlex.split(
                     queue_command(request.thread_id, state["source_turn_id"])
                 )[1:]
@@ -106,7 +82,7 @@ class NativeTransferTools:
             arguments.get("command"), str
         ):
             return None
-        command = self._command_arguments(arguments["command"])
+        command = request.command_arguments
         if command is None:
             return None
         expected = shlex.split(
@@ -137,7 +113,7 @@ class NativeTransferTools:
             arguments.get("command"), str
         ):
             return False
-        command = self._command_arguments(arguments["command"])
+        command = request.command_arguments
         if command is None:
             return False
         expected = shlex.split(queue_command("current", "source"))[1:]

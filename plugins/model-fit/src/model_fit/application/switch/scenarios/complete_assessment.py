@@ -22,7 +22,7 @@ from model_fit.application.handoff.types.conversation import (
 )
 from model_fit.application.switch.state.types.record import HandoffStateRecord
 from model_fit.application.submission.helpers import content as codec
-from model_fit.application.switch.state.types.record import PendingAssessmentRecord
+from model_fit.application.assessment.types.state import PendingAssessmentRecord
 from model_fit.application.switch.types.disposition import (
     ContinueWork,
     ManualRecommendation,
@@ -33,16 +33,18 @@ from model_fit.application.switch.types.disposition import (
 from model_fit.application.switch.disposition import assessment_disposition
 
 from model_fit.application.submission.types.input import SubmissionInput
-from model_fit.application.switch.recommendation.types.record import (
+from model_fit.application.assessment.types.recommendation import (
     RecommendationRecord,
 )
-from model_fit.application.switch.recommendation.types.storage import (
-    RecommendationStore,
+from model_fit.application.assessment.types.cache import (
+    ResultCache,
 )
 from model_fit.application.switch.state.types.storage import TransferStateStore
-from model_fit.application.switch.recommendation.check import (
+from model_fit.application.switch.admission.recommendation import (
     blocking_recommendation,
-    load_blocking_recommendation,
+)
+from model_fit.application.assessment.lifecycle import load_blocking_recommendation
+from model_fit.application.switch.admission.recommendation import (
     retain_manual_recommendation,
 )
 from model_fit.application.handoff.types.clock import Clock
@@ -60,7 +62,7 @@ def complete_assessment(
     profile_context_state: HandoffStateRecord | None,
     expected_submission: PendingAssessmentRecord | None = None,
     audit: AuditWriter,
-    recommendations: RecommendationStore,
+    recommendations: ResultCache,
     clock: Clock,
     conversation: NativeConversationFactory,
     store: TransferStateStore,

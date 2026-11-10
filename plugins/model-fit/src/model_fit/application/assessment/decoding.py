@@ -1,6 +1,5 @@
 from model_fit.application.assessment.types.decision import (
     AssessmentDecision,
-    DecisionKind,
 )
 from model_fit.application.assessment.types.work_relation import WorkRelation
 from model_fit.application.assessment.types.profile import ActiveProfile
@@ -19,20 +18,6 @@ def decode_evaluation(value: object) -> tuple[WorkRelation, dict[str, JsonValue]
     return relation, {
         key: item for key, item in evaluation.items() if key != "work_relation"
     }
-
-
-def decision_kind(value: object) -> DecisionKind:
-    match value:
-        case (
-            "keep"
-            | "unknown"
-            | "recommend_lighter"
-            | "recommend_stronger"
-            | "recommend_faster"
-        ):
-            return value
-        case _:
-            raise ValueError("Unknown preflight decision")
 
 
 def required_text(value: object) -> str:

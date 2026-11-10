@@ -1,5 +1,3 @@
-from typing import TypeAlias
+from pydantic import JsonValue
 
-JsonValue: TypeAlias = (
-    str | int | float | bool | None | list["JsonValue"] | dict[str, "JsonValue"]
-)
+__all__ = ["JsonValue"]

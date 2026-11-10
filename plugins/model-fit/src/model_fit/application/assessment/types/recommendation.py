@@ -1,11 +1,14 @@
-from typing import NotRequired, TypedDict
+from typing import NotRequired
+from typing_extensions import TypedDict
+from pydantic import ConfigDict, with_config
 
-from model_fit.application.switch.recommendation.types.evidence import (
+from model_fit.application.assessment.types.evidence import (
     RecommendationEvidence,
 )
 from model_fit.application.assessment.types.profile import ActiveProfile
 
 
+@with_config(ConfigDict(extra="forbid"))
 class RecommendationRecord(TypedDict):
     prompt_hash: str
     active_profile: ActiveProfile

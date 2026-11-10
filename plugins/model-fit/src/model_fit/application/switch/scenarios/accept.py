@@ -22,8 +22,8 @@ from model_fit.application.switch.types.disposition import (
 from model_fit.application.handoff.control_message import CONTROL_PROMPTS
 
 from model_fit.application.submission.types.input import SubmissionInput
-from model_fit.application.switch.recommendation.types.storage import (
-    RecommendationStore,
+from model_fit.application.assessment.types.cache import (
+    ResultCache,
 )
 from model_fit.application.switch.state.types.storage import TransferStateStore
 from model_fit.application.handoff.types.clock import Clock
@@ -34,7 +34,7 @@ def accept(
     *,
     assessor: AssessmentRunner,
     audit: AuditWriter,
-    recommendations: RecommendationStore,
+    recommendations: ResultCache,
     clock: Clock,
     conversation: NativeConversationFactory,
     read_context: AssessmentContextReader,

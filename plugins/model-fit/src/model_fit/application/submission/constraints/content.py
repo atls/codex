@@ -1,6 +1,11 @@
 from typing import TypeGuard
+from pydantic import TypeAdapter, ValidationError
 
 from model_fit.application.submission.types.json import JsonValue
+
+
+JSON_VALUE = TypeAdapter(JsonValue)
+CONTENT = TypeAdapter(list[dict[str, JsonValue]])
 
 
 def native_text(value: object) -> str:
@@ -14,15 +19,11 @@ def native_optional_text(value: object) -> str | None:
 
 
 def json_value(value: object) -> TypeGuard[JsonValue]:
-    if value is None or isinstance(value, (str, int, float, bool)):
+    try:
+        JSON_VALUE.validate_python(value, strict=True)
         return True
-    if isinstance(value, list):
-        return all(json_value(item) for item in value)
-    if isinstance(value, dict):
-        return all(
-            isinstance(key, str) and json_value(item) for key, item in value.items()
-        )
-    return False
+    except ValidationError:
+        return False
 
 
 def json_object(value: object) -> TypeGuard[dict[str, JsonValue]]:
@@ -36,9 +37,11 @@ def checked_object(value: object) -> dict[str, JsonValue]:
 
 
 def native_content(value: object) -> TypeGuard[list[dict[str, JsonValue]]]:
-    return isinstance(value, list) and all(
-        isinstance(item, dict) and json_value(item) for item in value
-    )
+    try:
+        CONTENT.validate_python(value, strict=True)
+        return True
+    except ValidationError:
+        return False
 
 
 def checked_content(value: object) -> list[dict[str, JsonValue]]:

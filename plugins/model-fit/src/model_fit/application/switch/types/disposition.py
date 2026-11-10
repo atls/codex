@@ -1,8 +1,9 @@
+from model_fit.application.assessment.types.result import UnknownAssessment
 from dataclasses import dataclass
 from enum import Enum
 
 from model_fit.application.assessment.types.decision import AssessmentDecision
-from model_fit.application.switch.recommendation.types.evidence import (
+from model_fit.application.assessment.types.evidence import (
     RecommendationEvidence,
 )
 from model_fit.application.switch.state.types.record import HandoffStateRecord
@@ -22,11 +23,6 @@ class BlockedTurn:
 @dataclass(frozen=True)
 class TurnNotice:
     message: str
-
-
-@dataclass(frozen=True)
-class UnknownAssessment:
-    message: str | None = None
 
 
 @dataclass

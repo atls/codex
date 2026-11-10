@@ -7,8 +7,8 @@ from model_fit.entrypoints.hooks.input import prompt_input
 from model_fit.entrypoints.hooks.delivery import deliver_disposition
 from model_fit.application.switch.scenarios.evaluate import evaluate
 from model_fit.infrastructure.adapters.filesystem.audit import record_audit
-from model_fit.infrastructure.adapters.filesystem.recommendations import (
-    FileRecommendations,
+from model_fit.infrastructure.adapters.filesystem.assessment_cache import (
+    FileAssessmentCache,
 )
 from model_fit.infrastructure.adapters.filesystem.store import FileStore
 
@@ -18,7 +18,7 @@ def evaluate_request(event, *, context_reader=None, assessor=None, native_factor
         prompt_input(event),
         assessor=assessor or api.triage,
         audit=record_audit,
-        recommendations=FileRecommendations(),
+        recommendations=FileAssessmentCache(),
         clock=time.time,
         conversation=api.native_conversation(native_factory),
         read_context=lambda request: (context_reader or api.session_input)(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from model_fit.application.assessment.types.decision import AssessmentDecision
-from model_fit.application.switch.recommendation.types.evidence import (
+from model_fit.application.assessment.types.evidence import (
     RecommendationEvidence,
 )
 
@@ -14,7 +14,7 @@ from model_fit.entrypoints.hooks.types.output import HookOutput
 from model_fit.application.submission.types.json import JsonValue
 
 from model_fit.application.assessment.constraints.decision import RECOMMENDATIONS
-from model_fit.application.switch.recommendation.validation import (
+from model_fit.application.assessment.constraints.recommendation import (
     require_recommendation,
 )
 from model_fit.entrypoints.hooks.instructions import (

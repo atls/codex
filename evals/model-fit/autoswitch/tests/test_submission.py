@@ -24,8 +24,8 @@ from model_fit.application.submission.helpers.content import input_digest
 from model_fit.infrastructure.adapters.codex.transport.connection import (
     AppServerRPCError,
 )
-from model_fit.infrastructure.adapters.filesystem.recommendations import (
-    FileRecommendations,
+from model_fit.infrastructure.adapters.filesystem.assessment_cache import (
+    FileAssessmentCache,
 )
 from model_fit.infrastructure.adapters.filesystem.state import (
     locked_state,
@@ -694,7 +694,7 @@ class SubmittedInputTests(unittest.TestCase):
             "blocking_recommendation",
         ):
             if case == "blocking_recommendation":
-                FileRecommendations().save(
+                FileAssessmentCache().save(
                     "submitted-thread",
                     {"task": "Inspect both", "active_profile": self.profile},
                     {
@@ -757,7 +757,7 @@ class SubmittedInputTests(unittest.TestCase):
                 )
                 self.assertEqual(path.read_bytes(), saved)
                 if case == "blocking_recommendation":
-                    self.assertIsNotNone(FileRecommendations().load("submitted-thread"))
+                    self.assertIsNotNone(FileAssessmentCache().load("submitted-thread"))
 
     def test_retry_snapshot_cannot_clear_a_new_generation(self):
         api.submit_prompt(self.event)
@@ -1963,7 +1963,7 @@ class SubmittedInputTests(unittest.TestCase):
     def test_verified_effort_change_clears_stale_manual_block_for_attachment_only_input(
         self,
     ):
-        cache = FileRecommendations()
+        cache = FileAssessmentCache()
         cache.save(
             "submitted-thread",
             {"task": "", "active_profile": self.profile},

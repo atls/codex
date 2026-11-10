@@ -1,19 +1,17 @@
 from model_fit.application.assessment.types.decision import AssessmentDecision
-from model_fit.application.switch.recommendation.types.evidence import (
+from model_fit.application.assessment.types.evidence import (
     RecommendationEvidence,
 )
-from model_fit.application.switch.recommendation.validation import (
+from model_fit.application.assessment.constraints.recommendation import (
     require_recommendation,
 )
-from model_fit.application.switch.types.disposition import (
-    BlockedTurn,
-    ContinueWork,
-    ManualRecommendation,
-    TurnDisposition,
-    UnknownAssessment,
-    TurnNotice,
-    WorkContext,
-)
+from model_fit.application.switch.types.disposition import BlockedTurn
+from model_fit.application.switch.types.disposition import ContinueWork
+from model_fit.application.switch.types.disposition import ManualRecommendation
+from model_fit.application.switch.types.disposition import TurnDisposition
+from model_fit.application.assessment.types.result import UnknownAssessment
+from model_fit.application.switch.types.disposition import TurnNotice
+from model_fit.application.switch.types.disposition import WorkContext
 
 
 def assessment_disposition(

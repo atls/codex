@@ -15,8 +15,8 @@ from model_fit.application.switch.types.audit import AuditWriter
 from model_fit.application.handoff.types.conversation import (
     NativeConversationFactory,
 )
-from model_fit.application.switch.recommendation.types.storage import (
-    RecommendationStore,
+from model_fit.application.assessment.types.cache import (
+    ResultCache,
 )
 from model_fit.application.switch.state.types.storage import TransferStateStore
 from model_fit.application.switch.admission.types.input import ToolAdmissionInput
@@ -39,7 +39,7 @@ def guard_tool(
     *,
     actions: TransferTools,
     audit: AuditWriter,
-    recommendations: RecommendationStore,
+    recommendations: ResultCache,
     clock: Clock,
     conversation: NativeConversationFactory,
     store: TransferStateStore,

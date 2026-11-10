@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from model_fit.application.switch.recovery.assessment import recover_assessment
+from model_fit.application.switch.admission.recovery import admit_assessment_recovery
 
 from model_fit.application.switch.exceptions.context_unavailable import (
     ContextUnavailable,
@@ -16,8 +16,8 @@ from model_fit.application.switch.lifecycle import submission as submission_life
 from collections.abc import Callable
 
 from model_fit.application.assessment.types.profile import ActiveProfile
-from model_fit.application.switch.state.types.record import PendingAssessmentRecord
-from model_fit.application.switch.exceptions.superseded import AssessmentSuperseded
+from model_fit.application.assessment.types.state import PendingAssessmentRecord
+from model_fit.application.assessment.exceptions.superseded import AssessmentSuperseded
 from model_fit.application.switch.exceptions.unavailable import SubmissionUnavailable
 from model_fit.application.switch.scenarios.evaluate import evaluate
 from model_fit.application.assessment.types.execution import AssessmentRunner
@@ -27,26 +27,26 @@ from model_fit.application.handoff.types.conversation import (
     NativeConversationFactory,
 )
 from model_fit.application.submission.helpers import content as codec
-from model_fit.application.switch.types.disposition import (
-    ContinueWork,
-    PreparedTransfer,
-    QueuePending,
-    TurnDisposition,
-    TurnNotice,
-    UnknownAssessment,
-    WorkContext,
-)
+from model_fit.application.switch.types.disposition import ContinueWork
+from model_fit.application.switch.types.disposition import PreparedTransfer
+from model_fit.application.switch.types.disposition import QueuePending
+from model_fit.application.switch.types.disposition import TurnDisposition
+from model_fit.application.switch.types.disposition import TurnNotice
+from model_fit.application.assessment.types.result import UnknownAssessment
+from model_fit.application.switch.types.disposition import WorkContext
 from model_fit.application.switch.disposition import (
     assessment_audit_outcome,
     blocks_work,
 )
 
 from model_fit.application.submission.types.input import SubmissionInput
-from model_fit.application.switch.recommendation.types.storage import (
-    RecommendationStore,
+from model_fit.application.assessment.types.cache import (
+    ResultCache,
 )
 from model_fit.application.switch.state.types.storage import TransferStateStore
-from model_fit.application.switch.recommendation.check import blocking_recommendation
+from model_fit.application.switch.admission.recommendation import (
+    blocking_recommendation,
+)
 from model_fit.application.handoff.types.clock import Clock
 
 
@@ -55,7 +55,7 @@ def assess(
     *,
     assessor: AssessmentRunner,
     audit: AuditWriter,
-    recommendations: RecommendationStore,
+    recommendations: ResultCache,
     caller_thread: str | None,
     clock: Clock,
     conversation: NativeConversationFactory,
@@ -348,7 +348,7 @@ def assess(
         except AssessmentSuperseded:
             raise
         except Exception as error:
-            recovered = recover_assessment(
+            recovered = admit_assessment_recovery(
                 event, pending, error, store=store, audit=audit
             )
             if recovered is not None:

@@ -20,7 +20,7 @@ from model_fit.application.switch.admission.scenario import guard_tool as run_gu
 from model_fit.application.switch.admission.guards.continuation import (
     can_continue_admitted_tool as continue_tool,
 )
-from model_fit.infrastructure.adapters.hooks.tools import NativeTransferTools
+from model_fit.entrypoints.hooks.tool_action import NativeTransferTools
 from model_fit.entrypoints.hooks.input import (
     answer_input,
     prompt_input,
@@ -39,8 +39,8 @@ from model_fit.infrastructure.adapters.codex.history import (
     session_input,
 )
 from model_fit.infrastructure.adapters.filesystem.audit import record_audit
-from model_fit.infrastructure.adapters.filesystem.recommendations import (
-    FileRecommendations,
+from model_fit.infrastructure.adapters.filesystem.assessment_cache import (
+    FileAssessmentCache,
 )
 from model_fit.infrastructure.adapters.filesystem.store import FileStore
 from model_fit.application.switch.scenarios.accept import accept as run_submit
@@ -90,7 +90,7 @@ def guard_tool(event: dict[str, JsonValue]) -> HookOutput | None:
         tool_input(event),
         actions=NativeTransferTools(),
         audit=record_audit,
-        recommendations=FileRecommendations(),
+        recommendations=FileAssessmentCache(),
         clock=time.time,
         conversation=native_conversation(None),
         replay_context=HookPresentation.replay_context,
@@ -131,7 +131,7 @@ def submit_prompt(
         prompt_input(event),
         assessor=assessor or triage,
         audit=record_audit,
-        recommendations=FileRecommendations(),
+        recommendations=FileAssessmentCache(),
         clock=time.time,
         conversation=native_conversation(native_factory),
         read_context=lambda request: assessment_context(
@@ -152,7 +152,7 @@ def assess_submitted(
         submitted_prompt,
         assessor=assessor or triage,
         audit=record_audit,
-        recommendations=FileRecommendations(),
+        recommendations=FileAssessmentCache(),
         caller_thread=os.environ.get("CODEX_THREAD_ID"),
         clock=time.time,
         conversation=native_conversation(native_factory),
@@ -178,7 +178,7 @@ def reassess(
         submitted_prompt,
         assessor=assessor or triage,
         audit=record_audit,
-        recommendations=FileRecommendations(),
+        recommendations=FileAssessmentCache(),
         caller_thread=os.environ.get("CODEX_THREAD_ID"),
         clock=time.time,
         conversation=native_conversation(native_factory),

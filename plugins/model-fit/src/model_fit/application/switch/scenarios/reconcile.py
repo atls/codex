@@ -11,7 +11,7 @@ from model_fit.application.handoff.types.conversation import (
     NativeConversationFactory,
 )
 from model_fit.application.submission.helpers import content as codec
-from model_fit.application.switch.state.types.record import PendingAssessmentRecord
+from model_fit.application.assessment.types.state import PendingAssessmentRecord
 from model_fit.application.switch.types.disposition import (
     BlockedTurn,
     ContinueWork,

@@ -1,7 +1,10 @@
-from typing import NotRequired, TypedDict
+from typing import NotRequired
+from typing_extensions import TypedDict
+from pydantic import ConfigDict, with_config
 from model_fit.application.assessment.types.decision import DecisionKind
 
 
+@with_config(ConfigDict(extra="ignore"))
 class RecommendationEvidence(TypedDict):
     active_model: NotRequired[str]
     active_effort: NotRequired[str]

@@ -15,7 +15,7 @@ from model_fit.application.submission.types.json import JsonValue
 
 from model_fit.infrastructure.adapters.codex.identity import SESSION_ID_PATTERN
 from model_fit.application.switch.state.types.record import HandoffStateRecord
-from model_fit.application.switch.state.validation import handoff_record
+from model_fit.infrastructure.adapters.filesystem.state_codec import decode_state
 
 STATE_DIRECTORY = ".tmp/model-fit-auto-switch"
 
@@ -98,10 +98,7 @@ def lock_owner(thread_id: str) -> dict[str, JsonValue]:
 def read_state(path: Path) -> HandoffStateRecord | None:
     if not path.exists():
         return None
-    state = json.loads(path.read_text())
-    if not handoff_record(state):
-        raise ValueError("Invalid Model Fit handoff state")
-    return state
+    return decode_state(json.loads(path.read_text()))
 
 
 def write_state(path: Path, state: HandoffStateRecord) -> None:

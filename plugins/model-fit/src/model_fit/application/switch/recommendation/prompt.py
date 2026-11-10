@@ -5,8 +5,8 @@ from typing import Callable
 from model_fit.application.assessment.constraints.decision import RECOMMENDATIONS
 from model_fit.application.assessment.types.request import ProfileAssessmentInput
 from model_fit.application.assessment.types.execution import AssessmentRunner
-from model_fit.application.switch.recommendation.types.storage import (
-    RecommendationStore,
+from model_fit.application.assessment.types.cache import (
+    ResultCache,
 )
 from model_fit.application.switch.types.disposition import (
     BlockedTurn,
@@ -15,15 +15,15 @@ from model_fit.application.switch.types.disposition import (
 )
 from model_fit.application.switch.disposition import assessment_disposition
 
-from model_fit.application.switch.recommendation.check import recommended_profile
-from model_fit.application.switch.recommendation.identity import assessment_hash
+from model_fit.application.assessment.helpers.decision import recommended_profile
+from model_fit.application.assessment.helpers.identity import assessment_hash
 
 
 def decide(
     request: ProfileAssessmentInput,
     *,
     thread_id: str,
-    recommendations: RecommendationStore,
+    recommendations: ResultCache,
     assessor: AssessmentRunner,
     digest: Callable[[str], str],
     observe: Callable[[str], bool | None] | None = None,

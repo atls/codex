@@ -1,74 +1,20 @@
 from __future__ import annotations
-
 from model_fit.application.switch.lifecycle import submission as submission_lifecycle
-
-
-from model_fit.application.assessment.constraints.request import (
-    validated_active_profile,
-)
-from model_fit.application.assessment.types.profile import ActiveProfile
 from model_fit.application.assessment.types.request import ProfileAssessmentInput
 from model_fit.application.assessment.types.decision import AssessmentDecision
-from model_fit.application.switch.recommendation.validation import (
-    require_recommendation,
-)
-from model_fit.application.switch.recommendation.types.record import (
-    RecommendationRecord,
-)
 from model_fit.application.submission.helpers import content as codec
-from model_fit.application.switch.state.types.record import PendingAssessmentRecord
+from model_fit.application.assessment.types.state import PendingAssessmentRecord
 from model_fit.application.switch.types.disposition import (
     TurnDisposition,
 )
 from model_fit.application.switch.disposition import assessment_disposition
-
 from model_fit.application.submission.types.input import SubmissionInput
-from model_fit.application.switch.recommendation.types.storage import (
-    RecommendationStore,
+from model_fit.application.assessment.types.cache import (
+    ResultCache,
 )
 from model_fit.application.switch.state.types.storage import TransferStateStore
 
-
-def recommended_profile(pending: RecommendationRecord) -> ActiveProfile:
-    active = pending["active_profile"]
-    result = pending["result"]
-    return {
-        "model": result.get("recommended_model") or active["model"],
-        "effort": result.get("recommended_effort") or active["effort"],
-        "speed": result.get("recommended_speed") or active["speed"],
-    }
-
-
-def load_blocking_recommendation(
-    thread_id: str,
-    *,
-    recommendations: RecommendationStore,
-) -> RecommendationRecord | None:
-    if recommendations.unsafe(thread_id):
-        raise ValueError("Blocking recommendation cannot be a symlink")
-    cached = recommendations.load(thread_id)
-    if cached is None:
-        return None
-    if (
-        len(cached["prompt_hash"]) != 64
-        or len(bytes.fromhex(cached["prompt_hash"])) != 32
-        or cached["prompt_hash"] != cached["prompt_hash"].lower()
-    ):
-        raise ValueError("Blocking recommendation input hash is invalid")
-    active = validated_active_profile({"active_profile": cached["active_profile"]})
-    if (
-        not active["model"]
-        or not active["effort"]
-        or not {"active_model", "active_effort", "active_speed"}.issubset(
-            cached["result"]
-        )
-        or cached["result"].get("active_model") != active["model"]
-        or cached["result"].get("active_effort") != active["effort"]
-        or cached["result"].get("active_speed") != active["speed"]
-    ):
-        raise ValueError("Blocking recommendation profile is inconsistent")
-    require_recommendation(cached["result"])
-    return cached
+from model_fit.application.assessment.lifecycle import load_blocking_recommendation
 
 
 def blocking_recommendation(
@@ -76,7 +22,7 @@ def blocking_recommendation(
     *,
     prompt_hash: str | None = None,
     empty_input: bool | None = None,
-    recommendations: RecommendationStore,
+    recommendations: ResultCache,
 ) -> TurnDisposition | None:
     cached = load_blocking_recommendation(
         event.thread_id, recommendations=recommendations
@@ -105,7 +51,7 @@ def retain_manual_recommendation(
     output: TurnDisposition,
     *,
     expected_submission: PendingAssessmentRecord | None = None,
-    recommendations: RecommendationStore,
+    recommendations: ResultCache,
     store: TransferStateStore,
 ) -> TurnDisposition:
     with store.transaction(

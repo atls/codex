@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from model_fit.application.assessment.types.profile import ActiveProfile
 from model_fit.application.switch.state.types.record import HandoffStateRecord
-from uuid import uuid4
 from typing import overload
 
-from model_fit.application.switch.exceptions.superseded import AssessmentSuperseded
-from model_fit.application.switch.state.types.record import PendingAssessmentRecord
+from model_fit.application.assessment.guards.generation import require_current
+from model_fit.application.assessment import lifecycle as assessment_lifecycle
+from model_fit.application.assessment.types.state import PendingAssessmentRecord
 from model_fit.application.submission.types.input import SubmissionInput
 from model_fit.application.switch.state.types.storage import TransferStateSlot
 
@@ -30,15 +30,19 @@ def require_submission(
     if expected is None:
         return None
     current = slot.load()
-    if current is None or current.get("pending_assessment") != expected:
-        raise AssessmentSuperseded(
-            expected["thread_id"], expected["turn_id"], expected.get("generation")
-        )
+    require_current(
+        expected, current.get("pending_assessment") if current is not None else None
+    )
+    assert current is not None
     return current
 
 
 def register_submission(
-    slot: TransferStateSlot, event: SubmissionInput, prompt_hash: str
+    slot: TransferStateSlot,
+    event: SubmissionInput,
+    prompt_hash: str,
+    *,
+    assessment: PendingAssessmentRecord | None = None,
 ) -> PendingAssessmentRecord:
     current = slot.load()
     if slot.unsafe() or (
@@ -51,21 +55,11 @@ def register_submission(
     }
     if state["phase"] == "submitted":
         state["source_turn_id"] = event.turn_id
-    generation = uuid4().hex
-    pending: PendingAssessmentRecord = {
-        "thread_id": event.thread_id,
-        "turn_id": event.turn_id,
-        "root_session_id": event.session_id or event.thread_id,
-        "agent_id": event.thread_id
-        if event.session_id and event.session_id != event.thread_id
-        else None,
-        "working_directory": event.working_directory,
-        "active_model": event.active_model,
-        "prompt_hash": prompt_hash,
-        "empty_text": not event.text.strip(),
-        "status": "waiting",
-        "generation": generation,
-    }
+    pending = (
+        assessment
+        if assessment is not None
+        else assessment_lifecycle.register(event, prompt_hash)
+    )
     state["pending_assessment"] = pending
     save_snapshot(slot, state)
     return pending
@@ -76,9 +70,7 @@ def start_assessment(slot: TransferStateSlot) -> PendingAssessmentRecord:
     pending = state.get("pending_assessment") if state is not None else None
     if state is None or not pending:
         raise ValueError("No submitted Model Fit input")
-    if pending["status"] != "waiting":
-        raise RuntimeError("Submitted Model Fit input is not awaiting assessment")
-    pending["status"] = "running"
+    assessment_lifecycle.start(pending)
     save_snapshot(slot, state)
     return pending
 
@@ -89,9 +81,7 @@ def fail_assessment(
     state = slot.load()
     stored = state.get("pending_assessment") if state is not None else None
     if state is not None and stored is not None and stored == pending:
-        stored["status"] = "failed"
-        if reason is not None:
-            stored["failure_reason"] = reason
+        assessment_lifecycle.fail(stored, reason)
         save_snapshot(slot, state)
 
 

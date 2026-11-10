@@ -1,12 +1,12 @@
 from typing import Protocol
 from model_fit.application.assessment.types.request import ProfileAssessmentInput
 from model_fit.application.assessment.types.decision import AssessmentDecision
-from model_fit.application.switch.recommendation.types.record import (
+from model_fit.application.assessment.types.recommendation import (
     RecommendationRecord,
 )
 
 
-class RecommendationStore(Protocol):
+class ResultCache(Protocol):
     def load(self, thread_id: str) -> RecommendationRecord | None: ...
 
     def save(
@@ -17,5 +17,3 @@ class RecommendationStore(Protocol):
     ) -> None: ...
 
     def clear(self, thread_id: str, *, missing_ok: bool = False) -> None: ...
-
-    def unsafe(self, thread_id: str) -> bool: ...

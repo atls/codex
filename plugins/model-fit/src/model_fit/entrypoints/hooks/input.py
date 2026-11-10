@@ -1,11 +1,14 @@
 from model_fit.application.submission.types.json import JsonValue
 from model_fit.application.submission.constraints.content import checked_object
 from model_fit.application.assessment.decoding import required_text, optional_text
-from model_fit.application.switch.state.types.record import PendingAssessmentRecord
+from model_fit.application.assessment.types.state import PendingAssessmentRecord
 from model_fit.application.answer.types.input import ReplayAnswerInput
 from model_fit.application.submission.types.input import SubmissionInput
 from model_fit.application.switch.admission.types.input import ToolAdmissionInput
 from model_fit.infrastructure.adapters.codex.identity import executor_thread_id
+from model_fit.infrastructure.adapters.runtime.executable_identity import (
+    verified_python_arguments,
+)
 
 
 def prompt_input(native: dict[str, JsonValue]) -> SubmissionInput:
@@ -21,8 +24,15 @@ def prompt_input(native: dict[str, JsonValue]) -> SubmissionInput:
 
 
 def tool_input(native: dict[str, JsonValue]) -> ToolAdmissionInput:
+    arguments = native.get("tool_input")
+    command = arguments.get("command") if isinstance(arguments, dict) else None
     return ToolAdmissionInput(
-        executor_thread_id(native), optional_text(native.get("turn_id")), native
+        executor_thread_id(native),
+        optional_text(native.get("turn_id")),
+        native,
+        verified_python_arguments(command)
+        if native.get("tool_name") == "Bash"
+        else None,
     )
 
 

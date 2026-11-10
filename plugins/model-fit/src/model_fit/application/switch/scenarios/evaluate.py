@@ -24,7 +24,7 @@ from model_fit.application.handoff.types.conversation import (
     NativeConversationFactory,
 )
 from model_fit.application.submission.helpers import content as codec
-from model_fit.application.switch.state.types.record import PendingAssessmentRecord
+from model_fit.application.assessment.types.state import PendingAssessmentRecord
 from model_fit.application.switch.types.disposition import (
     TurnDisposition,
     TurnNotice,
@@ -32,14 +32,14 @@ from model_fit.application.switch.types.disposition import (
 from model_fit.application.handoff.control_message import CONTROL_PROMPTS
 
 from model_fit.application.submission.types.input import SubmissionInput
-from model_fit.application.switch.recommendation.types.storage import (
-    RecommendationStore,
+from model_fit.application.assessment.types.cache import (
+    ResultCache,
 )
 from model_fit.application.switch.state.types.storage import TransferStateStore
-from model_fit.application.switch.recommendation.check import (
+from model_fit.application.switch.admission.recommendation import (
     blocking_recommendation,
-    load_blocking_recommendation,
 )
+from model_fit.application.assessment.lifecycle import load_blocking_recommendation
 from model_fit.application.handoff.types.clock import Clock
 
 
@@ -49,7 +49,7 @@ def evaluate(
     expected_submission: PendingAssessmentRecord | None = None,
     assessor: AssessmentRunner,
     audit: AuditWriter,
-    recommendations: RecommendationStore,
+    recommendations: ResultCache,
     clock: Clock,
     conversation: NativeConversationFactory,
     read_context: AssessmentContextReader,

@@ -1,3 +1,4 @@
+from model_fit.application.assessment.types.recommendation import RecommendationRecord
 from model_fit.application.assessment.types.profile import ActiveProfile
 from model_fit.application.assessment.types.decision import (
     AssessmentDecision,
@@ -20,4 +21,14 @@ def empty_decision(
         "official_guidance": None,
         "task_inference": None,
         "reason": reason,
+    }
+
+
+def recommended_profile(pending: RecommendationRecord) -> ActiveProfile:
+    active = pending["active_profile"]
+    result = pending["result"]
+    return {
+        "model": result.get("recommended_model") or active["model"],
+        "effort": result.get("recommended_effort") or active["effort"],
+        "speed": result.get("recommended_speed") or active["speed"],
     }

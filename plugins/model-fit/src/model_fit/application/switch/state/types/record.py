@@ -1,19 +1,7 @@
-from typing import Literal, Required, TypedDict
+from model_fit.application.assessment.types.state import PendingAssessmentRecord
+from typing import Literal, Required
+from typing_extensions import TypedDict
 from model_fit.application.assessment.types.profile import ActiveProfile
-
-
-class PendingAssessmentRecord(TypedDict, total=False):
-    thread_id: str
-    turn_id: str
-    root_session_id: str
-    agent_id: str | None
-    working_directory: str | None
-    active_model: str | None
-    prompt_hash: str
-    empty_text: bool
-    status: str
-    generation: str | int
-    failure_reason: str
 
 
 class HandoffStateRecord(TypedDict, total=False):
