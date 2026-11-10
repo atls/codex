@@ -8,8 +8,9 @@ import shutil
 import subprocess
 import tempfile
 import unittest
-import sys
 import zipfile
+
+import yaml
 from pathlib import Path
 from contextlib import ExitStack
 
@@ -61,8 +62,13 @@ class PluginInstallationTests(unittest.TestCase):
                     ".venv", "__pycache__", "*.egg-info", ".ruff_cache", "dist"
                 ),
             )
-            (authoring / "tools").mkdir()
-            shutil.copyfile(repository / "tools/build.py", authoring / "tools/build.py")
+            shutil.copytree(
+                repository / ".github/packaging", authoring / ".github/packaging"
+            )
+            shutil.copytree(
+                repository / ".github/actions/package",
+                authoring / ".github/actions/package",
+            )
             shutil.copyfile(repository / "LICENSE", authoring / "LICENSE")
             (authoring / ".gitignore").write_text("dist/\n")
             subprocess.run(
@@ -104,8 +110,12 @@ class PluginInstallationTests(unittest.TestCase):
                 capture_output=True,
                 timeout=30,
             )
+            package_action = yaml.safe_load(
+                (candidate / ".github/actions/package/action.yml").read_text()
+            )
             subprocess.run(
-                [sys.executable, str(candidate / "tools/build.py")],
+                ["bash", "-e", "-c", package_action["runs"]["steps"][0]["run"]],
+                env={**os.environ, "PACKAGE_OUTPUT": str(candidate / "dist")},
                 cwd=candidate,
                 check=True,
                 capture_output=True,

@@ -5,7 +5,7 @@
   "scripts": {
     "eval": "uv run python evaluate.py native",
     "validate": "uv run python evaluate.py native --validate",
-    "test": "yarn test:fixtures && yarn test:assessment && yarn test:ordinary && yarn test:execution && yarn test:autoswitch && yarn test:acceptance",
+    "test": "yarn test:fixtures && yarn test:assessment && yarn test:ordinary && yarn test:execution && yarn test:autoswitch && yarn test:acceptance && yarn test:packaging",
     "test:fixtures": "uv run python fixtures/validation.py && uv run python -m unittest discover -s fixtures/tests",
     "test:assessment": "uv run python -m unittest discover -s assessment/tests",
     "test:ordinary": "uv run python -m unittest discover -s assessment/ordinary/tests",
@@ -16,7 +16,8 @@
     "eval:assessment": "uv run python evaluate.py assessment",
     "eval:tasks": "uv run python evaluate.py tasks",
     "eval:ordinary": "uv run python evaluate.py ordinary",
-    "regrade": "uv run python evaluate.py regrade"
+    "regrade": "uv run python evaluate.py regrade",
+    "test:packaging": "uv run python -m unittest discover -s packaging/tests"
   },
   "engines": {
     "node": ">=24.15.0 <25"

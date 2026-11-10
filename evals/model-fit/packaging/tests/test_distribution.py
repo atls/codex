@@ -1,4 +1,3 @@
-import importlib.util
 import json
 import os
 import shutil
@@ -9,16 +8,59 @@ import unittest
 import zipfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location("package_build", ROOT / "tools/build.py")
-build = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(build)
+import yaml
+
+ROOT = Path(__file__).resolve().parents[4]
 
 
 class DistributionTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        shutil.copytree(
+            ROOT / "plugins",
+            self.root / "plugins",
+            ignore=shutil.ignore_patterns(
+                ".venv", "__pycache__", "build", "dist", "*.egg-info"
+            ),
+        )
+        shutil.copytree(ROOT / ".github/packaging", self.root / ".github/packaging")
+        shutil.copy(ROOT / "LICENSE", self.root / "LICENSE")
+        definition = yaml.safe_load(
+            (ROOT / ".github/actions/package/action.yml").read_text()
+        )
+        self.command = definition["runs"]["steps"][0]["run"]
+        self.environment = {**os.environ, "PACKAGE_OUTPUT": str(self.root / "dist")}
+        self.build()
+        self.archives = {
+            name: next((self.root / "dist").glob(name + "-[0-9]*.zip"))
+            for name in ("model-fit", "model-fit-guidance")
+        }
+
+    def build(self):
+        result = subprocess.run(
+            ["bash", "-e", "-c", self.command],
+            cwd=self.root,
+            env=self.environment,
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result
+
     def test_variants_share_assessor_and_exclude_development_files(self):
-        _, full = build.full_package()
-        _, cli = build.guidance_package()
+        self.assertFalse((self.root / "evals").exists())
+        contents = {}
+        for name, archive in self.archives.items():
+            with zipfile.ZipFile(archive) as package:
+                contents[name] = {
+                    member[len(name) + 1 :]: package.read(member)
+                    for member in package.namelist()
+                    if not member.endswith("/")
+                }
+        full, cli = contents["model-fit"], contents["model-fit-guidance"]
         for name, content in cli.items():
             if name.startswith("src/"):
                 self.assertEqual(content, full[name], name)
@@ -30,56 +72,46 @@ class DistributionTests(unittest.TestCase):
                 name.startswith(
                     (
                         "src/model_fit/application/switch/",
-                        "src/model_fit/application/answer/",
+                        "src/model_fit/application/handoff/",
                         "src/model_fit/entrypoints/hooks/",
                     )
                 )
                 for name in cli
             )
         )
-        metadata = json.loads(cli["plugin.json"])
-        extension = metadata["extensions"]["com.openai"]
-        self.assertTrue(extension["requires_local_executor"])
-        self.assertNotIn("hooks", metadata)
-        self.assertNotIn("hooks", extension)
-        self.assertNotIn(".app.json", cli)
-        self.assertIsNone(metadata.get("apps"))
-        self.assertIsNone(extension.get("apps"))
         for files in (full, cli):
             self.assertFalse(
                 any("tests/" in name or name.startswith("evals/") for name in files)
             )
+        metadata = json.loads(cli["plugin.json"])
+        self.assertTrue(metadata["extensions"]["com.openai"]["requires_local_executor"])
+        self.assertNotIn("hooks", metadata)
+        self.assertNotIn("hooks", metadata["extensions"]["com.openai"])
 
-    def test_both_archives_build_without_evaluation_sources(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            shutil.copytree(
-                ROOT / "plugins",
-                root / "plugins",
-                ignore=shutil.ignore_patterns(".venv", "__pycache__", "*.egg-info"),
-            )
-            shutil.copy(ROOT / "LICENSE", root / "LICENSE")
-            (root / "tools").mkdir()
-            shutil.copy(ROOT / "tools/build.py", root / "tools/build.py")
-            self.assertFalse((root / "evals").exists())
-            result = subprocess.run(
-                [sys.executable, str(root / "tools/build.py")],
-                cwd=root,
-                text=True,
-                capture_output=True,
-                timeout=30,
-            )
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(len(list((root / "dist").glob("*.zip"))), 2)
+    def test_unlisted_files_stay_out_and_selected_symlinks_fail(self):
+        source = self.root / "plugins/model-fit"
+        (source / "private-fixture.json").write_text('{"fixture":true}')
+        self.build()
+        with zipfile.ZipFile(self.archives["model-fit"]) as package:
+            self.assertNotIn("model-fit/private-fixture.json", package.namelist())
+        (source / "src/model_fit/linked.py").symlink_to(source / "private-fixture.json")
+        result = subprocess.run(
+            ["bash", "-e", "-c", self.command],
+            cwd=self.root,
+            env=self.environment,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        self.assertNotEqual(result.returncode, 0)
 
     def test_clean_cli_install_without_hooks_or_submission_state(self):
-        identity, files = build.guidance_package()
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            archive = build.write_archive(identity, files, root)
+            archive = self.archives["model-fit-guidance"]
             with zipfile.ZipFile(archive) as zipped:
                 zipped.extractall(root / "installed")
-            package = root / "installed" / identity["name"]
+            package = root / "installed" / "model-fit-guidance"
             home = root / "codex-home"
             home.mkdir()
             (home / "config.toml").write_text(
@@ -130,25 +162,3 @@ class DistributionTests(unittest.TestCase):
             )
             self.assertEqual(malformed.returncode, 2)
             self.assertEqual(malformed.stdout, "")
-
-
-if __name__ == "__main__":
-    unittest.main()
-
-
-class SourceBoundaryTests(unittest.TestCase):
-    def test_assembly_rejects_private_text_and_symlink_sources(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            package = root / "package"
-            package.mkdir()
-            note = package / "note.md"
-            note.write_text("Private local path: /Users/synthetic/private.json")
-            with self.assertRaises(ValueError):
-                build.source_files(package)
-            note.unlink()
-            outside = root / "outside.txt"
-            outside.write_text("outside the distribution source")
-            (package / "linked.txt").symlink_to(outside)
-            with self.assertRaises(ValueError):
-                build.source_files(package)

@@ -27,24 +27,26 @@ yarn run test
 
 To update the tooling pair, follow the [Raijin setup guide](https://github.com/atls/raijin/blob/master/docs/raijin/setup.md) and run `yarn dlx @atls/raijin update` from that Yarn project root. Commit its package, lockfile, configuration and runtime changes together; do not install an independent Yarn build.
 
-## Build the two packages
+## Build and verify the two packages
 
-From the repository root:
+GitHub Actions assembles both distributions with the shared package action in
+`.github/actions/package/action.yml`. Contents are declared in `.github/packaging`;
+standard file tools copy sources and create ZIPs without rewriting instructions
+or Python metadata. The release workflow publishes only after a confirmed PR
+merge into master, using the exact merge commit.
 
-```sh
-uv run --project plugins/model-fit --locked python tools/build.py
-uv run --project plugins/model-fit --locked python -m unittest discover -s tools -p 'test_*.py'
-```
-
-The builder reads plugin sources, manifests and LICENSE. It does not require evaluation fixtures. Development tools and tests must stay outside the installation archives.
-
-Check the installed Python package from the repository root:
+Run the same composition commands and extracted-package checks locally:
 
 ```sh
-uv run --project evals/model-fit --locked --no-editable --reinstall-package codex-model-fit mypy --strict --disallow-any-explicit -p model_fit
+cd evals/model-fit
+yarn test:packaging
+uv run --locked --no-editable --reinstall-package codex-model-fit mypy --strict --disallow-any-explicit -p model_fit
 ```
 
-This checks the wheel's real `model_fit` namespace, including entrypoints and adapters. After deleting or moving modules locally, remove the generated `plugins/model-fit/build/` directory before rebuilding the wheel; setuptools can otherwise retain deleted files in its build output. CI starts from a clean checkout.
+Packaging tests execute the action's actual shell commands in an isolated source
+fixture without evaluation files. Native installation tests also build through
+that action before testing cached hooks, trust and revocation. The Python package
+uses the conventional `src/model_fit` layout and `uv_build` discovery.
 
 ## Change behavior carefully
 
@@ -58,7 +60,7 @@ Run the relevant deterministic checks for a change. The public test suite makes 
 
 Keep declarations in a single `types/` directory under the scenario that owns their contract. Do not add subdirectories for dataclasses, protocols, dictionary declarations or aliases. The declaration itself shows its Python form; the path distinguishes declarations from executable logic. Create only the types actually consumed by that scenario.
 
-For example, `autoswitch/scenarios/finish.py` checks a completed answer; `answer/types/input.py` declares its input. Closely related companion declarations can share a module, such as a conversation protocol and its opening callback, or a decision dictionary and its Literal alias.
+For example, `application/switch/scenarios/finish.py` checks a completed answer; `application/answer/types/input.py` declares its input. Closely related companion declarations can share a module, such as a conversation protocol and its opening callback, or a decision dictionary and its Literal alias.
 
 ## Submit a change
 

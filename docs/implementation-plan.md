@@ -117,7 +117,7 @@ Preserve direct project Yarn commands, Raijin-managed tooling and uv execution.
 - [ ] Implement switch coordination, submission ownership and pure admission
 - [ ] Separate event boundaries, utilities, failures and composition
 - [ ] Replace covered evaluator infrastructure with the public SDK
-- [ ] Replace custom packaging with workflow composition and native release
+- [x] Replace custom packaging with workflow composition and native release
 - [ ] Validate plugin-eval and reproduce skill validation
 - [ ] Complete behavior, typing, packaging and installed-fixture verification
 - [ ] Publish current revision, pass CI and configured exact-head Codex review
