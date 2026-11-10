@@ -67,7 +67,7 @@ def apply_assessment(
                     presentation=presentation,
                 )
             current_manual = load_blocking_recommendation(
-                thread_id, recommendations=recommendations, presentation=presentation
+                thread_id, recommendations=recommendations
             )
             if current_manual != manual_evidence:
                 raise RuntimeError("Blocking recommendation changed during triage")
@@ -103,7 +103,7 @@ def apply_assessment(
                     presentation=presentation,
                 )
             current_manual = load_blocking_recommendation(
-                thread_id, recommendations=recommendations, presentation=presentation
+                thread_id, recommendations=recommendations
             )
             if current_manual != manual_evidence:
                 raise RuntimeError("Blocking recommendation changed during triage")

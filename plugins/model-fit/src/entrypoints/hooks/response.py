@@ -8,6 +8,7 @@ from model_fit.autoswitch.handoff.control_message import CONTROL_PROMPTS
 from typing import Any
 
 from model_fit.assessment.validation import RECOMMENDATIONS
+from model_fit.autoswitch.recommendation.validation import require_recommendation
 from model_fit.entrypoints.hooks.instructions import (
     UNKNOWN_CONTEXT,
     admission_unavailable_context,
@@ -59,18 +60,12 @@ def hook_output(result: dict[str, Any]) -> dict[str, Any] | None:
         return unknown()
     if decision not in RECOMMENDATIONS:
         raise ValueError("Unsupported triage decision")
+    require_recommendation(result)
     model = result.get("recommended_model") or result["active_model"]
     effort = result.get("recommended_effort") or result["active_effort"]
     source = result.get("official_source_url")
     guidance = result.get("official_guidance")
     inference = result.get("task_inference")
-    if not all(
-        (
-            isinstance(value, str) and value
-            for value in (model, effort, source, guidance, inference)
-        )
-    ):
-        raise ValueError("Incomplete triage recommendation")
     return {
         "decision": "block",
         "reason": f"Model Fit: switch the profile to {model} / {effort} and repeat this request. OpenAI guidance: {guidance} Task-specific conclusion: {inference} Source: {source}",

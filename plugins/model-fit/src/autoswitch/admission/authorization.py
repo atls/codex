@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+from model_fit.autoswitch.admission.types.result import (
+    AllowedTool,
+    DeniedTool,
+    ToolAdmission,
+)
+
 from typing import Any
 
 from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.types.audit import AuditWriter
-from model_fit.autoswitch.types.output import HookOutputRenderer
 from model_fit.autoswitch.state.types.storage import TransferStateStore
 from model_fit.autoswitch.admission.types.input import ToolAdmissionInput
 from model_fit.autoswitch.handoff.types.clock import Clock
@@ -17,9 +22,8 @@ def authorize_transfer(
     *,
     audit: AuditWriter,
     clock: Clock,
-    presentation: HookOutputRenderer,
     store: TransferStateStore,
-) -> dict[str, Any] | None:
+) -> ToolAdmission:
     try:
         with store.transaction(
             event.thread_id,
@@ -36,8 +40,8 @@ def authorize_transfer(
                         "auto_transfer_bound",
                         {"hook_event": "PreToolUse"},
                     )
-                    return presentation.allow_tool(bound)
-                return None
+                    return AllowedTool(bound)
+                return AllowedTool()
         reason = "transfer_state_changed"
     except BlockingIOError:
         reason = "state_lock_busy"
@@ -51,6 +55,6 @@ def authorize_transfer(
             "state_phase": state["phase"],
         },
     )
-    return presentation.deny_tool(
+    return DeniedTool(
         "Model Fit: handoff state changed or is busy; the previous technical command is not authorized."
     )

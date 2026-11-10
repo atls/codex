@@ -1,51 +1,33 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from model_fit.autoswitch.admission.types.result import (
+    AllowedTool,
+    DeniedTool,
+    ToolAdmission,
+)
 
-from model_fit.autoswitch.state import transitions
+from typing import Callable
+
 from model_fit.autoswitch.admission.types.tools import TransferTools
 from model_fit.autoswitch.types.audit import AuditWriter
 from model_fit.autoswitch.handoff.types.conversation import (
     NativeConversationFactory,
 )
-from model_fit.autoswitch.types.output import HookOutputRenderer
 from model_fit.autoswitch.recommendation.types.storage import (
     RecommendationStore,
 )
 from model_fit.autoswitch.state.types.storage import TransferStateStore
 from model_fit.autoswitch.admission.types.input import ToolAdmissionInput
-from model_fit.autoswitch.recommendation.check import load_blocking_recommendation
-from model_fit.autoswitch.admission.continuation import (
+from model_fit.autoswitch.admission.guards.continuation import (
     can_continue_failed_assessment,
-    guard_replay_transfer,
+)
+from model_fit.autoswitch.admission.denial import (
+    deny_replay_transfer,
+    deny_unprepared_transfer,
 )
 from model_fit.autoswitch.admission.authorization import authorize_transfer
 from model_fit.autoswitch.handoff.types.clock import Clock
-
-
-def guard_unprepared_transfer(
-    event: ToolAdmissionInput,
-    state: dict[str, Any] | None,
-    *,
-    actions: TransferTools,
-    audit: AuditWriter,
-    presentation: HookOutputRenderer,
-) -> dict[str, Any] | None:
-    if not actions.matches_transfer(event):
-        return None
-    audit(
-        event.thread_id,
-        event.turn_id,
-        "auto_guard_block",
-        {
-            "hook_event": "PreToolUse",
-            "reason_code": "transfer_not_prepared_for_turn",
-            "state_phase": state["phase"] if state else "missing",
-        },
-    )
-    return presentation.deny_tool(
-        "Model Fit: no handoff is prepared for this turn. Do not repeat previous technical commands; ordinary tools are available after assessment of the current input."
-    )
+from model_fit.autoswitch.admission.recovery import recover_unsubmitted_successor
 
 
 def guard_tool(
@@ -56,10 +38,10 @@ def guard_tool(
     recommendations: RecommendationStore,
     clock: Clock,
     conversation: NativeConversationFactory,
-    presentation: HookOutputRenderer,
     store: TransferStateStore,
     working_directory: Callable[[], str],
-) -> dict[str, Any] | None:
+    replay_context: str,
+) -> ToolAdmission:
     thread_id = event.thread_id
     try:
         with store.transaction(
@@ -80,7 +62,7 @@ def guard_tool(
                 "auto_guard_lock_contention",
                 details | {"reason_code": "assessment_failed_continue"},
             )
-            return None
+            return AllowedTool()
         if (
             state is not None
             and (not state.get("pending_assessment"))
@@ -93,8 +75,12 @@ def guard_tool(
                 "auto_guard_lock_contention",
                 details | {"reason_code": "passed_same_turn"},
             )
-            return guard_unprepared_transfer(
-                event, state, actions=actions, audit=audit, presentation=presentation
+            return deny_unprepared_transfer(
+                event,
+                state,
+                actions=actions,
+                audit=audit,
+                replay_context=replay_context,
             )
         if (
             state is not None
@@ -109,8 +95,12 @@ def guard_tool(
                 "auto_guard_lock_contention",
                 details | {"reason_code": "confirmed_replay_same_turn"},
             )
-            return guard_replay_transfer(
-                event, state, actions=actions, audit=audit, presentation=presentation
+            return deny_replay_transfer(
+                event,
+                state,
+                actions=actions,
+                audit=audit,
+                replay_context=replay_context,
             )
         audit(
             thread_id,
@@ -118,62 +108,31 @@ def guard_tool(
             "auto_guard_block",
             details | {"reason_code": "state_lock_busy"},
         )
-        return presentation.deny_tool(
+        return DeniedTool(
             "Model Fit: handoff state is busy; the technical turn cannot admit a new tool."
         )
     pending = state.get("pending_assessment") if state is not None else None
     if pending is not None:
         if can_continue_failed_assessment(event, state, actions=actions):
-            return None
+            return AllowedTool()
         if pending["turn_id"] == event.turn_id and actions.matches_assessment(event):
-            return None
+            return AllowedTool()
         if (
             state["phase"] in {"submitted", "passed"}
             and isinstance(event.turn_id, str)
             and (pending["turn_id"] != event.turn_id)
             and actions.matches_assessment(event)
         ):
-            try:
-                with conversation(working_directory()) as app:
-                    successor = app.unsubmitted_successor(
-                        thread_id, pending["turn_id"], event.turn_id
-                    )
-                if successor is True:
-                    with store.transaction(
-                        thread_id,
-                        nonblocking=True,
-                        operation="pre_tool_use",
-                        turn_id=event.turn_id,
-                    ) as slot:
-                        if (
-                            slot.load() == state
-                            and load_blocking_recommendation(
-                                thread_id,
-                                recommendations=recommendations,
-                                presentation=presentation,
-                            )
-                            is None
-                        ):
-                            transitions.admit(
-                                slot,
-                                event.turn_id,
-                                "unknown",
-                                state.get("profile_context_turn_id"),
-                                supersede_assessment=True,
-                            )
-                            audit(
-                                thread_id,
-                                event.turn_id,
-                                "auto_unknown",
-                                {
-                                    "hook_event": "PreToolUse",
-                                    "reason_code": "native_turn_without_submission",
-                                    "state_phase": state["phase"],
-                                },
-                            )
-                            return None
-            except (OSError, ValueError, RuntimeError):
-                pass
+            if recover_unsubmitted_successor(
+                event,
+                state,
+                conversation=conversation,
+                working_directory=working_directory,
+                store=store,
+                recommendations=recommendations,
+                audit=audit,
+            ):
+                return AllowedTool()
         audit(
             thread_id,
             event.turn_id,
@@ -184,7 +143,7 @@ def guard_tool(
                 "state_phase": state["phase"],
             },
         )
-        return presentation.deny_tool(
+        return DeniedTool(
             "Model Fit: first run the technical assessment command for the accepted input. The original task has not yet been assessed."
         )
     if (
@@ -193,19 +152,19 @@ def guard_tool(
         and (event.turn_id in {state["source_turn_id"], state.get("control_turn_id")})
         and actions.matches_assessment(event)
     ):
-        return None
-    replay_denial = guard_replay_transfer(
-        event, state, actions=actions, audit=audit, presentation=presentation
+        return AllowedTool()
+    replay_denial = deny_replay_transfer(
+        event, state, actions=actions, audit=audit, replay_context=replay_context
     )
-    if replay_denial is not None:
+    if isinstance(replay_denial, DeniedTool):
         return replay_denial
     if (
         state is None
         or state["phase"] == "passed"
         or event.turn_id not in {state["source_turn_id"], state.get("control_turn_id")}
     ):
-        return guard_unprepared_transfer(
-            event, state, actions=actions, audit=audit, presentation=presentation
+        return deny_unprepared_transfer(
+            event, state, actions=actions, audit=audit, replay_context=replay_context
         )
     if state["phase"] == "ready" and (
         actions.matches_profile_switch(event, state)
@@ -217,7 +176,6 @@ def guard_tool(
             None,
             audit=audit,
             clock=clock,
-            presentation=presentation,
             store=store,
         )
     if state["phase"] == "ready":
@@ -229,7 +187,6 @@ def guard_tool(
                 bound,
                 audit=audit,
                 clock=clock,
-                presentation=presentation,
                 store=store,
             )
     audit(
@@ -242,6 +199,6 @@ def guard_tool(
             "state_phase": state["phase"],
         },
     )
-    return presentation.deny_tool(
+    return DeniedTool(
         "Model Fit: this technical turn permits only a profile change and queueing the original request."
     )

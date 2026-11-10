@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from model_fit.assessment.validation import validated_active_profile
+from model_fit.autoswitch.recommendation.validation import require_recommendation
 from model_fit.autoswitch.state import transitions
 from model_fit.autoswitch.recommendation.types.record import (
     RecommendationRecord,
@@ -30,7 +31,6 @@ def load_blocking_recommendation(
     thread_id: str,
     *,
     recommendations: RecommendationStore,
-    presentation: HookOutputRenderer,
 ) -> dict[str, Any] | None:
     if recommendations.unsafe(thread_id):
         raise ValueError("Blocking recommendation cannot be a symlink")
@@ -56,9 +56,7 @@ def load_blocking_recommendation(
         )
     ):
         raise ValueError("Blocking recommendation profile is inconsistent")
-    output = presentation.hook_output(cached["result"])
-    if output is None or not presentation.is_block(output):
-        raise ValueError("Blocking recommendation is unavailable")
+    require_recommendation(cached["result"])
     return cached
 
 
@@ -72,7 +70,7 @@ def blocking_recommendation(
     presentation: HookOutputRenderer,
 ) -> dict[str, Any] | None:
     cached = load_blocking_recommendation(
-        event.thread_id, recommendations=recommendations, presentation=presentation
+        event.thread_id, recommendations=recommendations
     )
     if cached is None:
         return None

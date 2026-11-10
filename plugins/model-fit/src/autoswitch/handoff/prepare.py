@@ -257,7 +257,7 @@ def prepare(
         thread_id, nonblocking=True, operation="prompt_submit", turn_id=turn_id
     ) as slot:
         manual_evidence = load_blocking_recommendation(
-            thread_id, recommendations=recommendations, presentation=presentation
+            thread_id, recommendations=recommendations
         )
         current = slot.load()
         if (

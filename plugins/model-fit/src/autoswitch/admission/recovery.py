@@ -1,0 +1,65 @@
+from collections.abc import Callable
+from model_fit.autoswitch.admission.types.input import ToolAdmissionInput
+from model_fit.autoswitch.handoff.types.conversation import NativeConversationFactory
+from model_fit.autoswitch.recommendation.types.storage import RecommendationStore
+from model_fit.autoswitch.recommendation.check import load_blocking_recommendation
+from model_fit.autoswitch.state import transitions
+from model_fit.autoswitch.state.types.record import HandoffStateRecord
+from model_fit.autoswitch.state.types.storage import TransferStateStore
+from model_fit.autoswitch.types.audit import AuditWriter
+
+
+def recover_unsubmitted_successor(
+    event: ToolAdmissionInput,
+    state: HandoffStateRecord,
+    *,
+    conversation: NativeConversationFactory,
+    working_directory: Callable[[], str],
+    store: TransferStateStore,
+    recommendations: RecommendationStore,
+    audit: AuditWriter,
+) -> bool:
+    pending = state["pending_assessment"]
+    if pending is None:
+        return False
+    try:
+        with conversation(working_directory()) as app:
+            successor = app.unsubmitted_successor(
+                event.thread_id, pending["turn_id"], event.turn_id
+            )
+        if successor is True:
+            with store.transaction(
+                event.thread_id,
+                nonblocking=True,
+                operation="pre_tool_use",
+                turn_id=event.turn_id,
+            ) as slot:
+                if (
+                    slot.load() == state
+                    and load_blocking_recommendation(
+                        event.thread_id,
+                        recommendations=recommendations,
+                    )
+                    is None
+                ):
+                    transitions.admit(
+                        slot,
+                        event.turn_id,
+                        "unknown",
+                        state.get("profile_context_turn_id"),
+                        supersede_assessment=True,
+                    )
+                    audit(
+                        event.thread_id,
+                        event.turn_id,
+                        "auto_unknown",
+                        {
+                            "hook_event": "PreToolUse",
+                            "reason_code": "native_turn_without_submission",
+                            "state_phase": state["phase"],
+                        },
+                    )
+                    return True
+    except (OSError, ValueError, RuntimeError):
+        pass
+    return False

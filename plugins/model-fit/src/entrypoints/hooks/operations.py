@@ -1,3 +1,4 @@
+from model_fit.autoswitch.admission.types.result import DeniedTool
 import os
 import subprocess
 import time
@@ -6,8 +7,8 @@ import model_fit.infrastructure.adapters.codex.answer as answer_relevance
 from model_fit.answer.check import guard_replay_answer as run_guard_replay_answer
 from model_fit.autoswitch.handoff.enqueue import enqueue as run_enqueue
 from model_fit.autoswitch.handoff.prepare import prepare as run_prepare
-from model_fit.autoswitch.admission.check import guard_tool as run_guard_tool
-from model_fit.autoswitch.admission.continuation import (
+from model_fit.autoswitch.admission.scenario import guard_tool as run_guard_tool
+from model_fit.autoswitch.admission.guards.continuation import (
     can_continue_admitted_tool as continue_tool,
 )
 from model_fit.infrastructure.adapters.hooks.tools import NativeTransferTools
@@ -85,17 +86,23 @@ def enqueue_handoff(thread_id, turn_id, *, native_factory=None):
 
 
 def guard_tool(event):
-    return run_guard_tool(
+    result = run_guard_tool(
         tool_input(event),
         actions=NativeTransferTools(),
         audit=record_audit,
         recommendations=FileRecommendations(),
         clock=time.time,
         conversation=native_conversation(None),
-        presentation=HookPresentation(),
+        replay_context=HookPresentation.replay_context,
         store=FileStore(),
         working_directory=os.getcwd,
     )
+
+    if isinstance(result, DeniedTool):
+        return HookPresentation().deny_tool(result.reason)
+    if result.updated_input is not None:
+        return HookPresentation().allow_tool(result.updated_input)
+    return None
 
 
 def guard_replay_answer(event, *, native_factory=None):
