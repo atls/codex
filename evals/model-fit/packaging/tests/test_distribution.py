@@ -162,3 +162,58 @@ class DistributionTests(unittest.TestCase):
             )
             self.assertEqual(malformed.returncode, 2)
             self.assertEqual(malformed.stdout, "")
+
+    def test_noneditable_evaluator_uses_installed_skill_after_source_removal(self):
+        for name, archive in self.archives.items():
+            with (
+                self.subTest(distribution=name),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                root = Path(directory)
+                with zipfile.ZipFile(archive) as zipped:
+                    zipped.extractall(root)
+                package = root / name
+                home = root / "home"
+                home.mkdir()
+                (home / "auth.json").write_text('{"fixture":true}')
+                command = [
+                    "uv",
+                    "run",
+                    "--locked",
+                    "--no-editable",
+                    "--project",
+                    str(package),
+                    "--python",
+                    sys.executable,
+                    "python",
+                    "-c",
+                    """
+import sys
+from pathlib import Path
+from unittest.mock import patch
+from model_fit.infrastructure.adapters.codex.transport.assessment import session
+
+source = Path(sys.argv[1])
+expected = (source / "skills/model-fit/references/assessment-policy.md").read_bytes()
+(source / "skills").rename(source / "removed-skills")
+(source / "src").rename(source / "removed-src")
+with patch.object(session.subprocess, "Popen"), patch.object(session.AppServer, "call", return_value={}), patch.object(session.AppServer, "send"):
+    with session.AppServer(source) as app:
+        assert app.skill_file.is_file()
+        assert (app.skill_file.parent / "references/assessment-policy.md").read_bytes() == expected
+print("installed evaluator skill available without source")
+""",
+                    str(package),
+                ]
+                result = subprocess.run(
+                    command,
+                    cwd=root,
+                    env={**os.environ, "CODEX_HOME": str(home)},
+                    text=True,
+                    capture_output=True,
+                    timeout=60,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn(
+                    "installed evaluator skill available without source", result.stdout
+                )

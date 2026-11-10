@@ -14,3 +14,4 @@ model-fit = "model_fit.entrypoints.cli.assess:main"
 
 [tool.uv.build-backend]
 module-name = "model_fit"
+data = { data = "skills" }

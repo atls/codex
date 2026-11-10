@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import sysconfig
 from pathlib import Path
 
 from model_fit.infrastructure.adapters.codex.authentication import authenticated_home
@@ -15,7 +16,7 @@ from model_fit.infrastructure.adapters.codex.transport.connection import (
     AppServerConnection,
 )
 
-SKILL = Path(__file__).resolve().parents[7] / "skills/model-fit"
+SKILL = Path(sysconfig.get_path("data")) / "model-fit"
 
 
 class AppServer(AppServerConnection):
