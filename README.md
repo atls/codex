@@ -1,5 +1,7 @@
 # Vector Prime for Codex Desktop
 
+![Vector Prime banner](assets/banner.png)
+
 **Choose a model for the work you are about to do, and keep your own choice in control.**
 
 Vector Prime helps Codex decide when a task needs a more capable model, when a lighter profile is enough, and how much reasoning effort the next step warrants. You can ask for a recommendation explicitly or enable automatic assessment before work starts.
