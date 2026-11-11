@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 SUITE = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(SUITE))
 from infrastructure.adapters.promptfoo.suite import build_suite, suite_cases
 from evaluate import absolute_references
 from infrastructure.adapters.codex.session import evaluation_session

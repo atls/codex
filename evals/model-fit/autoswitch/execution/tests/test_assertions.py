@@ -1,15 +1,13 @@
 import json
 import unittest
-from pathlib import Path
 
 from autoswitch.execution.assertions import get_assert
+from autoswitch.execution.scenarios import execution_cases
 
 
 class TaskResultTests(unittest.TestCase):
     def setUp(self):
-        cases = json.loads(
-            (Path(__file__).resolve().parents[1] / "cases.json").read_text()
-        )
+        cases = execution_cases()
         trace = next(
             (case for case in cases if case["id"] == "stale-writer-counterexample")
         )

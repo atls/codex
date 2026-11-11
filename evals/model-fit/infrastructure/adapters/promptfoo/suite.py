@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 
 from assessment.scenarios import generate_tests
+from autoswitch.execution.scenarios import execution_cases
 from infrastructure.adapters.codex.session import PROVIDER_ENV, SUITE
 
 
@@ -15,7 +16,7 @@ def read_json(path):
 
 def suite_cases(surface):
     if surface == "tasks":
-        return read_json(SUITE / "autoswitch/execution/cases.json")
+        return execution_cases()
     return [{"id": "generated-tests"}]
 
 
@@ -106,15 +107,12 @@ def build_suite(surface, runtime):
 def task_suite(runtime):
     instructions = "Complete only the supplied task. All necessary input is supplied. Use no tools, skills or external systems. Return only the requested JSON."
     tests = []
-    for entry in read_json(SUITE / "autoswitch/execution/cases.json"):
-        task = entry["prompt"]
-        if entry.get("source_file"):
-            task += "\n\n" + (SUITE / entry["source_file"]).read_text()
+    for entry in execution_cases():
         assertions = [
             {"type": "is-json"},
             {"type": "python", "value": "file://autoswitch/execution/assertions.py"},
         ]
-        if entry.get("rubric"):
+        if entry["rubric"]:
             assertions.append(
                 {
                     "type": "llm-rubric",
@@ -127,11 +125,8 @@ def task_suite(runtime):
             {
                 "description": entry["id"],
                 "vars": {
-                    "task": task,
-                    "expected_outputs": entry.get(
-                        "expected_outputs",
-                        [entry["expected"]] if entry.get("expected") else [],
-                    ),
+                    "task": entry["task"],
+                    "expected_outputs": entry["expected_outputs"],
                     "workspace": runtime["workspaces"][entry["id"]],
                 },
                 "assert": assertions,
