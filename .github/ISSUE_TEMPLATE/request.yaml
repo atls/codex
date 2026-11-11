@@ -1,0 +1,20 @@
+name: Request
+description: Suggest an improvement to a plugin, a tool, or the repository
+title: '[Request] '
+type: Request
+body:
+  - type: textarea
+    id: motivation
+    attributes:
+      label: What are you trying to do?
+      description: Name the plugin or tool if the request is about one. Tell us where your workflow gets stuck today.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What should happen?
+      description: Give one example of how the change would work in practice.
+    validations:
+      required: true
