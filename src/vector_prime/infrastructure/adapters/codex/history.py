@@ -4,7 +4,7 @@ from vector_prime.application.handoff.types.source import HandoffSource
 """Read native Desktop state, source messages and queue lifecycle."""
 
 
-from vector_prime.application.switch.types.state import ProcessSnapshot
+from vector_prime.application.handoff.types.replay import BoundReplay, UnboundReplay
 
 import time
 from typing import Iterator
@@ -175,22 +175,19 @@ def handoff_turns(
 
 
 def replay_finished(
-    app: AppServerReader, thread_id: str, state: ProcessSnapshot
+    app: AppServerReader, thread_id: str, replay: BoundReplay | UnboundReplay
 ) -> bool:
     for turn in handoff_turns(app, thread_id):
-        replay_turn_id = state.get("replay_turn_id")
-        if replay_turn_id is not None:
-            if turn.get("id") == replay_turn_id:
+        if isinstance(replay, BoundReplay):
+            if turn.get("id") == replay.turn_id:
                 return turn.get("status") in TERMINAL_TURN_STATUSES
             continue
         started_at = turn.get("startedAt")
-        if isinstance(started_at, int) and started_at < state.get(
-            "created_at", state["queued_at"]
-        ):
+        if isinstance(started_at, int) and started_at < replay.earliest_start:
             return False
         if (
             not isinstance(started_at, int)
-            or turn.get("id") == state["source_turn_id"]
+            or turn.get("id") == replay.source_turn_id
             or turn.get("status") not in TERMINAL_TURN_STATUSES
         ):
             continue
@@ -203,13 +200,12 @@ def replay_finished(
             item = checked_object(entry["item"])
             if item.get("type") == "userMessage":
                 content = checked_content(item.get("content", []))
-                matches = (
-                    input_digest(content) == state["queued_input_digest"]
-                    if "queued_input_digest" in state
+                digest = (
+                    input_digest(content)
+                    if replay.input_evidence.kind == "native_input"
                     else prompt_digest(input_text(content))
-                    == state["queued_prompt_digest"]
                 )
-                if matches:
+                if digest == replay.input_evidence.digest:
                     return True
                 break
     return False

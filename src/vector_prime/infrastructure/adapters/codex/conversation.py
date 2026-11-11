@@ -3,7 +3,7 @@ from collections.abc import Callable
 from types import TracebackType
 from typing import Self
 
-from vector_prime.application.switch.types.state import ProcessSnapshot
+from vector_prime.application.handoff.types.replay import BoundReplay, UnboundReplay
 from vector_prime.infrastructure.adapters.codex.transport.reader import AppServerReader
 from vector_prime.application.submission.types.json import JsonValue
 from vector_prime.application.submission.decoding import (
@@ -111,8 +111,10 @@ class ConversationGateway:
             conversation.handoff_input(self.reader, thread_id, source)
         )
 
-    def replay_finished(self, thread_id: str, state: ProcessSnapshot) -> bool:
-        return conversation.replay_finished(self.reader, thread_id, state)
+    def replay_finished(
+        self, thread_id: str, replay: BoundReplay | UnboundReplay
+    ) -> bool:
+        return conversation.replay_finished(self.reader, thread_id, replay)
 
     def source_terminal_without_replay(
         self, thread_id: str, source_turn_id: str, current_turn_id: str

@@ -14,6 +14,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 ROOT = Path(__file__).resolve().parents[4]
+from vector_prime.application.handoff.types.progress import TransferInputEvidence
+from vector_prime.application.handoff.types.replay import BoundReplay, UnboundReplay
 from fixtures.autoswitch.assessment import evaluate_request
 from fixtures.autoswitch.lock import held_lock
 import vector_prime.entrypoints.hooks.instructions as HOOKS_INSTRUCTIONS
@@ -1005,11 +1007,11 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 {"type": "image", "url": "same-image"},
             ]
         )
-        state = {
-            "source_turn_id": self.turn_id,
-            "queued_at": 100,
-            "queued_input_digest": HANDOFF_INPUT.input_digest(queued),
-        }
+        replay = UnboundReplay(
+            self.turn_id,
+            100,
+            TransferInputEvidence("native_input", HANDOFF_INPUT.input_digest(queued)),
+        )
         with patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader:
             app = reader.return_value.__enter__.return_value
             app.call.side_effect = [
@@ -1020,7 +1022,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 },
                 self.source_response([queued[0]]),
             ]
-            self.assertFalse(HANDOFF_CODEX.replay_finished(app, self.thread_id, state))
+            self.assertFalse(HANDOFF_CODEX.replay_finished(app, self.thread_id, replay))
 
     def test_uncertain_queue_attempt_is_not_retried(self):
         path = self.stage()
@@ -1917,11 +1919,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         self.assertEqual(HANDOFF_STATE.read_state(path)["phase"], "passed")
 
     def test_terminal_replay_beyond_first_page_releases_guard(self):
-        state = {
-            "source_turn_id": self.turn_id,
-            "queued_at": 100,
-            "replay_turn_id": "replay-turn",
-        }
+        replay = BoundReplay("replay-turn")
         with patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader:
             app = reader.return_value.__enter__.return_value
             app.call.side_effect = [
@@ -1939,15 +1937,11 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                     "nextCursor": None,
                 },
             ]
-            self.assertTrue(HANDOFF_CODEX.replay_finished(app, self.thread_id, state))
+            self.assertTrue(HANDOFF_CODEX.replay_finished(app, self.thread_id, replay))
             self.assertEqual(app.call.call_args_list[1].args[1]["cursor"], "older")
 
     def test_bound_replay_started_before_queue_receipt_is_still_terminal(self):
-        state = {
-            "source_turn_id": self.turn_id,
-            "queued_at": 103,
-            "replay_turn_id": "replay-turn",
-        }
+        replay = BoundReplay("replay-turn")
         with patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader:
             app = reader.return_value.__enter__.return_value
             app.call.return_value = {
@@ -1956,7 +1950,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 ],
                 "nextCursor": None,
             }
-            self.assertTrue(HANDOFF_CODEX.replay_finished(app, self.thread_id, state))
+            self.assertTrue(HANDOFF_CODEX.replay_finished(app, self.thread_id, replay))
 
     def test_completed_source_and_missing_replay_releases_new_work(self):
         path = self.stage()
@@ -2031,11 +2025,13 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 )
 
     def test_old_identical_prompt_does_not_confirm_replay(self):
-        state = {
-            "source_turn_id": self.turn_id,
-            "queued_at": 100,
-            "queued_prompt_digest": HANDOFF_INPUT.prompt_digest(self.prompt),
-        }
+        replay = UnboundReplay(
+            self.turn_id,
+            100,
+            TransferInputEvidence(
+                "legacy_prompt", HANDOFF_INPUT.prompt_digest(self.prompt)
+            ),
+        )
         with patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader:
             app = reader.return_value.__enter__.return_value
             app.call.return_value = {
@@ -2049,7 +2045,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 ],
                 "nextCursor": None,
             }
-            self.assertFalse(HANDOFF_CODEX.replay_finished(app, self.thread_id, state))
+            self.assertFalse(HANDOFF_CODEX.replay_finished(app, self.thread_id, replay))
             self.assertEqual(app.call.call_count, 1)
 
     def test_queue_scan_stops_after_bounded_pages(self):

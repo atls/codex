@@ -1,5 +1,10 @@
 from __future__ import annotations
-from vector_prime.application.handoff.types.reconciliation import ReconciledHandoff
+from vector_prime.application.handoff.types.reconciliation import (
+    ReconciliationDenied,
+    TransferContinued,
+)
+from vector_prime.application.handoff.types.replay import ReplayBound
+from vector_prime.application.switch.denial import block_prompt
 
 from vector_prime.application.handoff import lifecycle as handoff_lifecycle
 from vector_prime.application.switch import lifecycle as switch_lifecycle
@@ -12,7 +17,11 @@ from vector_prime.application.handoff.types.conversation import (
 )
 from vector_prime.application.assessment.types.state import PendingAssessmentRecord
 from vector_prime.application.switch.types.disposition import (
+    BlockedTurn,
+    ContinueWork,
+    PreparedTransfer,
     TurnDisposition,
+    WorkContext,
 )
 
 from vector_prime.application.submission.types.input import SubmissionInput
@@ -69,8 +78,23 @@ def reconcile(
                 conversation=conversation,
                 read_context=read_context,
             )
-            if not isinstance(reconciled, ReconciledHandoff):
-                return reconciled
+            if reconciled is None:
+                return None
+            if isinstance(reconciled, TransferContinued):
+                return PreparedTransfer(thread_id, turn_id, prior)
+            if isinstance(reconciled, ReplayBound):
+                return ContinueWork(WorkContext.REPLAY)
+            if isinstance(reconciled, ReconciliationDenied):
+                if reconciled.reason_code is None:
+                    return BlockedTurn(reconciled.reason)
+                return block_prompt(
+                    thread_id,
+                    turn_id,
+                    reconciled.reason_code,
+                    reconciled.reason,
+                    prior["phase"],
+                    audit=audit,
+                )
             pending = reconciled.pending_transfer
         handoff_snapshot = slot.load()
     return ReconciledSubmission(

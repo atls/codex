@@ -7,16 +7,12 @@ from vector_prime.application.handoff.helpers.source import handoff_source
 from vector_prime.application.handoff.types.conversation import (
     NativeConversationFactory,
 )
-from vector_prime.application.handoff.types.reconciliation import ReconciledHandoff
-from vector_prime.application.handoff.control_message import CONTROL_PROMPTS
-from vector_prime.application.switch.types.disposition import (
-    BlockedTurn,
-    ContinueWork,
-    PreparedTransfer,
-    WorkContext,
-    TurnDisposition,
+from vector_prime.application.handoff.types.reconciliation import (
+    ReconciledHandoff,
+    ReconciliationDenied,
+    TransferContinued,
 )
-from vector_prime.application.switch.denial import block_prompt
+from vector_prime.application.handoff.control_message import CONTROL_PROMPTS
 from vector_prime.application.switch.types.audit import AuditWriter
 from vector_prime.application.assessment.types.execution import AssessmentContextReader
 from vector_prime.application.submission.types.input import SubmissionInput
@@ -60,6 +56,7 @@ from vector_prime.application.submission.types.json import JsonValue
 from vector_prime.application.submission.helpers import content as codec
 from vector_prime.application.handoff.helpers.progress import (
     prepared_handoff,
+    replay_evidence,
     attempted_handoff,
     queued_handoff,
 )
@@ -329,27 +326,19 @@ def reconcile(
     audit: AuditWriter,
     conversation: NativeConversationFactory,
     read_context: AssessmentContextReader,
-) -> ReconciledHandoff | TurnDisposition | None:
+) -> ReconciledHandoff | ReconciliationDenied | TransferContinued | ReplayBound | None:
     thread_id, turn_id, prompt = event.thread_id, event.turn_id, event.text
     pending = None
     if prior["phase"] == "attempting":
-        return block_prompt(
-            thread_id,
-            turn_id,
-            "queue_outcome_unknown",
+        return ReconciliationDenied(
             "Model Fit: the previous queue submission has an unknown outcome; submitting it again is forbidden.",
-            prior["phase"],
-            audit=audit,
+            "queue_outcome_unknown",
         )
     if prior["phase"] == "rejected":
         if prior["source_turn_id"] == turn_id:
-            return block_prompt(
-                thread_id,
-                turn_id,
-                "queue_rejected_same_turn",
+            return ReconciliationDenied(
                 "Model Fit: the technical turn ended with a queue rejection; send a new instruction in a separate turn.",
-                prior["phase"],
-                audit=audit,
+                "queue_rejected_same_turn",
             )
         release(slot)
     if prior["phase"] == "ready":
@@ -364,86 +353,62 @@ def reconcile(
         else:
             continue_transfer(slot, prior, turn_id)
             audit(thread_id, turn_id, "auto_handoff_continued")
-            return PreparedTransfer(thread_id, turn_id, prior)
+            return TransferContinued()
     elif prior["phase"] == "queued":
         if "queued_client_message_id" in prior:
-            return BlockedTurn(
+            return ReconciliationDenied(
                 "Model Fit: the assess command verifies the accepted continuation against native client identity."
             )
         if prior.get("replay_turn_id") == turn_id:
             audit(thread_id, turn_id, "auto_steer")
             return None
         if prior["source_turn_id"] == turn_id:
-            return block_prompt(
-                thread_id,
-                turn_id,
-                "source_turn_already_queued",
+            return ReconciliationDenied(
                 "Model Fit: the technical turn already queued the request; send a new instruction in a separate turn.",
-                prior["phase"],
-                audit=audit,
+                "source_turn_already_queued",
             )
         if prior.get(
             "queued_hook_prompt_digest", prior.get("queued_prompt_digest")
         ) == codec.prompt_digest(prompt):
             if prior.get("replay_turn_id") not in (None, turn_id):
-                return block_prompt(
-                    thread_id,
-                    turn_id,
-                    "duplicate_replay",
+                return ReconciliationDenied(
                     "Model Fit: repeating the request continuation is forbidden.",
-                    prior["phase"],
-                    audit=audit,
+                    "duplicate_replay",
                 )
             with conversation(event.working_directory) as app:
                 if prior["queued_submission_id"] in app.queued_ids(thread_id):
-                    return block_prompt(
-                        thread_id,
-                        turn_id,
-                        "replay_still_queued",
+                    return ReconciliationDenied(
                         "Model Fit: the continuation is still queued.",
-                        prior["phase"],
-                        audit=audit,
+                        "replay_still_queued",
                     )
             selected = read_context(event)["active_profile"]
             if (selected["model"], selected["effort"]) != (
                 prior["target_model"],
                 prior["target_effort"],
             ):
-                return block_prompt(
-                    thread_id,
-                    turn_id,
-                    "replay_wrong_profile",
+                return ReconciliationDenied(
                     "Model Fit: the queued request arrived on the wrong profile.",
-                    prior["phase"],
-                    audit=audit,
+                    "replay_wrong_profile",
                 )
             bind_replay(slot, prior, turn_id)
-            return ContinueWork(WorkContext.REPLAY)
+            return ReplayBound()
         with conversation(event.working_directory) as app:
             if prior["queued_submission_id"] in app.queued_ids(thread_id):
                 deleted = app.delete(thread_id, prior["queued_submission_id"])
                 if not deleted:
-                    return block_prompt(
-                        thread_id,
-                        turn_id,
-                        "prior_replay_starting",
+                    return ReconciliationDenied(
                         "Model Fit: the previous request is starting; repeat the new instruction after it completes.",
-                        prior["phase"],
-                        audit=audit,
+                        "prior_replay_starting",
                     )
-            elif not app.replay_finished(thread_id, prior):
+            elif not app.replay_finished(thread_id, replay_evidence(prior)):
                 if prior.get(
                     "replay_turn_id"
                 ) is not None or not app.source_terminal_without_replay(
                     thread_id, prior["source_turn_id"], turn_id
                 ):
-                    return block_prompt(
-                        thread_id,
-                        turn_id,
-                        "prior_replay_running",
+                    return ReconciliationDenied(
                         "Model Fit: the previous request is running; repeat the new instruction after it completes.",
-                        prior["phase"],
-                        audit=audit,
+                        "prior_replay_running",
                     )
                 audit(
                     thread_id,

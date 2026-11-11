@@ -8,6 +8,7 @@ from vector_prime.application.handoff.types.progress import (
     QueuedHandoff,
     TransferInputEvidence,
 )
+from vector_prime.application.handoff.types.replay import BoundReplay, UnboundReplay
 from vector_prime.application.switch.types.state import ProcessSnapshot
 
 
@@ -63,3 +64,14 @@ def queued_handoff(state: ProcessSnapshot) -> QueuedHandoff:
         )
     except KeyError:
         raise InvalidHandoff("invalid_state") from None
+
+
+def replay_evidence(state: ProcessSnapshot) -> BoundReplay | UnboundReplay:
+    replay_turn_id = state.get("replay_turn_id")
+    if replay_turn_id is not None:
+        return BoundReplay(replay_turn_id)
+    return UnboundReplay(
+        state["source_turn_id"],
+        state.get("created_at", state["queued_at"]),
+        transfer_input_evidence(state),
+    )
