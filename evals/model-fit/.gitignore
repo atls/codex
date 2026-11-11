@@ -1,0 +1,11 @@
+node_modules/
+.promptfoo/
+results/
+!.yarn/
+.yarn/*
+!.yarn/releases/
+.yarn/releases/*
+!.yarn/releases/yarn.js
+.venv/
+*.egg-info/
+.ruff_cache/

@@ -1,0 +1,2 @@
+class SourceUnavailable(RuntimeError):
+    pass

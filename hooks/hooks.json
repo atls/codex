@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --quiet --project \"${PLUGIN_ROOT}\" python \"${PLUGIN_ROOT}/scripts/desktop.py\" hook",
+            "timeout": 360
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --quiet --project \"${PLUGIN_ROOT}\" python \"${PLUGIN_ROOT}/scripts/desktop.py\" hook",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --quiet --project \"${PLUGIN_ROOT}\" python \"${PLUGIN_ROOT}/scripts/desktop.py\" hook",
+            "timeout": 45
+          }
+        ]
+      }
+    ]
+  }
+}

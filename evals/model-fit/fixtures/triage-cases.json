@@ -1,0 +1,423 @@
+[
+  {
+    "id": "writer-preflight",
+    "base_case_id": "writer-preflight",
+    "expected_decision": "recommend_stronger",
+    "allowed_recommendations": [
+      "gpt-6.1-sol/medium",
+      "gpt-6.1-sol/high",
+      "gpt-6-sol/medium",
+      "gpt-6-sol/high",
+      "gpt-6-astra/medium"
+    ]
+  },
+  {
+    "id": "writer-preflight-explicit",
+    "base_case_id": "writer-preflight-explicit",
+    "expected_decision": "recommend_stronger",
+    "allowed_recommendations": [
+      "gpt-6.1-sol/medium",
+      "gpt-6.1-sol/high",
+      "gpt-6-sol/medium",
+      "gpt-6-sol/high",
+      "gpt-6-astra/medium"
+    ]
+  },
+  {
+    "id": "writer-delegation-only",
+    "base_case_id": "writer-delegation-only",
+    "expected_decision": "keep"
+  },
+  {
+    "id": "bounded-skill-change",
+    "base_case_id": "bounded-skill-change",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter"
+    ],
+    "allowed_recommendations": [
+      "gpt-6-luna/low",
+      "gpt-6-luna/medium",
+      "gpt-5.6-terra/medium",
+      "gpt-6.1-sol/low"
+    ]
+  },
+  {
+    "id": "bounded-stack-step",
+    "base_case_id": "aggregate-stack-length",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter"
+    ],
+    "expected": "Assess the one bounded reversible slice. Keeping a justified profile or reducing model/effort with source-grounded reasons is acceptable; do not escalate from the total fourteen-PR chain. Model and effort are independent and no exact target is prescribed."
+  },
+  {
+    "id": "already-active-web",
+    "base_case_id": "already-active-profile",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter"
+    ],
+    "allowed_recommendations": [
+      "gpt-6-luna/low",
+      "gpt-6-luna/medium",
+      "gpt-5.6-terra/medium"
+    ]
+  },
+  {
+    "id": "complex-contract-design",
+    "base_case_id": "strong-profile-needed",
+    "expected_decision": "recommend_stronger",
+    "allowed_recommendations": [
+      "gpt-6.1-sol/medium",
+      "gpt-6.1-sol/high",
+      "gpt-6.1-sol/xhigh",
+      "gpt-6-astra/medium",
+      "gpt-6-astra/high",
+      "gpt-6-astra/xhigh"
+    ]
+  },
+  {
+    "id": "user-choice-preserved",
+    "base_case_id": "choice-preserved",
+    "expected_decision": "keep"
+  },
+  {
+    "id": "catalog-unavailable",
+    "base_case_id": "catalog-unavailable",
+    "source_failure": "Codex model catalog",
+    "expected_decision": "unknown"
+  },
+  {
+    "id": "ordinary-dialogue",
+    "base_case_id": "ordinary-dialogue",
+    "implicit_selection_control": true
+  },
+  {
+    "id": "caily-admin-review",
+    "source": "Private Thread Memory case: admin-review",
+    "source_note": "Sanitized historical case: review an admin-panel PR against user scenarios and requirements",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "New stage: review an admin-interface PR where requirements and code may disagree. Check user scenarios, compare implementation with requirements, identify omissions and unnecessary mechanisms, then provide specific findings. Do not start the review yet; first assess the profile.",
+    "expected": "Recommend a supported stronger technical-review profile before inspecting the PR.",
+    "expected_decision": "recommend_stronger",
+    "allowed_recommendations": [
+      "gpt-6.1-sol/medium",
+      "gpt-6.1-sol/high",
+      "gpt-6.1-sol/xhigh",
+      "gpt-6-sol/medium",
+      "gpt-6-sol/high",
+      "gpt-6-astra/medium"
+    ]
+  },
+  {
+    "id": "mail-collection",
+    "source": "https://github.com/torin-asakura/.agents/issues/846",
+    "source_note": "Synthetic bounded phase from the user's 2026-10-16 cross-project workflow clarification",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "New bounded stage: collect email for one project over a specified period from the connected mailbox and list date, sender and subject. Do not analyze architecture or make product decisions. In this test only assess the profile; do not read email.",
+    "expected": "Keep Luna/low for bounded extraction and proceed without a profile recommendation.",
+    "expected_decision": "keep"
+  },
+  {
+    "id": "speed-only-fast",
+    "source": "https://github.com/torin-asakura/.agents/issues/846",
+    "source_note": "Synthetic speed-only phase; the supplied catalog supports fast for the current model",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": "standard",
+    "prompt": "New urgent stage: draft a short technical response from agreed facts. Retain the current model and reasoning, which were chosen for required quality. Time now matters more than cost and extra cost is acceptable. Before work, assess whether this exact model can be accelerated using a supported speed tier. Do not draft the response yet.",
+    "expected": "Recommend fast speed on the current model and effort when supported, without changing the quality profile or starting the task.",
+    "expected_decision": "recommend_faster",
+    "allowed_recommendations": [
+      "gpt-6.1-sol/medium/fast"
+    ],
+    "require_speed_only": true
+  },
+  {
+    "id": "mail-to-search-design",
+    "source": "https://github.com/torin-asakura/.agents/issues/846",
+    "source_note": "Synthetic task transition from the user's 2026-10-16 cross-project workflow clarification",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "Email collection is finished. New stage: design a local search-and-generation system over snapshots from several sources. Determine index and generation ownership, snapshot updates, search boundaries, consistency and decision verification. First assess the profile; do not begin design.",
+    "expected": "Recommend a supported stronger profile before starting the new architecture phase.",
+    "expected_decision": "recommend_stronger",
+    "allowed_recommendations": [
+      "gpt-6.1-sol/medium",
+      "gpt-6.1-sol/high",
+      "gpt-6.1-sol/xhigh",
+      "gpt-6-astra/medium"
+    ]
+  },
+  {
+    "id": "design-to-issue-draft",
+    "source": "https://github.com/torin-asakura/.agents/issues/846",
+    "source_note": "Synthetic bounded phase from the user's 2026-10-16 cross-project workflow clarification",
+    "model": "gpt-6.1-sol",
+    "effort": "xhigh",
+    "speed": "standard",
+    "prompt": "The design is approved and recorded. The new stage is to draft one short issue from the established requirements and acceptance criteria. Do not design, publish or change code. This is a draft for me to read: speed and cost matter more than polish. First assess whether the previous stronger profile is needed for this bounded stage.",
+    "expected": "Recommend a lighter supported profile for a private issue draft with fixed requirements.",
+    "expected_decision": "recommend_lighter",
+    "allowed_recommendations": [
+      "gpt-6-luna/low",
+      "gpt-6-luna/medium",
+      "gpt-5.6-terra/medium",
+      "gpt-6.1-sol/low",
+      "gpt-6.1-sol/medium"
+    ]
+  },
+  {
+    "id": "bounded-cluster-inventory",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": "standard",
+    "prompt": "The long-term goal includes Kubernetes, Flux and storage for several services. The next stage is to read existing manifests and inventory, compare allocated resources and return a discrepancy table. Do not design the cluster or change infrastructure. Preserve three running VMs. There is no comparative profile-quality evidence yet.",
+    "expected": "Accept any supported profile grounded in the nearest bounded work and evidence; evaluate model and effort independently.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true
+  },
+  {
+    "id": "bounded-hosting-survey",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": "standard",
+    "prompt": "A large project is replacing an old website and adding a backend. For now, only read the provided directory list and document-root settings, identify possible deployment locations and missing information. Keep the website available; writes and deployment are forbidden. No new design or migration is currently assigned.",
+    "expected": "Accept any supported profile grounded in the nearest bounded work and evidence; evaluate model and effort independently.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true
+  },
+  {
+    "id": "bounded-native-form-review",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": "standard",
+    "prompt": "The user challenged manual form parsing and email delivery. The next work is to compare the existing small handler with official Symfony Form, Validator and Mailer and provide a short discrepancy list. Do not rewrite or redesign it. Further layer rework is outside this stage.",
+    "expected": "Accept any supported profile grounded in the nearest bounded work and evidence; evaluate model and effort independently.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true
+  },
+  {
+    "id": "bounded-read-only-list",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "Return the titles of three open issues from the supplied provider JSON. Fields are normalized and pagination is complete. The project's long-term goal is to overhaul all agent instructions. For now only extract the three titles; do not publish or change anything.",
+    "expected": "Accept any supported profile grounded in the nearest bounded work and evidence; evaluate model and effort independently.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true
+  },
+  {
+    "id": "quality-model-only",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6-luna",
+    "effort": "medium",
+    "speed": "standard",
+    "prompt": "The next work is to identify contradictions between two recovery-order specifications. In a blind comparison over five examples, the active Luna/medium missed loss of an acknowledged record in four; Sol/medium found all five and produced verifiable counterexamples within the time limit. Higher effort was not tested separately. Select a profile for the same bounded analysis; do not analyze the documents now.",
+    "expected": "Accept any supported profile grounded in the nearest bounded work and evidence; evaluate model and effort independently.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true
+  },
+  {
+    "id": "quality-effort-only",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": "standard",
+    "prompt": "The next work is to verify a recovery-order proof against three conflicting traces. On representative examples Sol/medium misses an ordering violation while Sol/high reproducibly finds it and verifies the counterexample within the allowed time. No other model was compared; extra high effort cost is accepted. Assess the profile; do not begin analysis.",
+    "expected": "Accept any supported profile grounded in the nearest bounded work and evidence; evaluate model and effort independently.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true
+  },
+  {
+    "id": "quality-frontier-comparison",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "speed": "standard",
+    "prompt": "The next work is to prove Kubernetes storage safety under two simultaneous failures and refute incorrect alternatives. In blind comparison Sol/high and Sol/xhigh missed the same fencing conflict; Astra/high found it, verified both traces and passed the complete quality threshold. Astra/xhigh added latency without improving the result. Astra/high cost is accepted. Assess the profile; do not construct the proof now.",
+    "expected": "Accept any supported profile grounded in the nearest bounded work and evidence; evaluate model and effort independently.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true
+  },
+  {
+    "id": "cluster-bootstrap-preflight",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": "standard",
+    "prompt": "The next task is to create a separate Linux VM and deploy Kubernetes, Flux, ingress and persistent storage. The runner is ready. First establish resources, image, versions and networking; then proceed through verifiable stages with reapplication and PVC checks. Preserve the three running VMs unchanged. There is no comparative model-quality evidence or demonstrated capability gap for the next planning stage yet. Assess the profile before that stage; do not draft the plan.",
+    "expected": "Accept a profile justified by the initial resource/image/version/network planning phase and preservation constraints, without treating the whole bootstrap as an automatic frontier/xhigh requirement.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true
+  },
+  {
+    "id": "thread-memory-client-discovery",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "A handoff is requested for sample/service, dataset service-history, version 0.2.0. Available skills include database-access: Read Thread Memory handoffs and history through its configured CLI and remote PostgreSQL. Its reference identifies an installed CLI with an existing connection. There is no Thread Memory MCP and the command is not on PATH. The previous execution on the active profile declared access impossible after those two checks without reading the reference. Now complete retrieval of the handoff. Assess the profile for that work.",
+    "expected": "Assess the complete next result: locate the configured CLI through skill metadata and the connection map, perform the authorized read and return the result or actual error. Missing MCP/PATH names do not establish unavailability. Finding a client and reading instructions do not finish the task. Account for prior execution mistakes; do not infer a universal minimum profile from the name Thread Memory. Do not perform the task during this assessment.",
+    "quality_requirements": "Assess the complete next result: locate the configured CLI through skill metadata and the connection map, perform the authorized read and return the result or actual error. Missing MCP/PATH names do not establish unavailability. Finding a client and reading instructions do not finish the task. Account for prior execution mistakes; do not infer a universal minimum profile from the name Thread Memory. Do not perform the task during this assessment.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true
+  },
+  {
+    "id": "thread-memory-read-completion",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "The user requested previous-chat history from Thread Memory. The client, help and connection map have been found and a safe read command is available. The previous execution on the active profile ended with 'I found the connection but have not inspected the database', although reading was already authorized. Perform the read and answer the original question, or report the actual error. Assess the profile for this work.",
+    "expected": "Assess the complete next result: locate the configured CLI through skill metadata and the connection map, perform the authorized read and return the result or actual error. Missing MCP/PATH names do not establish unavailability. Finding a client and reading instructions do not finish the task. Account for prior execution mistakes; do not infer a universal minimum profile from the name Thread Memory. Do not perform the task during this assessment.",
+    "quality_requirements": "Assess the complete next result: locate the configured CLI through skill metadata and the connection map, perform the authorized read and return the result or actual error. Missing MCP/PATH names do not establish unavailability. Finding a client and reading instructions do not finish the task. Account for prior execution mistakes; do not infer a universal minimum profile from the name Thread Memory. Do not perform the task during this assessment.",
+    "expected_decisions": [
+      "keep",
+      "recommend_lighter",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true
+  },
+  {
+    "id": "explicit-profile-after-failure",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "speed": "standard",
+    "prompt": "User: publishing the approved issue failed twice on Luna low. I chose the active Sol high profile for this work; do not change it without my permission. Assistant: the issue is not created yet. The next user message is 'publish'. There are no new requirements or revocation of the choice. Assess the profile for that continuing publication.",
+    "expected_decisions": [
+      "keep"
+    ],
+    "behavioral_review": true,
+    "quality_requirements": "Assess the entire unfinished publication. Account for the failed attempt and explicit user choice; do not treat the word 'publish' as a separate new lightweight task. Do not impose a universal minimum profile or invent measurements.",
+    "expected": "Preserve an explicit active profile for unchanged work; account for failed execution without universal family rules."
+  },
+  {
+    "id": "retry-after-unsuccessful-downgrade",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "speed": "standard",
+    "prompt": "The user requests publication of an approved issue using the organization's form. The previous attempt after automatic downgrade to Luna low failed to publish and requested permission already given. The user has now raised the active profile to Sol high and repeated 'publish'. Finish the same work. There are no comparative timing measurements, but actual noncompletion contradicts the previous profile's successful execution. Assess the profile.",
+    "expected_decisions": [
+      "keep",
+      "unknown",
+      "recommend_stronger"
+    ],
+    "behavioral_review": true,
+    "quality_requirements": "Assess the entire unfinished publication. Account for the failed attempt and explicit user choice; do not treat the word 'publish' as a separate new lightweight task. Do not impose a universal minimum profile or invent measurements.",
+    "expected": "Preserve an explicit active profile for unchanged work; account for failed execution without universal family rules."
+  },
+  {
+    "id": "bounded-checkin-after-runtime-failure",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "speed": "standard",
+    "prompt": "The previous diagnostic task is complete: the assistant reported that the guard denied the normal assessment command, the cause is not fixed, local tests passed and live handoff is unconfirmed. No check-in draft was requested or remains outstanding from that task. The user now assigns a separate new deliverable: 'Prepare a short check-in draft from those verified facts, including the self-block.' Only the draft in the current chat is assigned; no investigation, correction of a prior draft or fix is requested. The user has not explicitly chosen a model. Assess the profile for this new drafting task.",
+    "expected_decisions": [
+      "recommend_lighter"
+    ],
+    "quality_requirements": "Assess a genuinely new drafting task after completed diagnostics, not an omitted part or correction of the previous result. The technical denial does not add investigation or establish model inadequacy. Explain a lower model and/or effort for bounded drafting without a universal minimum or invented measurements. Distinguish local tests from live handoff. Do not perform the task.",
+    "behavioral_review": true,
+    "expected": "Assess a genuinely new drafting task after completed diagnostics, not an omitted part or correction of the previous result. The technical denial does not add investigation or establish model inadequacy. Explain a lower model and/or effort for bounded drafting without a universal minimum or invented measurements. Distinguish local tests from live handoff. Do not perform the task."
+  },
+  {
+    "id": "failed-profile-work-still-unfinished",
+    "source": "synthetic-behavioral-regression",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "speed": "standard",
+    "prompt": "Continue the same unfinished work: restore the configured CLI path for reading history, verify GitHub API access, design epic dependencies and compare them with current state. On the active profile, three attempts declared access unavailable and stopped before reading the guide although the verified client is available. No hook or transport failure was observed. The working path was provided before each failed attempt. Assess the profile for completing the entire result.",
+    "expected_decisions": [
+      "recommend_stronger",
+      "unknown"
+    ],
+    "quality_requirements": "Account for specific observed violations of required behavior on the same unfinished work. Do not relabel them as hook/transport failures without evidence or declare the active profile verified suitable. Explain the improvement a recommendation is expected to provide; with insufficient data return unknown so the cycle is not presented as successful. Do not impose a global model-family ban or minimum model. Do not perform the task.",
+    "behavioral_review": true,
+    "expected": "Account for specific observed violations of required behavior on the same unfinished work. Do not relabel them as hook/transport failures without evidence or declare the active profile verified suitable. Explain the improvement a recommendation is expected to provide; with insufficient data return unknown so the cycle is not presented as successful. Do not impose a global model-family ban or minimum model. Do not perform the task."
+  },
+  {
+    "id": "discussion-draft-clarification",
+    "prompt": "What ready-made integration are you referring to? The rest of the draft is correct.",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": null,
+    "fixture_directory": "fixtures/draft-clarification",
+    "expected_decision": "keep"
+  },
+  {
+    "id": "discussion-draft-clarification-ru",
+    "prompt": "Какую готовую интеграцию ты имеешь в виду? В остальном текст верен.",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "speed": null,
+    "fixture_directory": "fixtures/draft-clarification",
+    "expected_decision": "keep"
+  },
+  {
+    "id": "discussion-missing-deliverables",
+    "prompt": "These look good now, but I still do not see articles three and four. The rest is accepted.",
+    "model": "gpt-6.1-sol",
+    "effort": "xhigh",
+    "speed": null,
+    "fixture_directory": "fixtures/missing-deliverables",
+    "expected_decision": "keep"
+  },
+  {
+    "id": "discussion-missing-deliverables-ru",
+    "prompt": "Теперь отлично, только я не вижу третий и четвёртый посты, а остальные принимаются.",
+    "model": "gpt-6.1-sol",
+    "effort": "xhigh",
+    "speed": null,
+    "fixture_directory": "fixtures/missing-deliverables",
+    "expected_decision": "keep"
+  }
+]

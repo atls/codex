@@ -1,0 +1,120 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "active_model": {
+      "title": "Active Model",
+      "type": "string"
+    },
+    "active_effort": {
+      "title": "Active Effort",
+      "type": "string"
+    },
+    "active_speed": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Active Speed"
+    },
+    "decision": {
+      "enum": [
+        "keep",
+        "recommend_lighter",
+        "recommend_stronger",
+        "recommend_faster",
+        "unknown"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "recommended_model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Recommended Model"
+    },
+    "recommended_effort": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Recommended Effort"
+    },
+    "recommended_speed": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Recommended Speed"
+    },
+    "official_source_url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Official Source Url"
+    },
+    "official_guidance": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Official Guidance"
+    },
+    "task_inference": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Task Inference"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    }
+  },
+  "required": [
+    "active_model",
+    "active_effort",
+    "active_speed",
+    "decision",
+    "recommended_model",
+    "recommended_effort",
+    "recommended_speed",
+    "official_source_url",
+    "official_guidance",
+    "task_inference",
+    "reason"
+  ],
+  "title": "AssessmentDecision",
+  "type": "object"
+}

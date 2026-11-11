@@ -1,0 +1,12 @@
+.DS_Store
+.tmp/
+dist/
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+node_modules/
+.yarn/
+.ruff_cache/
+.mypy_cache/
+build/

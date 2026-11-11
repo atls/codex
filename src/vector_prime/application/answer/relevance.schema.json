@@ -1,0 +1,19 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "verdict": {
+      "enum": [
+        "relevant",
+        "unrelated",
+        "uncertain"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "required": [
+    "verdict"
+  ],
+  "title": "RelevanceDecision",
+  "type": "object"
+}

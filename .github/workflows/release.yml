@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  pull_request_target:
+    types: [closed]
+    branches: [master]
+    paths:
+      - '.codex-plugin/**'
+      - '.github/packaging/**'
+      - '.github/workflows/package.yml'
+      - '.github/workflows/release.yml'
+      - 'assets/**'
+      - 'docs/desktop-hooks.md'
+      - 'hooks/**'
+      - 'scripts/**'
+      - 'skills/**'
+      - 'src/**'
+      - LICENSE
+      - README.md
+      - pyproject.toml
+      - uv.lock
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'master'
+    uses: ./.github/workflows/package.yml
+    with:
+      revision: ${{ github.event.pull_request.merge_commit_sha }}
+
+  release:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Read release version
+        id: version
+        run: |
+          jq -er '.version | "value=\(.)", "prerelease=\(split("+")[0] | contains("-"))"' \
+            .codex-plugin/plugin.json >> "$GITHUB_OUTPUT"
+      - name: Publish GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ steps.version.outputs.value }}
+          commit: ${{ github.event.pull_request.merge_commit_sha }}
+          name: Vector Prime v${{ steps.version.outputs.value }}
+          artifacts: dist/*.zip
+          artifactErrorsFailBuild: true
+          prerelease: ${{ steps.version.outputs.prerelease == 'true' }}
+          allowUpdates: false
+          generateReleaseNotes: true
+          immutableCreate: true

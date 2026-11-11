@@ -1,0 +1,116 @@
+[
+  {
+    "id": "fabricated-official-policy",
+    "case_id": "writer-preflight",
+    "expected_pass": false,
+    "answer": {
+      "decision": "recommend_stronger",
+      "recommended_model": "gpt-6.1-sol",
+      "recommended_effort": "medium",
+      "recommended_speed": null,
+      "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+      "official_guidance": "OpenAI mandates Sol for every task containing the word writer.",
+      "task_inference": "The task contains writer, so the model must be changed.",
+      "reason": "Choose by the task title alone."
+    },
+    "inherit_active_profile": true
+  },
+  {
+    "id": "root-owned-writer-supported",
+    "case_id": "writer-preflight",
+    "expected_pass": true,
+    "answer": {
+      "decision": "recommend_stronger",
+      "recommended_model": "gpt-6.1-sol",
+      "recommended_effort": "medium",
+      "recommended_speed": null,
+      "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+      "official_guidance": "Sol is the recommended workhorse for complex technical work; medium is its documented starting point.",
+      "task_inference": "The root is explicitly responsible for reconciling three contracts, resolving ownership conflicts and accepting or rejecting the writer result.",
+      "reason": "Model: root-owned cross-contract reasoning exceeds the narrow-task Luna profile. Effort: medium follows the separately cited starting-point guidance for this technical review; no evidence supports going higher. Speed is unchanged."
+    },
+    "inherit_active_profile": true
+  },
+  {
+    "id": "delegation-only-child-complexity",
+    "case_id": "writer-delegation-only",
+    "expected_pass": false,
+    "answer": {
+      "active_model": "gpt-6-luna",
+      "active_effort": "low",
+      "active_speed": "standard",
+      "decision": "recommend_stronger",
+      "recommended_model": "gpt-6-astra",
+      "recommended_effort": "xhigh",
+      "recommended_speed": null,
+      "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+      "official_guidance": "Astra is useful for difficult reasoning.",
+      "task_inference": "The child will implement a complex system, so the launch-only root needs Astra.",
+      "reason": "Increase both model and effort because the delegated implementation is difficult."
+    }
+  },
+  {
+    "id": "discussion-profile-preserved",
+    "case_id": "discussion-missing-deliverables",
+    "expected_pass": true,
+    "inherit_active_profile": true,
+    "answer": {
+      "decision": "keep",
+      "recommended_model": null,
+      "recommended_effort": null,
+      "recommended_speed": null,
+      "official_source_url": null,
+      "official_guidance": null,
+      "task_inference": null,
+      "reason": "The request concerns omitted parts of the previous deliverable. Retain the active model and reasoning effort during this discussion; there is no explicit profile-reselection request."
+    }
+  },
+  {
+    "id": "discussion-model-downgrade",
+    "case_id": "discussion-draft-clarification",
+    "expected_pass": false,
+    "inherit_active_profile": true,
+    "answer": {
+      "decision": "recommend_lighter",
+      "recommended_model": "gpt-6-luna",
+      "recommended_effort": "low",
+      "recommended_speed": null,
+      "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+      "official_guidance": "Lower effort and a lighter capable model can reduce latency for well-defined work.",
+      "task_inference": "Only a small follow-up is requested.",
+      "reason": "Only one sentence needs clarification, so change to Luna low to reduce cost."
+    }
+  },
+  {
+    "id": "discussion-effort-downgrade",
+    "case_id": "discussion-missing-deliverables",
+    "expected_pass": false,
+    "inherit_active_profile": true,
+    "answer": {
+      "decision": "recommend_lighter",
+      "recommended_model": "gpt-6.1-sol",
+      "recommended_effort": "low",
+      "recommended_speed": null,
+      "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+      "official_guidance": "Lower effort and a lighter capable model can reduce latency for well-defined work.",
+      "task_inference": "Only a small follow-up is requested.",
+      "reason": "Keep the model but reduce effort to low because showing the missing articles is easy."
+    }
+  },
+  {
+    "id": "discussion-rule-overfreezes-new-task",
+    "case_id": "bounded-checkin-after-runtime-failure",
+    "expected_pass": false,
+    "inherit_active_profile": true,
+    "answer": {
+      "decision": "keep",
+      "recommended_model": null,
+      "recommended_effort": null,
+      "recommended_speed": null,
+      "official_source_url": null,
+      "official_guidance": null,
+      "task_inference": null,
+      "reason": "The previous conversation contained complicated technical work, so retain Sol high for every subsequent request, including this independently requested check-in."
+    }
+  }
+]

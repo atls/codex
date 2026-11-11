@@ -1,0 +1,31 @@
+{
+  "id": "desktop-mixed-input-handoff",
+  "purpose": "Observe native input preservation and actual continuation in a disposable Desktop chat",
+  "initial_profile": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "task": "From the normalized array [{\"state\":\"open\",\"title\":\"Search\"},{\"state\":\"closed\",\"title\":\"Archive\"},{\"state\":\"open\",\"title\":\"Export\"}] return the open issue titles in original order and the attached image's color. Return only JSON with titles and color. All data is attached; no tools or publication are needed.",
+  "image": "red.png",
+  "expected": {
+    "titles": [
+      "Search",
+      "Export"
+    ],
+    "color": "red"
+  },
+  "observations": [
+    "source/replay native input identity and digests",
+    "image type/order and payload digest without recording payload",
+    "text_elements preserved when present",
+    "launched profile and actual inference evidence kept separate",
+    "number of queued submissions and executions",
+    "source/preflight/handoff/replay timestamps",
+    "correction and error handling on the disposable chat only"
+  ],
+  "limitations": [
+    "A keep decision does not exercise a profile handoff",
+    "Promptfoo app-server provider cannot attach to the running Desktop",
+    "Existing production chats and global hook settings are not changed"
+  ]
+}

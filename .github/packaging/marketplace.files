@@ -1,0 +1,12 @@
+.codex-plugin/
+LICENSE
+README.md
+assets/
+docs/desktop-hooks.md
+hooks/
+pyproject.toml
+scripts/
+skills/
+skills/model-fit/references/assessment-policy.md
+src/vector_prime/
+uv.lock

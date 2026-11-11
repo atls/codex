@@ -1,0 +1,33 @@
+name: Verify
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/ruff-action@v4.1.0
+        with:
+          version: '0.17.2'
+          src: src scripts evals/model-fit
+      - run: ruff format --check src scripts evals/model-fit
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: evals/model-fit/package.json
+      - run: yarn install --immutable
+        working-directory: evals/model-fit
+      - run: yarn run test
+        working-directory: evals/model-fit
+      - run: uv run --project evals/model-fit --locked --no-editable --reinstall-package vector-prime mypy --strict --disallow-any-explicit -p vector_prime
+  package:
+    uses: ./.github/workflows/package.yml
+    with:
+      revision: ${{ github.sha }}

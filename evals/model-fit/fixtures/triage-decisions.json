@@ -1,0 +1,740 @@
+[
+  {
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "cases": [
+      {
+        "id": "writer-preflight",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "recommend_stronger",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "high",
+        "target_speed": "standard",
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "writer-preflight-explicit",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "recommend_stronger",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "writer-delegation-only",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "keep",
+        "target_model": "gpt-6-luna",
+        "target_effort": "low",
+        "target_speed": "standard",
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "bounded-skill-change",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "medium",
+          "speed": "standard"
+        },
+        "decision": "keep",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": "standard",
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "bounded-stack-step",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "high",
+          "speed": "standard"
+        },
+        "decision": "recommend_lighter",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": "standard",
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "already-active-web",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "keep",
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "complex-contract-design",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "recommend_stronger",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "high",
+        "target_speed": "standard",
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "user-choice-preserved",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "medium",
+          "speed": "standard"
+        },
+        "decision": "keep",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": "standard",
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "catalog-unavailable",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "unknown",
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": null,
+        "official_guidance": null,
+        "task_inference": null,
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "ordinary-dialogue",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": null,
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": null,
+        "official_guidance": null,
+        "task_inference": null,
+        "reason": null
+      },
+      {
+        "id": "caily-admin-review",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "recommend_stronger",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "mail-collection",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "keep",
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "speed-only-fast",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "medium",
+          "speed": "standard"
+        },
+        "decision": "recommend_faster",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": "fast",
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "mail-to-search-design",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "recommend_stronger",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "design-to-issue-draft",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "xhigh",
+          "speed": "standard"
+        },
+        "decision": "recommend_lighter",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": "standard",
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      }
+    ]
+  },
+  {
+    "model": "gpt-6-luna",
+    "effort": "medium",
+    "cases": [
+      {
+        "id": "writer-preflight",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "recommend_stronger",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "writer-preflight-explicit",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "recommend_stronger",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "writer-delegation-only",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "keep",
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "bounded-skill-change",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "medium",
+          "speed": "standard"
+        },
+        "decision": "recommend_lighter",
+        "target_model": "gpt-6-luna",
+        "target_effort": "low",
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "bounded-stack-step",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "high",
+          "speed": "standard"
+        },
+        "decision": "recommend_lighter",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "already-active-web",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "keep",
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "complex-contract-design",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "recommend_stronger",
+        "target_model": "gpt-6-astra",
+        "target_effort": "xhigh",
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "user-choice-preserved",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "medium",
+          "speed": "standard"
+        },
+        "decision": "keep",
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "catalog-unavailable",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "unknown",
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": null,
+        "official_guidance": null,
+        "task_inference": null,
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "ordinary-dialogue",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": null,
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": null,
+        "official_guidance": null,
+        "task_inference": null,
+        "reason": null
+      },
+      {
+        "id": "caily-admin-review",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "recommend_stronger",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "mail-collection",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "keep",
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "speed-only-fast",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "medium",
+          "speed": "standard"
+        },
+        "decision": "recommend_faster",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": "fast",
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "mail-to-search-design",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "recommend_stronger",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "design-to-issue-draft",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "xhigh",
+          "speed": "standard"
+        },
+        "decision": "recommend_lighter",
+        "target_model": null,
+        "target_effort": "low",
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      }
+    ]
+  },
+  {
+    "model": "gpt-6.1-sol",
+    "effort": "low",
+    "cases": [
+      {
+        "id": "writer-preflight",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "recommend_stronger",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "writer-preflight-explicit",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "recommend_stronger",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "writer-delegation-only",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "keep",
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "bounded-skill-change",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "medium",
+          "speed": "standard"
+        },
+        "decision": "recommend_lighter",
+        "target_model": "gpt-6-luna",
+        "target_effort": "low",
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "bounded-stack-step",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "high",
+          "speed": "standard"
+        },
+        "decision": "keep",
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/reasoning",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "already-active-web",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "keep",
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/reasoning",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "complex-contract-design",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "recommend_stronger",
+        "target_model": "gpt-6-astra",
+        "target_effort": "high",
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/reasoning",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "user-choice-preserved",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "medium",
+          "speed": "standard"
+        },
+        "decision": "keep",
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "catalog-unavailable",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "unknown",
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": null,
+        "official_guidance": null,
+        "task_inference": null,
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "ordinary-dialogue",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": null,
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": null,
+        "official_guidance": null,
+        "task_inference": null,
+        "reason": null
+      },
+      {
+        "id": "caily-admin-review",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "recommend_stronger",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "mail-collection",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "keep",
+        "target_model": null,
+        "target_effort": null,
+        "target_speed": null,
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "speed-only-fast",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "medium",
+          "speed": "standard"
+        },
+        "decision": "recommend_faster",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": "fast",
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "mail-to-search-design",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": "standard"
+        },
+        "decision": "recommend_stronger",
+        "target_model": "gpt-6.1-sol",
+        "target_effort": "medium",
+        "target_speed": "standard",
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      },
+      {
+        "id": "design-to-issue-draft",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "xhigh",
+          "speed": "standard"
+        },
+        "decision": "recommend_lighter",
+        "target_model": "gpt-6-luna",
+        "target_effort": "low",
+        "target_speed": "standard",
+        "official_source_url": "https://developers.openai.com/api/docs/guides/model-selection.md",
+        "official_guidance": "Fixture official guidance.",
+        "task_inference": "Fixture task inference.",
+        "reason": "Fixture decision reason."
+      }
+    ]
+  }
+]

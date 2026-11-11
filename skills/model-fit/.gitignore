@@ -1,0 +1,7 @@
+.venv/
+build/
+dist/
+*.egg-info/
+
+!src/infrastructure/handoff/state/
+!src/infrastructure/handoff/state/*.py

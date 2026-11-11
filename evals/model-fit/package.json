@@ -1,0 +1,31 @@
+{
+  "name": "model-fit-evals",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "eval": "uv run python evaluate.py native",
+    "validate": "uv run python evaluate.py native --validate",
+    "test": "uv run python fixtures/validation.py && uv run pytest",
+    "test:fixtures": "uv run python fixtures/validation.py && uv run pytest fixtures/tests",
+    "test:assessment": "uv run pytest assessment/tests",
+    "test:ordinary": "uv run pytest assessment/ordinary/tests",
+    "test:execution": "uv run pytest autoswitch/execution/tests",
+    "test:autoswitch": "uv run pytest handoff/tests switch/tests answer/tests acceptance/tests/test_hook_scope.py",
+    "test:acceptance": "uv run pytest acceptance/tests",
+    "calibrate": "uv run python evaluate.py calibration",
+    "eval:assessment": "uv run python evaluate.py assessment",
+    "eval:tasks": "uv run python evaluate.py tasks",
+    "eval:ordinary": "uv run python evaluate.py ordinary",
+    "regrade": "uv run python evaluate.py regrade",
+    "test:packaging": "uv run pytest packaging/tests"
+  },
+  "engines": {
+    "node": ">=24.15.0 <25"
+  },
+  "devDependencies": {
+    "@atls/raijin": "2.1.1",
+    "@openai/codex": "0.167.0-alpha.3.2",
+    "promptfoo": "0.125.1"
+  },
+  "packageManager": "yarn@4.18.0"
+}

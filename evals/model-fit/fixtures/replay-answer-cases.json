@@ -1,0 +1,23 @@
+[
+  {
+    "id": "backend-p2-answer-about-prior-tasks",
+    "request": "Let's start backend development (P2)",
+    "task_context": "P2 is server-side intake for the audit form: verify Reg.ru/Symfony, agree the contract and implement the handler",
+    "answer": "Done. #138, shared UI and regression fixes, was closed after its closing Check-in. #126, homepage Open Graph and SEO, was updated and closed. Analytics #127/#128 will follow the production release.",
+    "expected": "unrelated"
+  },
+  {
+    "id": "backend-p2-specific-blocker",
+    "request": "Let's start backend development (P2)",
+    "task_context": "P2 is server-side intake for the audit form: verify Reg.ru/Symfony, agree the contract and implement the handler",
+    "answer": "I started #124: the client form is ready, but the web project has no server handler and staging is static. Receiving submissions requires Reg.ru/Symfony hosting access and a verified PHP handler installation path. Until then I will not add a fake endpoint.",
+    "expected": "relevant"
+  },
+  {
+    "id": "visual-fix-completed",
+    "request": "Restore the orange eyebrow above the Where impact is lost section",
+    "task_context": "A small styling correction to one homepage section",
+    "answer": "Restored the orange eyebrow above the Where impact is lost section and checked the homepage in the browser.",
+    "expected": "relevant"
+  }
+]

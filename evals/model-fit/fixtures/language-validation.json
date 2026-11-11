@@ -1,0 +1,116 @@
+{
+  "description": "Four bounded bilingual synthetic assessment observations before and after English instructions; not task-execution benchmarks or universal correct-profile labels. Russian input is deliberate multilingual coverage.",
+  "evaluator": {
+    "model": "gpt-6.1-sol",
+    "effort": "low"
+  },
+  "baseline_skill_sha256": "a369198005be92df815d3a5482c19f92389e39a7e583ffe314fc94fc53dc4c51",
+  "english_skill_sha256": "c106bb9feb7c56ce0ca6e3bcc36190d1e9bc04d40bfbdc4e30342ed00de3d967",
+  "cases": [
+    {
+      "case": "summary-en",
+      "input": {
+        "task": "Draft a short check-in from two verified facts: configuration verification is complete; publication has not happened. Only draft the text; do not investigate or publish.",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "high",
+          "speed": null
+        },
+        "context": "The active profile is a technical starting seed, not a retained user choice."
+      },
+      "before": {
+        "decision": "recommend_lighter",
+        "recommended_model": "gpt-6.1-terra",
+        "recommended_effort": "low",
+        "seconds": 17.255
+      },
+      "after": {
+        "decision": "recommend_lighter",
+        "recommended_model": "gpt-6.1-sol",
+        "recommended_effort": "low",
+        "seconds": 13.519
+      },
+      "decision_class_preserved": true
+    },
+    {
+      "case": "summary-ru",
+      "input": {
+        "task": "Подготовь короткий чекин из двух проверенных фактов: конфигурация проверена; публикации ещё не было. Нужен только черновик текста, без расследования и публикации.",
+        "active_profile": {
+          "model": "gpt-6.1-sol",
+          "effort": "high",
+          "speed": null
+        },
+        "context": "The active profile is a technical starting seed, not a retained user choice."
+      },
+      "before": {
+        "decision": "recommend_lighter",
+        "recommended_model": "gpt-6-luna",
+        "recommended_effort": "low",
+        "seconds": 15.985
+      },
+      "after": {
+        "decision": "recommend_lighter",
+        "recommended_model": "gpt-6.1-sol",
+        "recommended_effort": "low",
+        "seconds": 18.507
+      },
+      "decision_class_preserved": true
+    },
+    {
+      "case": "migration-en",
+      "input": {
+        "task": "Plan a production database migration, backward compatibility, rollback and outage acceptance. The current profile repeatedly failed to read the provided access guide and declared an available CLI unavailable. Assess the remaining migration-planning work; do not execute it.",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": null
+        },
+        "context": "The active profile is a technical starting seed, not a retained user choice."
+      },
+      "before": {
+        "decision": "recommend_stronger",
+        "recommended_model": "gpt-6.1-sol",
+        "recommended_effort": "high",
+        "seconds": 17.445
+      },
+      "after": {
+        "decision": "recommend_stronger",
+        "recommended_model": "gpt-6.1-sol",
+        "recommended_effort": "high",
+        "seconds": 17.534
+      },
+      "decision_class_preserved": true
+    },
+    {
+      "case": "migration-ru",
+      "input": {
+        "task": "Спланируй миграцию production-базы, обратную совместимость, rollback и приёмку при отказе. Текущий профиль неоднократно не прочитал данную инструкцию доступа и объявил доступный CLI недоступным. Оцени оставшуюся работу по планированию; не выполняй её.",
+        "active_profile": {
+          "model": "gpt-6-luna",
+          "effort": "low",
+          "speed": null
+        },
+        "context": "The active profile is a technical starting seed, not a retained user choice."
+      },
+      "before": {
+        "decision": "recommend_stronger",
+        "recommended_model": "gpt-6.1-sol",
+        "recommended_effort": "high",
+        "seconds": 17.732
+      },
+      "after": {
+        "decision": "recommend_stronger",
+        "recommended_model": "gpt-6.1-sol",
+        "recommended_effort": "high",
+        "seconds": 17.377
+      },
+      "decision_class_preserved": true
+    }
+  ],
+  "limits": [
+    "Observed assessment-call wall time includes provider/setup variability and is not a latency guarantee",
+    "No automatic profile or working-chat changes were made",
+    "A shared implementation was exercised in both languages; these observations do not justify separate runtime ports"
+  ]
+}
