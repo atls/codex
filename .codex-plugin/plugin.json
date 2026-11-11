@@ -1,6 +1,6 @@
 {
   "name": "vector-prime",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.1",
   "description": "Task-aware model selection and opt-in profile handoff for Codex Desktop.",
   "author": {
     "name": "Torin Asakura"
