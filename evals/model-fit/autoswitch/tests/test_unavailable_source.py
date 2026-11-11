@@ -1,20 +1,17 @@
 from fixtures.autoswitch.assessment import evaluate_request
+from fixtures.autoswitch.lock import held_lock, write_concurrent_state
 
 """Unavailable native history and protected handoff behavior with simulated API failures."""
 
 import io
 import json
 import os
-import select
-import subprocess
-import sys
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import ExitStack, redirect_stdout
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-SCRIPTS = Path(__file__).resolve().parents[1]
 import vector_prime.entrypoints.hooks.instructions as HOOKS_INSTRUCTIONS
 import vector_prime.entrypoints.hooks.native_contract as DESKTOP_CONFIGURATION
 import vector_prime.entrypoints.hooks.operations as HANDOFF_GUARDS
@@ -277,23 +274,12 @@ class UnavailableSourceTests(unittest.TestCase):
         self.assertTrue(path.is_symlink())
 
     def test_busy_lock_from_another_process_during_read_is_not_absence(self):
-        script = "import sys; sys.path.insert(0, sys.argv[1]); from vector_prime.infrastructure.adapters.filesystem.state import locked_state\nwith locked_state('thread'):\n print('locked',flush=True)\n sys.stdin.readline()"
-        holder = None
+        with ExitStack() as locks:
 
-        def unavailable(_):
-            nonlocal holder
-            holder = subprocess.Popen(
-                [sys.executable, "-c", script, str(SCRIPTS.parent / "src")],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-            self.assertTrue(select.select([holder.stdout], [], [], 3)[0])
-            self.assertEqual(holder.stdout.readline().strip(), "locked")
-            raise self.error()
+            def unavailable(_):
+                locks.enter_context(held_lock("thread"))
+                raise self.error()
 
-        try:
             self.assertEqual(self.invoke(unavailable)["status"], "failed")
             self.assertEqual(
                 HANDOFF_STATE.read_state(HANDOFF_STATE.state_path("thread"))[
@@ -301,9 +287,6 @@ class UnavailableSourceTests(unittest.TestCase):
                 ]["status"],
                 "running",
             )
-        finally:
-            if holder:
-                holder.communicate("release\n", timeout=3)
 
     def test_same_capability_error_from_triage_is_not_session_input_fallback(self):
         HANDOFF_PREPARATION.submit_prompt(self.event)
@@ -632,31 +615,14 @@ class UnavailableSourceTests(unittest.TestCase):
                 with self.subTest(phase=phase, decision=decision):
                     HANDOFF_STATE.state_path("thread").unlink(missing_ok=True)
                     RECOMMENDATION_STORE.pending_path("thread").unlink(missing_ok=True)
-                    holder = None
                     state = {
                         "phase": phase,
                         "source_turn_id": "concurrent",
                         "sentinel": "preserved",
                     }
-                    script = "import json,sys; sys.path.insert(0,sys.argv[1]); from vector_prime.infrastructure.adapters.filesystem.state import locked_state,write_state\nwith locked_state('thread') as path: write_state(path,json.loads(sys.argv[2]))\nprint('written',flush=True)\nsys.stdin.readline()"
 
                     def triage(_):
-                        nonlocal holder
-                        holder = subprocess.Popen(
-                            [
-                                sys.executable,
-                                "-c",
-                                script,
-                                str(SCRIPTS.parent / "src"),
-                                json.dumps(state),
-                            ],
-                            stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            text=True,
-                        )
-                        self.assertTrue(select.select([holder.stdout], [], [], 3)[0])
-                        self.assertEqual(holder.stdout.readline().strip(), "written")
+                        write_concurrent_state("thread", state)
                         return (
                             self.recommendation()
                             if decision == "recommend_stronger"
@@ -671,29 +637,21 @@ class UnavailableSourceTests(unittest.TestCase):
                             "speed": None,
                         },
                     }
-                    try:
-                        with (
-                            patch.object(
-                                HANDOFF_PREPARATION,
-                                "session_input",
-                                return_value=request,
-                            ),
-                            patch.object(
-                                HANDOFF_PREPARATION, "triage", side_effect=triage
-                            ),
-                            patch.object(
-                                HANDOFF_PREPARATION, "queued_ids", return_value=set()
-                            ),
-                            patch.object(HANDOFF_PREPARATION, "AppServerReader"),
-                        ):
-                            result = evaluate_request(self.event)
-                        self.assertEqual(result["decision"], "block")
-                        self.assertEqual(
-                            HANDOFF_STATE.read_state(
-                                HANDOFF_STATE.state_path("thread")
-                            ),
-                            state,
-                        )
-                    finally:
-                        if holder:
-                            holder.communicate("release\n", timeout=3)
+                    with (
+                        patch.object(
+                            HANDOFF_PREPARATION,
+                            "session_input",
+                            return_value=request,
+                        ),
+                        patch.object(HANDOFF_PREPARATION, "triage", side_effect=triage),
+                        patch.object(
+                            HANDOFF_PREPARATION, "queued_ids", return_value=set()
+                        ),
+                        patch.object(HANDOFF_PREPARATION, "AppServerReader"),
+                    ):
+                        result = evaluate_request(self.event)
+                    self.assertEqual(result["decision"], "block")
+                    self.assertEqual(
+                        HANDOFF_STATE.read_state(HANDOFF_STATE.state_path("thread")),
+                        state,
+                    )

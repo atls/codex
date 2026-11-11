@@ -4,6 +4,21 @@ on:
   pull_request_target:
     types: [closed]
     branches: [master]
+    paths:
+      - '.codex-plugin/**'
+      - '.github/packaging/**'
+      - '.github/workflows/package.yml'
+      - '.github/workflows/release.yml'
+      - 'assets/**'
+      - 'docs/desktop-hooks.md'
+      - 'hooks/**'
+      - 'scripts/**'
+      - 'skills/**'
+      - 'src/**'
+      - LICENSE
+      - README.md
+      - pyproject.toml
+      - uv.lock
 
 permissions:
   contents: read

@@ -14,7 +14,7 @@ from fixtures.distribution import WORKFLOW, archive, copy_source
 from pathlib import Path
 from contextlib import ExitStack
 
-from fixtures.acceptance.process import native_process
+from fixtures.process import native_process
 
 from vector_prime.infrastructure.adapters.codex.transport.connection import (
     AppServerConnection,

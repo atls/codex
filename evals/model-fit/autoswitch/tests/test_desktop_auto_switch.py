@@ -4,7 +4,6 @@ import copy
 import io
 import json
 import os
-import select
 import subprocess
 import sys
 import tempfile
@@ -15,8 +14,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 ROOT = Path(__file__).resolve().parents[4]
-SCRIPTS = ROOT / "src/vector_prime"
 from fixtures.autoswitch.assessment import evaluate_request
+from fixtures.autoswitch.lock import held_lock
 import vector_prime.entrypoints.hooks.instructions as HOOKS_INSTRUCTIONS
 import vector_prime.entrypoints.hooks.native_contract as DESKTOP_CONFIGURATION
 import vector_prime.entrypoints.hooks.operations as HANDOFF_GUARDS
@@ -1646,18 +1645,9 @@ class DesktopAutoSwitchTests(unittest.TestCase):
 
     def test_lock_contention_identifies_other_process(self):
         self.stage()
-        script = f"import sys; sys.path.insert(0, {str(SCRIPTS.parent)!r}); from vector_prime.infrastructure.adapters.filesystem.state import locked_state; \nwith locked_state('test-thread', operation='queue', turn_id='holder-turn'):\n print('locked', flush=True)\n sys.stdin.readline()"
-        holder = subprocess.Popen(
-            [sys.executable, "-c", script],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            env=os.environ.copy(),
-        )
-        try:
-            self.assertTrue(select.select([holder.stdout], [], [], 3)[0])
-            self.assertEqual(holder.stdout.readline().strip(), "locked")
+        with held_lock(
+            self.thread_id, operation="queue", turn_id="holder-turn"
+        ) as holder_pid:
             event = {
                 "session_id": self.thread_id,
                 "turn_id": self.turn_id,
@@ -1678,13 +1668,10 @@ class DesktopAutoSwitchTests(unittest.TestCase):
                 .read_text()
                 .splitlines()
             )
-            self.assertEqual(json.loads(audit[-1])["details"]["holder_pid"], holder.pid)
+            self.assertEqual(json.loads(audit[-1])["details"]["holder_pid"], holder_pid)
             self.assertEqual(
                 json.loads(audit[-1])["details"]["holder_operation"], "queue"
             )
-        finally:
-            if holder.poll() is None:
-                holder.communicate("\n", timeout=3)
 
     def test_lock_metadata_drops_invalid_turn_id(self):
         with HANDOFF_STATE.locked_state(

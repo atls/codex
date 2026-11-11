@@ -4,7 +4,7 @@ import subprocess
 import sys
 import unittest
 
-from fixtures.acceptance.process import native_process
+from fixtures.process import native_process
 
 
 class NativeProcessTests(unittest.TestCase):
