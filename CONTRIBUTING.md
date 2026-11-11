@@ -4,15 +4,9 @@ Bug reports, documentation improvements, reproducible evaluation cases and focus
 
 ## Report a bug or request a feature
 
-Choose [Bug](https://github.com/atls/codex/issues/new?template=bug.yaml) or [Feature request](https://github.com/atls/codex/issues/new?template=feature.yaml). For a feature, describe what you are trying to do and how Vector Prime should help. For a bug, include:
+Use the [issue chooser](https://github.com/atls/codex/issues/new/choose) to report a bug or request a feature. Name the plugin or tool involved and describe what you were trying to do.
 
-- Codex Desktop and CLI versions, operating system and installed Vector Prime version
-- Whether you used the explicit CLI or automatic hooks, and the configuration scope
-- The task, active model/effort, expected behavior and observed behavior
-- Minimal reproduction steps and sanitized error codes or audit references
-- Whether a profile changed, input was queued, and the continuation actually ran
-
-Keep tool-access problems, provider errors, model-selection quality and queue/replay transport distinct. Do not post tokens, authentication files, full private chats, raw logs with credentials or attachment payloads. A small synthetic example is more useful than an unreviewed conversation export.
+For a Vector Prime bug, say whether you ran an assessment yourself or used automatic hooks. If a profile changed, include the model and effort before and after, and say whether the original request resumed. Use a small example you can share publicly.
 
 ## Set up an existing checkout
 
