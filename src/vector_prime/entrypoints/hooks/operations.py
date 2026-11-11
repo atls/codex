@@ -6,6 +6,8 @@ from collections.abc import Callable
 from vector_prime.application.submission.types.json import JsonValue
 from vector_prime.application.assessment.types.request import ProfileAssessmentInput
 from vector_prime.application.assessment.types.execution import AssessmentRunner
+from vector_prime.application.assessment.types.context import ContextSource
+from vector_prime.entrypoints.hooks.input import assessment_source
 from vector_prime.application.handoff.types.conversation import (
     NativeConversationFactory,
 )
@@ -131,7 +133,7 @@ def guard_replay_answer(
 def submit_prompt(
     event: dict[str, JsonValue],
     *,
-    context_reader: Callable[[object], ProfileAssessmentInput] | None = None,
+    context_reader: Callable[[ContextSource], ProfileAssessmentInput] | None = None,
     assessor: AssessmentRunner | None = None,
     native_factory: Callable[[str], AppServerReader] | None = None,
 ) -> HookOutput | None:
@@ -143,7 +145,7 @@ def submit_prompt(
         clock=time.time,
         conversation=native_conversation(native_factory),
         read_context=lambda request: assessment_context(
-            request.source, reader=context_reader or session_input
+            assessment_source(request), reader=context_reader or session_input
         ),
         store=FileStore(),
     )
@@ -152,7 +154,7 @@ def submit_prompt(
 
 def assess_submitted(
     *,
-    context_reader: Callable[[object], ProfileAssessmentInput] | None = None,
+    context_reader: Callable[[ContextSource], ProfileAssessmentInput] | None = None,
     assessor: AssessmentRunner | None = None,
     native_factory: Callable[[str], AppServerReader] | None = None,
 ) -> HookOutput:
@@ -165,7 +167,7 @@ def assess_submitted(
         clock=time.time,
         conversation=native_conversation(native_factory),
         read_context=lambda request: assessment_context(
-            request.source, reader=context_reader or session_input
+            assessment_source(request), reader=context_reader or session_input
         ),
         store=FileStore(),
     )
@@ -177,7 +179,7 @@ def assess_submitted(
 def reassess(
     requirements: str,
     *,
-    context_reader: Callable[[object], ProfileAssessmentInput] | None = None,
+    context_reader: Callable[[ContextSource], ProfileAssessmentInput] | None = None,
     assessor: AssessmentRunner | None = None,
     native_factory: Callable[[str], AppServerReader] | None = None,
 ) -> HookOutput:
@@ -191,7 +193,7 @@ def reassess(
         clock=time.time,
         conversation=native_conversation(native_factory),
         read_context=lambda request: assessment_context(
-            request.source, reader=context_reader or session_input
+            assessment_source(request), reader=context_reader or session_input
         ),
         store=FileStore(),
         working_directory=os.getcwd,

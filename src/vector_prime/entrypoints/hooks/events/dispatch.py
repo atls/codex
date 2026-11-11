@@ -21,7 +21,7 @@ from vector_prime.entrypoints.hooks.operations import (
     submit_prompt,
 )
 from vector_prime.entrypoints.hooks.response import deny_tool
-from vector_prime.infrastructure.adapters.codex.identity import executor_thread_id
+from vector_prime.entrypoints.hooks.events.identity import executor_thread_id
 from vector_prime.infrastructure.adapters.filesystem.audit import (
     failure_location,
     record_audit,

@@ -13,14 +13,6 @@ from vector_prime.application.assessment.types.decision import (
 
 RECOMMENDATIONS = {"recommend_lighter", "recommend_stronger", "recommend_faster"}
 
-DECISIONS = {
-    "keep",
-    "recommend_lighter",
-    "recommend_stronger",
-    "recommend_faster",
-    "unknown",
-}
-
 EFFORT_ORDER = ("none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra")
 
 
@@ -54,14 +46,7 @@ def validate(
             (proposed[field] not in (None, current_fields[field]) for field in fields)
         ):
             raise ValueError("Non-recommendation contains a changed profile")
-        result["recommended_model"] = None
-        result["recommended_effort"] = None
-        result["recommended_speed"] = None
-        if decision == "keep":
-            result["official_source_url"] = None
-            result["official_guidance"] = None
-            result["task_inference"] = None
-        return result
+        return normalize_unchanged_decision(result)
     if not is_official_source(result.get("official_source_url")):
         raise ValueError("Recommendation lacks a supported official source")
     guidance = result.get("official_guidance")
@@ -110,3 +95,17 @@ def validate(
     ):
         raise ValueError("Quality recommendation changes only speed")
     return result
+
+
+def normalize_unchanged_decision(result: AssessmentDecision) -> AssessmentDecision:
+    normalized: AssessmentDecision = {
+        **result,
+        "recommended_model": None,
+        "recommended_effort": None,
+        "recommended_speed": None,
+    }
+    if result["decision"] == "keep":
+        normalized["official_source_url"] = None
+        normalized["official_guidance"] = None
+        normalized["task_inference"] = None
+    return normalized

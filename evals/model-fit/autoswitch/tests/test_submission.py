@@ -127,7 +127,7 @@ class SubmittedInputTests(unittest.TestCase):
     def assess(self, event=None, decision=None):
         return api.assess_submitted(
             context_reader=lambda e: {
-                "task": e["prompt"] or "attachments",
+                "task": e.prompt or "attachments",
                 "active_profile": self.profile,
             },
             assessor=decision or (lambda request: {"decision": "keep"}),

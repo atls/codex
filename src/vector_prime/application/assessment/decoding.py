@@ -1,3 +1,4 @@
+from vector_prime.application.assessment.types.user_choice import RetainedProfileChoice
 from vector_prime.application.assessment.types.decision import (
     AssessmentDecision,
 )
@@ -46,3 +47,18 @@ def decode_profile(value: object) -> ActiveProfile:
         return PROFILE_ADAPTER.validate_python(value, strict=True)
     except ValidationError:
         raise ValueError("Active profile fields are invalid or incomplete") from None
+
+
+def decode_retained_choice(value: object) -> RetainedProfileChoice:
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"user_selected", "same_work", "profile"}
+        or value["user_selected"] is not True
+        or value["same_work"] is not True
+    ):
+        raise ValueError("prior_choice does not confirm this active profile and work")
+    return {
+        "user_selected": True,
+        "same_work": True,
+        "profile": decode_profile(value["profile"]),
+    }

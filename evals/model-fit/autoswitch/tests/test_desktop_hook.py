@@ -1,3 +1,6 @@
+from vector_prime.entrypoints.hooks.input import context_input
+from vector_prime.entrypoints.hooks.events.identity import executor_thread_id
+
 """Tests for the opt-in Desktop Model Fit hook."""
 
 import io
@@ -74,7 +77,9 @@ class DesktopHookTests(unittest.TestCase):
                     ]
                 },
             ]
-            request = RUNTIME.session_input(self.event)
+            request = RUNTIME.session_input(
+                context_input(self.event, executor_thread_id(self.event))
+            )
         self.assertIn("Previous task", request["context"])
         self.assertNotIn("large tool output", request["context"])
         self.assertEqual(app.call.call_args_list[1].args[1]["itemsView"], "summary")
@@ -87,7 +92,9 @@ class DesktopHookTests(unittest.TestCase):
                 {"thread": {"model": "gpt-6-luna", "reasoningEffort": "low"}},
                 {"data": []},
             ]
-            request = RUNTIME.session_input(event)
+            request = RUNTIME.session_input(
+                context_input(event, executor_thread_id(event))
+            )
         self.assertEqual(request["active_profile"], self.active)
         self.assertTrue(
             all(
@@ -125,7 +132,9 @@ class DesktopHookTests(unittest.TestCase):
                     ]
                 },
             ]
-            request = RUNTIME.session_input(event)
+            request = RUNTIME.session_input(
+                context_input(event, executor_thread_id(event))
+            )
         self.assertIn("user: previous task", request["context"].casefold())
         self.assertNotIn("Show the backlog", request["context"])
 
@@ -170,7 +179,9 @@ class DesktopHookTests(unittest.TestCase):
                     ]
                 },
             ]
-            request = RUNTIME.session_input(event)
+            request = RUNTIME.session_input(
+                context_input(event, executor_thread_id(event))
+            )
         self.assertIn("rollback", request["context"])
         self.assertIn("Prepare a recovery plan", request["context"])
         for excluded in ["FUTURE ANSWER", "HIDDEN REASONING", "TOOL OUTPUT"]:
@@ -201,7 +212,9 @@ class DesktopHookTests(unittest.TestCase):
                     ]
                 },
             ]
-            request = RUNTIME.session_input(self.event)
+            request = RUNTIME.session_input(
+                context_input(self.event, executor_thread_id(self.event))
+            )
         self.assertIn("NEAREST PLAN", request["context"])
         self.assertLessEqual(len(request["context"]), 20000)
 
@@ -251,7 +264,9 @@ class DesktopHookTests(unittest.TestCase):
                     "nextCursor": None,
                 },
             ]
-            request = RUNTIME.session_input(event)
+            request = RUNTIME.session_input(
+                context_input(event, executor_thread_id(event))
+            )
         self.assertIn("Retain the profile I selected", request["context"])
         self.assertIn("Did not publish", request["context"])
         self.assertNotIn("TECHNICAL ONLY", request["context"])
@@ -264,7 +279,12 @@ class DesktopHookTests(unittest.TestCase):
                 {"thread": {"model": "gpt-6-luna", "reasoningEffort": "low"}},
                 {"data": []},
             ]
-            request = RUNTIME.session_input(dict(self.event, prompt=""))
+            request = RUNTIME.session_input(
+                context_input(
+                    dict(self.event, prompt=""),
+                    executor_thread_id(dict(self.event, prompt="")),
+                )
+            )
         self.assertEqual(request["active_profile"], self.active)
 
     def test_audit_records_target_hook_without_prompt_text(self):

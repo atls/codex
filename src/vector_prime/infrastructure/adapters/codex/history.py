@@ -16,7 +16,6 @@ from vector_prime.application.submission.decoding import (
     native_text,
 )
 from vector_prime.application.assessment.types.request import ProfileAssessmentInput
-from vector_prime.application.assessment.decoding import optional_text
 
 from vector_prime.application.handoff.control_message import CONTROL_PROMPTS
 from vector_prime.application.submission.helpers.content import (
@@ -25,7 +24,7 @@ from vector_prime.application.submission.helpers.content import (
     input_text,
     prompt_digest,
 )
-from vector_prime.infrastructure.adapters.codex.identity import executor_thread_id
+from vector_prime.application.assessment.types.context import ContextSource
 from vector_prime.infrastructure.adapters.codex.transport.exceptions.rpc import (
     AppServerRPCError,
 )
@@ -299,21 +298,10 @@ def unavailable_session_input(error: Exception, thread_id: str) -> str | None:
     return None
 
 
-def session_input(source: object) -> ProfileAssessmentInput:
-    event = checked_object(source)
-    session_id = executor_thread_id(event)
-    prompt = event.get("prompt")
-    cwd = event.get("cwd")
-    model = event.get("model")
-    if not all(
-        (isinstance(value, str) and value for value in (session_id, cwd, model))
-    ) or not isinstance(prompt, str):
-        raise ValueError("Incomplete Desktop hook input")
-    if (
-        not isinstance(cwd, str)
-        or not isinstance(model, str)
-        or not isinstance(prompt, str)
-    ):
+def session_input(source: ContextSource) -> ProfileAssessmentInput:
+    session_id, prompt = source.thread_id, source.prompt
+    cwd, model = source.working_directory, source.model
+    if cwd is None or model is None:
         raise ValueError("Incomplete Desktop hook input")
     with AppServerReader(cwd) as app:
         thread = checked_object(
@@ -348,11 +336,11 @@ def session_input(source: object) -> ProfileAssessmentInput:
                 (
                     index
                     for index, turn in enumerate(turns)
-                    if turn.get("id") == event.get("turn_id")
+                    if turn.get("id") == source.turn_id
                 ),
                 None,
             )
-            if event.get("turn_id") is not None
+            if source.turn_id is not None
             else None
         )
         if current_index is not None:
@@ -406,9 +394,7 @@ def session_input(source: object) -> ProfileAssessmentInput:
         or "Attachment-only request; account for the current work context.",
         "active_profile": {"model": model, "effort": effort, "speed": None},
     }
-    context = recent_context(
-        prompt, turns, optional_text(event.get("turn_id")), CONTROL_PROMPTS
-    )
+    context = recent_context(prompt, turns, source.turn_id, CONTROL_PROMPTS)
     if context is not None:
         request["context"] = context
     return request

@@ -26,3 +26,12 @@ class UnfinishedRequest:
 class ContextAugmentation:
     choice: NativeProfileObservation | PriorClarification | None
     unfinished: UnfinishedRequest | None
+
+
+@dataclass(frozen=True)
+class ContextSource:
+    thread_id: str
+    turn_id: str | None
+    prompt: str
+    working_directory: str | None
+    model: str | None

@@ -18,7 +18,8 @@ from vector_prime.application.submission.helpers.content import (
     prompt_digest as prompt_hash,
 )
 from vector_prime.infrastructure.adapters.codex.history import session_input
-from vector_prime.infrastructure.adapters.codex.identity import executor_thread_id
+from vector_prime.entrypoints.hooks.input import context_input
+from vector_prime.entrypoints.hooks.events.identity import executor_thread_id
 from vector_prime.infrastructure.adapters.filesystem.audit import record_audit
 from vector_prime.infrastructure.adapters.filesystem.cache import (
     Assessment,
@@ -59,7 +60,7 @@ def handle_prompt() -> int:
         turn_id = event.get("turn_id")
         record_audit(pilot_thread, turn_id, "started")
         output = decide(
-            session_input(event),
+            session_input(context_input(event, pilot_thread)),
             pending_path(pilot_thread),
             lambda outcome: record_audit(pilot_thread, turn_id, outcome),
         )

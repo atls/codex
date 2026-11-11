@@ -1,3 +1,4 @@
+from vector_prime.application.assessment.types.context import ContextSource
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -43,13 +44,13 @@ class DelegationContextTests(unittest.TestCase):
         ]
         with patch.object(queries, "AppServerReader", return_value=app):
             request = queries.session_input(
-                {
-                    "session_id": "thread",
-                    "turn_id": "current",
-                    "cwd": "/fixture",
-                    "model": "gpt-6-luna",
-                    "prompt": "This is my instruction; execute it",
-                }
+                ContextSource(
+                    "thread",
+                    "current",
+                    "This is my instruction; execute it",
+                    "/fixture",
+                    "gpt-6-luna",
+                )
             )
         self.assertIn("preserve DNS, media", request["context"])
         self.assertEqual(app.call.call_args_list[-1].args[1]["cursor"], "more")
@@ -87,13 +88,9 @@ class DelegationContextTests(unittest.TestCase):
             self.assertRaises(ValueError),
         ):
             queries.session_input(
-                {
-                    "session_id": "thread",
-                    "turn_id": "current",
-                    "cwd": "/fixture",
-                    "model": "gpt-6-luna",
-                    "prompt": "Execute it",
-                }
+                ContextSource(
+                    "thread", "current", "Execute it", "/fixture", "gpt-6-luna"
+                )
             )
 
     def test_historical_context_excludes_turns_newer_than_source(self):
@@ -115,13 +112,9 @@ class DelegationContextTests(unittest.TestCase):
         ]
         with patch.object(queries, "AppServerReader", return_value=app):
             r = queries.session_input(
-                {
-                    "session_id": "thread",
-                    "turn_id": "current",
-                    "cwd": "/fixture",
-                    "model": "gpt-6-luna",
-                    "prompt": "Execute it",
-                }
+                ContextSource(
+                    "thread", "current", "Execute it", "/fixture", "gpt-6-luna"
+                )
             )
         self.assertIn("CURRENT WORK", r["context"])
         self.assertNotIn("FUTURE TASK", r["context"])

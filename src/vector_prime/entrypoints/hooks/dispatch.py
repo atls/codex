@@ -12,7 +12,7 @@ from vector_prime.entrypoints.hooks.activation import (
     record_unavailable,
 )
 from vector_prime.entrypoints.hooks.events.dispatch import handle_event
-from vector_prime.infrastructure.adapters.codex.identity import executor_thread_id
+from vector_prime.entrypoints.hooks.events.identity import executor_thread_id
 
 
 def dispatch_hook() -> int:

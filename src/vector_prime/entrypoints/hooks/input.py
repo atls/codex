@@ -1,3 +1,4 @@
+from vector_prime.application.assessment.types.context import ContextSource
 from vector_prime.application.submission.types.json import JsonValue
 from vector_prime.application.submission.decoding import checked_object
 from vector_prime.application.assessment.decoding import required_text, optional_text
@@ -5,7 +6,7 @@ from vector_prime.application.assessment.types.state import PendingAssessmentRec
 from vector_prime.application.answer.types.input import ReplayAnswerInput
 from vector_prime.application.submission.types.input import SubmissionInput
 from vector_prime.application.switch.admission.types.input import ToolAdmissionInput
-from vector_prime.infrastructure.adapters.codex.identity import executor_thread_id
+from vector_prime.entrypoints.hooks.events.identity import executor_thread_id
 from vector_prime.infrastructure.adapters.runtime.executable_identity import (
     verified_python_arguments,
 )
@@ -20,6 +21,26 @@ def prompt_input(native: dict[str, JsonValue]) -> SubmissionInput:
         optional_text(native.get("model")),
         native,
         session_id=required_text(native["session_id"]),
+    )
+
+
+def context_input(native: dict[str, JsonValue], thread_id: str) -> ContextSource:
+    return ContextSource(
+        thread_id,
+        optional_text(native.get("turn_id")),
+        required_text(native.get("prompt")),
+        optional_text(native.get("cwd")),
+        optional_text(native.get("model")),
+    )
+
+
+def assessment_source(event: SubmissionInput) -> ContextSource:
+    return ContextSource(
+        event.thread_id,
+        event.turn_id,
+        event.text,
+        event.working_directory,
+        event.active_model,
     )
 
 

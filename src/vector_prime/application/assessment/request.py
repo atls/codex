@@ -2,7 +2,13 @@ from vector_prime.application.assessment.constraints.is_context_within_limit imp
     is_context_within_limit,
 )
 from vector_prime.application.assessment.helpers.context import requirements_context
-from vector_prime.application.assessment.decoding import decode_profile
+from vector_prime.application.assessment.decoding import (
+    decode_profile,
+    decode_retained_choice,
+)
+from vector_prime.application.assessment.constraints.is_retained_choice_consistent import (
+    is_retained_choice_consistent,
+)
 from vector_prime.application.assessment.types.profile import ActiveProfile
 from vector_prime.application.assessment.types.user_choice import RetainedProfileChoice
 
@@ -35,24 +41,9 @@ def validated_request(
     if not is_context_within_limit(context):
         raise ValueError("Task context must be at most 20000 characters")
     prior = request.get("prior_choice")
-    if prior is not None:
-        if (
-            not isinstance(prior, dict)
-            or set(prior) != {"user_selected", "same_work", "profile"}
-            or prior["user_selected"] is not True
-            or (prior["same_work"] is not True)
-            or (
-                validated_active_profile({"active_profile": prior["profile"]}) != active
-            )
-        ):
-            raise ValueError(
-                "prior_choice does not confirm this active profile and work"
-            )
-    choice: RetainedProfileChoice | None = (
-        {"user_selected": True, "same_work": True, "profile": active}
-        if prior is not None
-        else None
-    )
+    choice = decode_retained_choice(prior) if prior is not None else None
+    if choice is not None and not is_retained_choice_consistent(choice, active):
+        raise ValueError("prior_choice does not confirm this active profile and work")
     return (task, active, context, choice)
 
 

@@ -1,4 +1,4 @@
-"""Validate identifiers used by Model Fit local state and hook events."""
+"""Resolve the executor identity of an incoming Codex hook event."""
 
 import re
 from vector_prime.application.submission.types.json import JsonValue
