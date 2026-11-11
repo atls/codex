@@ -20,7 +20,7 @@ from vector_prime.application.handoff.types.conversation import (
     NativeConversationFactory,
 )
 from vector_prime.application.submission.helpers import content as codec
-from vector_prime.application.assessment.types.state import PendingAssessmentRecord
+from vector_prime.application.assessment.types.state import PendingAssessment
 from vector_prime.application.switch.types.disposition import (
     TurnDisposition,
     TurnNotice,
@@ -42,7 +42,7 @@ from vector_prime.application.handoff.types.clock import Clock
 def evaluate(
     event: SubmissionInput,
     *,
-    expected_submission: PendingAssessmentRecord | None = None,
+    expected_submission: PendingAssessment | None = None,
     assessor: AssessmentRunner,
     audit: AuditWriter,
     recommendations: ResultCache,
@@ -154,7 +154,7 @@ def evaluate(
             "input_sha256": codec.input_digest(request["input"])
             if "input" in request
             else None,
-            "assessment_generation": str(expected_submission["generation"])
+            "assessment_generation": str(expected_submission.generation)
             if expected_submission is not None
             else None,
             "root_session_id": event.session_id or thread_id,

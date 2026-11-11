@@ -29,7 +29,7 @@ class FileStore:
             yield FileQueueSlot(slot)
 
     def snapshot(self, thread_id: str) -> ProcessSnapshot | None:
-        return state.read_state(state.state_path(thread_id))
+        return state.read_snapshot(state.state_path(thread_id))
 
     def owner(self, thread_id: str) -> dict[str, JsonValue]:
         return state.lock_owner(thread_id)

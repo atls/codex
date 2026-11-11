@@ -1,10 +1,13 @@
-from vector_prime.application.assessment.types.state import PendingAssessmentRecord
-from typing import Literal, Required
+from typing import Generic, Literal, Required, TypeVar
+from vector_prime.application.assessment.types.state import PendingAssessment
 from typing_extensions import TypedDict
 from vector_prime.application.assessment.types.profile import ActiveProfile
 
 
-class ProcessSnapshot(TypedDict, total=False):
+AssessmentT = TypeVar("AssessmentT")
+
+
+class Snapshot(TypedDict, Generic[AssessmentT], total=False):
     phase: Required[
         Literal["ready", "submitted", "attempting", "queued", "rejected", "passed"]
     ]
@@ -13,7 +16,7 @@ class ProcessSnapshot(TypedDict, total=False):
     replay_turn_id: str | None
     continuation_turn_ids: list[str]
     assessment_generation: str | int
-    pending_assessment: PendingAssessmentRecord | None
+    pending_assessment: AssessmentT | None
     assessment_decision: str
     profile_context_turn_id: str | None
     native_profile: ActiveProfile
@@ -34,3 +37,6 @@ class ProcessSnapshot(TypedDict, total=False):
     official_source_url: str
     official_guidance: str
     task_inference: str
+
+
+ProcessSnapshot = Snapshot[PendingAssessment]

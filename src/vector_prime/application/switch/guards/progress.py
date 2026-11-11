@@ -1,4 +1,4 @@
-from vector_prime.application.assessment.types.state import PendingAssessmentRecord
+from vector_prime.application.assessment.types.state import PendingAssessment
 from vector_prime.application.switch.types.state import ProcessSnapshot
 
 
@@ -13,7 +13,7 @@ def require_admission_state(state: ProcessSnapshot | None) -> None:
 
 
 def require_consumption(
-    state: ProcessSnapshot | None, pending: PendingAssessmentRecord
+    state: ProcessSnapshot | None, pending: PendingAssessment
 ) -> None:
     if (
         state is None

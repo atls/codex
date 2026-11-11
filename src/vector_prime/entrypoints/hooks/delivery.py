@@ -17,7 +17,7 @@ def deliver_disposition(
 ) -> HookOutput | None:
     output = render_disposition(result)
     if isinstance(result, PreparedTransfer) and not preparation_is_current(
-        store.snapshot(result.thread_id), result.state
+        store.snapshot(result.thread_id), result.instruction
     ):
         audit(
             result.thread_id,

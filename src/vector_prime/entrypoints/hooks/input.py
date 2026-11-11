@@ -2,7 +2,7 @@ from vector_prime.application.assessment.types.context import ContextSource
 from vector_prime.application.submission.types.json import JsonValue
 from vector_prime.application.submission.decoding import checked_object
 from vector_prime.application.assessment.decoding import required_text, optional_text
-from vector_prime.application.assessment.types.state import PendingAssessmentRecord
+from vector_prime.application.assessment.types.state import PendingAssessment
 from vector_prime.application.answer.types.input import ReplayAnswerInput
 from vector_prime.application.submission.types.input import SubmissionInput
 from vector_prime.application.switch.admission.types.input import ToolAdmissionInput
@@ -69,15 +69,17 @@ def answer_input(native: dict[str, JsonValue]) -> ReplayAnswerInput:
     )
 
 
-def submitted_prompt(pending: PendingAssessmentRecord, text: str) -> SubmissionInput:
+def submitted_prompt(pending: PendingAssessment, text: str) -> SubmissionInput:
     return prompt_input(
         checked_object(
             {
-                "session_id": pending.get("root_session_id", pending["thread_id"]),
-                "agent_id": pending.get("agent_id"),
-                "turn_id": pending["turn_id"],
-                "cwd": pending["working_directory"],
-                "model": pending["active_model"],
+                "session_id": pending.root_session_id
+                if pending.root_session_id is not None
+                else pending.thread_id,
+                "agent_id": pending.agent_id,
+                "turn_id": pending.turn_id,
+                "cwd": pending.working_directory,
+                "model": pending.active_model,
                 "prompt": text,
             }
         )

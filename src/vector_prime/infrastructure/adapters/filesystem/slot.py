@@ -10,10 +10,10 @@ class FileSlot:
         self.path = path
 
     def load(self) -> ProcessSnapshot | None:
-        return state.read_state(self.path)
+        return state.read_snapshot(self.path)
 
     def save(self, value: ProcessSnapshot) -> None:
-        state.write_state(self.path, value)
+        state.write_snapshot(self.path, value)
 
     def save_transition(self, value: ProcessSnapshot) -> ProcessSnapshot:
         current = self.load()

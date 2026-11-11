@@ -1,21 +1,19 @@
+from vector_prime.application.assessment.decoding import required_text
 from vector_prime.application.assessment.exceptions.superseded import (
     AssessmentSuperseded,
 )
-from vector_prime.application.assessment.types.state import PendingAssessmentRecord
+from vector_prime.application.assessment.types.state import PendingAssessment
 
 
 def require_current(
-    expected: PendingAssessmentRecord, observed: PendingAssessmentRecord | None
+    expected: PendingAssessment, observed: PendingAssessment | None
 ) -> None:
     if observed != expected:
         raise AssessmentSuperseded(
-            expected["thread_id"], expected["turn_id"], expected.get("generation")
+            required_text(expected.thread_id),
+            required_text(expected.turn_id),
+            expected.generation,
         )
-
-
-def require_waiting(pending: PendingAssessmentRecord) -> None:
-    if pending["status"] != "waiting":
-        raise RuntimeError("Submitted Model Fit input is not awaiting assessment")
 
 
 def generation_known(value: str | int | None) -> bool:
@@ -25,7 +23,7 @@ def generation_known(value: str | int | None) -> bool:
 def require_generation(
     thread_id: str,
     turn_id: str,
-    expected: str | int,
+    expected: str | int | None,
     observed: str | int | None,
 ) -> None:
     if not generation_known(expected) or observed != expected:

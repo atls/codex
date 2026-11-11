@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from vector_prime.application.handoff.helpers.instruction import transfer_instruction
 from vector_prime.application.handoff import lifecycle as handoff_lifecycle
 from vector_prime.application.switch import lifecycle as switch_lifecycle
 
@@ -69,7 +70,9 @@ def accept(
             ):
                 handoff_lifecycle.continue_transfer(slot, state, event.turn_id)
                 audit(event.thread_id, event.turn_id, "auto_handoff_continued")
-                return PreparedTransfer(event.thread_id, event.turn_id, state)
+                return PreparedTransfer(
+                    event.thread_id, event.turn_id, transfer_instruction(state)
+                )
             return BlockedTurn(
                 "Model Fit: the service handoff is not prepared, or new input is still awaiting assessment."
             )

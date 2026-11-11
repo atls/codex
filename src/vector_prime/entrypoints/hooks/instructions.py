@@ -6,7 +6,7 @@ import shlex
 import sys
 from pathlib import Path
 from vector_prime.entrypoints.hooks.types.output import HookOutput
-from vector_prime.application.switch.types.state import ProcessSnapshot
+from vector_prime.application.handoff.types.instruction import TransferInstruction
 
 from vector_prime.application.handoff.control_message import CONTROL_PROMPT
 
@@ -17,11 +17,13 @@ HANDOFF_CANCELLED_CONTEXT = "Model Fit: the previous technical handoff was cance
 REPLAY_STOP_REASON = "The last answer addressed a different task. Compare it with this turn's original request and continue the unfinished work. Do not repeat completed actions; check their results before acting again."
 
 
-def control_context(thread_id: str, turn_id: str, state: ProcessSnapshot) -> HookOutput:
-    model = state["target_model"]
-    effort = state["target_effort"]
+def control_context(
+    thread_id: str, turn_id: str, transfer: TransferInstruction
+) -> HookOutput:
+    model = transfer.target.model
+    effort = transfer.target.effort
     command = queue_command("current", "source")
-    instruction = f"""Model Fit selected a profile change. This turn is technical only: do not perform the original task or invoke its tools. The utility transfers the original native text and all attachments; the user does not need to resubmit them. First call the codex_app MCP server tool mcp__codex_app__send_message_to_thread (codex_app.send_message_to_thread), not the same-named dynamic app tool with the literal threadId="current", model={model}, thinking={effort} and the short prompt '{CONTROL_PROMPT}'. The runtime supplies chat and source-turn IDs from prepared state; do not invent UUIDs. After success, run `{command}`. If a dynamic app call was explicitly rejected with 'This app tool is unavailable through dynamic tools. Use the codex_app MCP server.', that route did not execute the switch: call the codex_app MCP tool once with the same prepared arguments before considering the capability unavailable. Do not queue after a rejected call. Do not retry a successful switch or one with an unknown outcome. If the MCP tool itself is unavailable or the profile change fails before queueing, report the recommended model/effort and exact error, then end the technical turn. Stop releases an unqueued preparation. Do not perform the original task on the previous profile. If queueing fails, report the exact error. After a successful queue acknowledgement, end with a short technical response. The original request will start automatically in the next turn. OpenAI guidance: {state["official_guidance"]} Task-specific conclusion: {state["task_inference"]} Source: {state["official_source_url"]}"""
+    instruction = f"""Model Fit selected a profile change. This turn is technical only: do not perform the original task or invoke its tools. The utility transfers the original native text and all attachments; the user does not need to resubmit them. First call the codex_app MCP server tool mcp__codex_app__send_message_to_thread (codex_app.send_message_to_thread), not the same-named dynamic app tool with the literal threadId="current", model={model}, thinking={effort} and the short prompt '{CONTROL_PROMPT}'. The runtime supplies chat and source-turn IDs from prepared state; do not invent UUIDs. After success, run `{command}`. If a dynamic app call was explicitly rejected with 'This app tool is unavailable through dynamic tools. Use the codex_app MCP server.', that route did not execute the switch: call the codex_app MCP tool once with the same prepared arguments before considering the capability unavailable. Do not queue after a rejected call. Do not retry a successful switch or one with an unknown outcome. If the MCP tool itself is unavailable or the profile change fails before queueing, report the recommended model/effort and exact error, then end the technical turn. Stop releases an unqueued preparation. Do not perform the original task on the previous profile. If queueing fails, report the exact error. After a successful queue acknowledgement, end with a short technical response. The original request will start automatically in the next turn. OpenAI guidance: {transfer.official_guidance} Task-specific conclusion: {transfer.task_inference} Source: {transfer.official_source_url}"""
     return {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",

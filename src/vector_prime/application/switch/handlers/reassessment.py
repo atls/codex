@@ -7,7 +7,7 @@ from vector_prime.application.switch import lifecycle as switch_lifecycle
 
 from collections.abc import Callable
 
-from vector_prime.application.assessment.types.state import PendingAssessmentRecord
+from vector_prime.application.assessment.types.state import PendingAssessment
 from vector_prime.application.switch.exceptions.unavailable import SubmissionUnavailable
 from vector_prime.application.assessment.types.execution import AssessmentRunner
 from vector_prime.application.switch.types.audit import AuditWriter
@@ -31,7 +31,7 @@ from vector_prime.application.switch.handlers.assessment import assess
 
 def reassess(
     requirements: str,
-    decode: Callable[[PendingAssessmentRecord, str], SubmissionInput],
+    decode: Callable[[PendingAssessment, str], SubmissionInput],
     *,
     assessor: AssessmentRunner,
     audit: AuditWriter,

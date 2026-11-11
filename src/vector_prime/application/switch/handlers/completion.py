@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from vector_prime.application.assessment.types.state import Failed
 from vector_prime.application.handoff.helpers.source import handoff_source
 
 from vector_prime.application.switch import lifecycle as switch_lifecycle
@@ -44,7 +46,7 @@ def finish(
         state = slot.load()
         pending = state.get("pending_assessment") if state is not None else None
         if pending is not None:
-            if pending["turn_id"] != turn_id or pending["status"] == "failed":
+            if pending.turn_id != turn_id or isinstance(pending.progress, Failed):
                 return None
             return BlockedTurn(
                 "Model Fit: before answering, run the technical assessment command from this turn's instructions."

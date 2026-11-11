@@ -145,10 +145,12 @@ def release(slot: TransferStateSlot) -> None:
     require_release_state(current)
     pending = current.get("pending_assessment") if current is not None else None
     if pending:
+        if pending.turn_id is None:
+            raise ValueError("Pending assessment has no source turn")
         slot.save_transition(
             {
                 "phase": "submitted",
-                "source_turn_id": pending["turn_id"],
+                "source_turn_id": pending.turn_id,
                 "pending_assessment": pending,
             },
         )

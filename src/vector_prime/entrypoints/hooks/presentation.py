@@ -76,8 +76,8 @@ def render_disposition(result: TurnDisposition | None) -> HookOutput | None:
             return renderer.pending_context()
         case QueuePending():
             return renderer.queued_context()
-        case PreparedTransfer(thread_id, turn_id, state):
-            return renderer.control_context(thread_id, turn_id, state)
+        case PreparedTransfer(thread_id, turn_id, instruction):
+            return renderer.control_context(thread_id, turn_id, instruction)
         case UnrelatedAnswer():
             return renderer.block(instructions.REPLAY_STOP_REASON)
         case _:

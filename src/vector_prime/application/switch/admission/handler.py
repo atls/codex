@@ -119,12 +119,12 @@ def guard_tool(
     if state is not None and pending is not None:
         if can_continue_failed_assessment(event, state, actions=actions):
             return AllowedTool()
-        if pending["turn_id"] == event.turn_id and actions.matches_assessment(event):
+        if pending.turn_id == event.turn_id and actions.matches_assessment(event):
             return AllowedTool()
         if (
             state["phase"] in {"submitted", "passed"}
             and isinstance(event.turn_id, str)
-            and (pending["turn_id"] != event.turn_id)
+            and (pending.turn_id != event.turn_id)
             and actions.matches_assessment(event)
         ):
             if recover_unsubmitted_successor(

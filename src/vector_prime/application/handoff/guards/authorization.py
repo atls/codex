@@ -2,6 +2,7 @@ from __future__ import annotations
 from vector_prime.application.switch.types.state import ProcessSnapshot
 from vector_prime.application.handoff.exceptions.invalid_handoff import InvalidHandoff
 from vector_prime.application.handoff.types.progress import PreparedHandoff
+from vector_prime.application.handoff.types.instruction import TransferInstruction
 
 
 def require_preparation_state(state: ProcessSnapshot | None) -> None:
@@ -22,17 +23,16 @@ def require_transfer_profile(
 
 
 def preparation_is_current(
-    current: ProcessSnapshot | None, expected: ProcessSnapshot
+    current: ProcessSnapshot | None, expected: TransferInstruction
 ) -> bool:
     if current is None or current["phase"] != "ready":
         return False
     return all(
         (
-            current.get("assessment_generation")
-            == expected.get("assessment_generation"),
-            current["source_turn_id"] == expected["source_turn_id"],
-            current.get("target_model") == expected.get("target_model"),
-            current.get("target_effort") == expected.get("target_effort"),
-            current.get("prompt_digest") == expected.get("prompt_digest"),
+            current.get("assessment_generation") == expected.generation,
+            current["source_turn_id"] == expected.source_turn_id,
+            current.get("target_model") == expected.target.model,
+            current.get("target_effort") == expected.target.effort,
+            current.get("prompt_digest") == expected.prompt_digest,
         )
     )

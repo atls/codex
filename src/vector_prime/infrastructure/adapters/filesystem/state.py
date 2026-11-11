@@ -16,7 +16,16 @@ from vector_prime.application.submission.types.json import JsonValue
 from vector_prime.infrastructure.adapters.filesystem.constraints.is_safe_key import (
     is_safe_key,
 )
-from vector_prime.application.switch.types.state import ProcessSnapshot
+from typing_extensions import TypedDict
+from vector_prime.application.switch.types.state import ProcessSnapshot, Snapshot
+from vector_prime.application.assessment.types.state import (
+    PendingAssessment,
+    Waiting,
+    Running,
+    Failed,
+    Unrecognized,
+)
+from vector_prime.application.submission.decoding import checked_object
 from pydantic import TypeAdapter, ValidationError
 
 STATE_DIRECTORY = ".tmp/model-fit-auto-switch"
@@ -91,23 +100,106 @@ def lock_owner(thread_id: str) -> dict[str, JsonValue]:
     return details
 
 
-LEGACY_STATE = TypeAdapter(ProcessSnapshot)
+class LegacyAssessmentRecord(TypedDict, total=False):
+    thread_id: str
+    turn_id: str
+    root_session_id: str
+    agent_id: str | None
+    working_directory: str | None
+    active_model: str | None
+    prompt_hash: str
+    empty_text: bool
+    status: str
+    generation: str | int
+    failure_reason: str
 
 
-def decode_state(value: object) -> ProcessSnapshot:
+LegacySnapshot = Snapshot[LegacyAssessmentRecord]
+LEGACY_STATE = TypeAdapter(LegacySnapshot)
+RUNTIME_STATE = TypeAdapter(ProcessSnapshot)
+
+
+def read_snapshot(path: Path) -> ProcessSnapshot | None:
+    stored = read_state(path)
+    if stored is None:
+        return None
+    payload: dict[str, object] = dict(stored)
+    pending = stored.get("pending_assessment")
+    if pending is not None:
+        status, reason = pending.get("status"), pending.get("failure_reason")
+        progress: Waiting | Running | Failed | Unrecognized
+        if status == "waiting":
+            progress = Waiting(reason)
+        elif status == "running":
+            progress = Running(reason)
+        elif status == "failed":
+            progress = Failed(reason)
+        else:
+            progress = Unrecognized(status, reason)
+        payload["pending_assessment"] = PendingAssessment(
+            progress=progress,
+            thread_id=pending.get("thread_id"),
+            turn_id=pending.get("turn_id"),
+            root_session_id=pending.get("root_session_id"),
+            agent_id=pending.get("agent_id"),
+            working_directory=pending.get("working_directory"),
+            active_model=pending.get("active_model"),
+            prompt_hash=pending.get("prompt_hash"),
+            empty_text=pending.get("empty_text"),
+            generation=pending.get("generation"),
+            stored_fields=frozenset(pending) - {"status", "failure_reason"},
+            additional_fields=checked_object(
+                {
+                    key: value
+                    for key, value in pending.items()
+                    if key not in LegacyAssessmentRecord.__annotations__
+                }
+            ),
+        )
+    return RUNTIME_STATE.validate_python(payload, strict=True, extra="allow")
+
+
+def write_snapshot(path: Path, snapshot: ProcessSnapshot) -> None:
+    payload: dict[str, object] = dict(snapshot)
+    pending = snapshot.get("pending_assessment")
+    if pending is not None:
+        values: dict[str, JsonValue] = {
+            "thread_id": pending.thread_id,
+            "turn_id": pending.turn_id,
+            "root_session_id": pending.root_session_id,
+            "agent_id": pending.agent_id,
+            "working_directory": pending.working_directory,
+            "active_model": pending.active_model,
+            "prompt_hash": pending.prompt_hash,
+            "empty_text": pending.empty_text,
+            "generation": pending.generation,
+        }
+        record = {
+            **pending.additional_fields,
+            **{key: values[key] for key in pending.stored_fields if key in values},
+        }
+        if pending.status is not None:
+            record["status"] = pending.status
+        if pending.failure_reason is not None:
+            record["failure_reason"] = pending.failure_reason
+        payload["pending_assessment"] = record
+    write_state(path, decode_state(payload))
+
+
+def decode_state(value: object) -> LegacySnapshot:
     try:
         return LEGACY_STATE.validate_python(value, strict=True, extra="allow")
     except ValidationError:
         raise ValueError("Invalid Model Fit handoff state") from None
 
 
-def read_state(path: Path) -> ProcessSnapshot | None:
+def read_state(path: Path) -> LegacySnapshot | None:
     if not path.exists():
         return None
     return decode_state(json.loads(path.read_text()))
 
 
-def write_state(path: Path, state: ProcessSnapshot) -> None:
+def write_state(path: Path, state: LegacySnapshot) -> None:
     temporary = None
     try:
         with tempfile.NamedTemporaryFile(

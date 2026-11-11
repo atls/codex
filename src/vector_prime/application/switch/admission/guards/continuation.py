@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from vector_prime.application.assessment.types.state import Failed
+
 from vector_prime.application.switch.types.state import ProcessSnapshot
 
 from vector_prime.application.switch.admission.types.tools import TransferTools
@@ -40,11 +42,11 @@ def can_continue_failed_assessment(
     if state["phase"] not in {"submitted", "passed", "ready"}:
         return False
     pending = state.get("pending_assessment")
-    if pending is None or pending.get("turn_id") != event.turn_id:
+    if pending is None or pending.turn_id != event.turn_id:
         return False
-    if pending.get("status") != "failed":
+    if not isinstance(pending.progress, Failed):
         return False
-    if pending.get("failure_reason") != "assessment_failed":
+    if pending.failure_reason != "assessment_failed":
         return False
     if actions.matches_transfer(event) or actions.matches_assessment(event):
         return False

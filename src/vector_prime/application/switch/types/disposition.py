@@ -6,7 +6,7 @@ from vector_prime.application.assessment.types.decision import AssessmentDecisio
 from vector_prime.application.assessment.types.evidence import (
     RecommendationEvidence,
 )
-from vector_prime.application.switch.types.state import ProcessSnapshot
+from vector_prime.application.handoff.types.instruction import TransferInstruction
 
 
 class WorkContext(Enum):
@@ -51,7 +51,7 @@ class QueuePending:
 class PreparedTransfer:
     thread_id: str
     turn_id: str
-    state: ProcessSnapshot
+    instruction: TransferInstruction
 
 
 @dataclass(frozen=True)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from vector_prime.application.handoff.helpers.instruction import transfer_instruction
 from vector_prime.application.handoff import lifecycle as handoff_lifecycle
 from vector_prime.application.handoff.types.plan import (
     ManualHandoff,
@@ -17,7 +18,7 @@ from vector_prime.application.handoff.types.conversation import (
 )
 from vector_prime.application.switch.types.state import ProcessSnapshot
 from vector_prime.application.submission.helpers import content as codec
-from vector_prime.application.assessment.types.state import PendingAssessmentRecord
+from vector_prime.application.assessment.types.state import PendingAssessment
 from vector_prime.application.switch.types.disposition import (
     ContinueWork,
     ManualRecommendation,
@@ -55,7 +56,7 @@ def apply_decision(
     manual_evidence: RecommendationRecord | None,
     profile_context_turn_id: str | None,
     profile_context_state: ProcessSnapshot | None,
-    expected_submission: PendingAssessmentRecord | None = None,
+    expected_submission: PendingAssessment | None = None,
     audit: AuditWriter,
     recommendations: ResultCache,
     clock: Clock,
@@ -224,4 +225,4 @@ def apply_decision(
         )
         if pending is not None:
             audit(thread_id, turn_id, "auto_handoff_continued")
-    return PreparedTransfer(thread_id, turn_id, prepared_state)
+    return PreparedTransfer(thread_id, turn_id, transfer_instruction(prepared_state))

@@ -12,7 +12,7 @@ from vector_prime.application.switch.types.state import ProcessSnapshot
 from vector_prime.application.switch.types.storage import TransferStateStore
 from vector_prime.application.switch.types.audit import AuditWriter
 from vector_prime.application.assessment import lifecycle as assessment_lifecycle
-from vector_prime.application.assessment.types.state import PendingAssessmentRecord
+from vector_prime.application.assessment.types.state import PendingAssessment
 from vector_prime.application.assessment.types.result import UnknownAssessment
 from vector_prime.application.submission.types.input import SubmissionInput
 
@@ -31,12 +31,12 @@ def recover_unsubmitted_successor(
     if not isinstance(turn_id, str):
         return False
     pending = state["pending_assessment"]
-    if pending is None:
+    if pending is None or pending.turn_id is None:
         return False
     try:
         with conversation(working_directory()) as app:
             successor = app.unsubmitted_successor(
-                event.thread_id, pending["turn_id"], turn_id
+                event.thread_id, pending.turn_id, turn_id
             )
         if successor is True:
             with store.transaction(
@@ -78,7 +78,7 @@ def recover_unsubmitted_successor(
 
 def admit_assessment_recovery(
     event: SubmissionInput,
-    pending: PendingAssessmentRecord,
+    pending: PendingAssessment,
     error: Exception,
     *,
     store: TransferStateStore,
@@ -105,7 +105,7 @@ def admit_assessment_recovery(
                 {
                     "hook_event": "assessment",
                     "reason_code": "assessment_failed_continue",
-                    "assessment_generation": pending["generation"],
+                    "assessment_generation": pending.generation,
                 },
                 error=error,
             )

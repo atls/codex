@@ -1,4 +1,5 @@
 from __future__ import annotations
+from vector_prime.application.handoff.helpers.instruction import transfer_instruction
 from vector_prime.application.handoff.types.reconciliation import (
     ReconciliationDenied,
     TransferContinued,
@@ -15,7 +16,7 @@ from vector_prime.application.assessment.types.execution import AssessmentContex
 from vector_prime.application.handoff.types.conversation import (
     NativeConversationFactory,
 )
-from vector_prime.application.assessment.types.state import PendingAssessmentRecord
+from vector_prime.application.assessment.types.state import PendingAssessment
 from vector_prime.application.switch.types.disposition import (
     BlockedTurn,
     ContinueWork,
@@ -33,7 +34,7 @@ from vector_prime.application.switch.types.reconciliation import ReconciledSubmi
 def reconcile(
     event: SubmissionInput,
     *,
-    expected_submission: PendingAssessmentRecord | None,
+    expected_submission: PendingAssessment | None,
     audit: AuditWriter,
     conversation: NativeConversationFactory,
     read_context: AssessmentContextReader,
@@ -81,7 +82,7 @@ def reconcile(
             if reconciled is None:
                 return None
             if isinstance(reconciled, TransferContinued):
-                return PreparedTransfer(thread_id, turn_id, prior)
+                return PreparedTransfer(thread_id, turn_id, transfer_instruction(prior))
             if isinstance(reconciled, ReplayBound):
                 return ContinueWork(WorkContext.REPLAY)
             if isinstance(reconciled, ReconciliationDenied):

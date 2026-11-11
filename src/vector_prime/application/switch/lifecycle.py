@@ -9,7 +9,7 @@ from vector_prime.application.switch.guards.progress import (
 from vector_prime.application.assessment.guards.generation import generation_known
 from vector_prime.application.assessment.guards.generation import require_current
 from vector_prime.application.assessment import lifecycle as assessment_lifecycle
-from vector_prime.application.assessment.types.state import PendingAssessmentRecord
+from vector_prime.application.assessment.types.state import PendingAssessment
 from vector_prime.application.submission.types.input import SubmissionInput
 from vector_prime.application.assessment.types.profile import ActiveProfile
 from vector_prime.application.switch.types.state import ProcessSnapshot
@@ -30,11 +30,9 @@ def admit(
     state: ProcessSnapshot = {"phase": "passed", "source_turn_id": turn_id}
     if current is not None and current.get("assessed_profile") is not None:
         state["assessed_profile"] = current["assessed_profile"]
-    if (
-        current is not None
-        and (current.get("pending_assessment") or {}).get("turn_id") == turn_id
-    ):
-        state["pending_assessment"] = current["pending_assessment"]
+    pending = current.get("pending_assessment") if current is not None else None
+    if pending is not None and pending.turn_id == turn_id:
+        state["pending_assessment"] = pending
     if decision is not None:
         state["assessment_decision"] = decision
     if profile_context_turn_id is not None:
@@ -56,7 +54,7 @@ def admit(
 
 @overload
 def require_submission(
-    slot: TransferStateSlot, expected: PendingAssessmentRecord
+    slot: TransferStateSlot, expected: PendingAssessment
 ) -> ProcessSnapshot: ...
 
 
@@ -65,7 +63,7 @@ def require_submission(slot: TransferStateSlot, expected: None) -> None: ...
 
 
 def require_submission(
-    slot: TransferStateSlot, expected: PendingAssessmentRecord | None
+    slot: TransferStateSlot, expected: PendingAssessment | None
 ) -> ProcessSnapshot | None:
     if expected is None:
         return None
@@ -82,8 +80,8 @@ def register_submission(
     event: SubmissionInput,
     prompt_hash: str,
     *,
-    assessment: PendingAssessmentRecord | None = None,
-) -> PendingAssessmentRecord:
+    assessment: PendingAssessment | None = None,
+) -> PendingAssessment:
     current = slot.load()
     require_registration_state(current, unsafe=slot.unsafe())
     state: ProcessSnapshot = current or {
@@ -102,46 +100,47 @@ def register_submission(
     return pending
 
 
-def start_assessment(slot: TransferStateSlot) -> PendingAssessmentRecord:
+def start_assessment(slot: TransferStateSlot) -> PendingAssessment:
     state = slot.load()
     pending = state.get("pending_assessment") if state is not None else None
     if state is None or not pending:
         raise ValueError("No submitted Model Fit input")
-    assessment_lifecycle.start(pending)
+    running = assessment_lifecycle.start(pending)
+    state["pending_assessment"] = running
     slot.save_transition(state)
-    return pending
+    return running
 
 
 def fail_assessment(
-    slot: TransferStateSlot, pending: PendingAssessmentRecord, reason: str | None = None
+    slot: TransferStateSlot, pending: PendingAssessment, reason: str | None = None
 ) -> None:
     state = slot.load()
     stored = state.get("pending_assessment") if state is not None else None
     if state is not None and stored is not None and stored == pending:
-        assessment_lifecycle.fail(stored, reason)
+        state["pending_assessment"] = assessment_lifecycle.fail(stored, reason)
         slot.save_transition(state)
 
 
-def abstain_assessment(
-    slot: TransferStateSlot, pending: PendingAssessmentRecord
-) -> bool:
+def abstain_assessment(slot: TransferStateSlot, pending: PendingAssessment) -> bool:
     state = slot.load()
     if (
         state is None
-        or not generation_known(pending.get("generation"))
-        or state.get("assessment_generation") != pending["generation"]
+        or not generation_known(pending.generation)
+        or state.get("assessment_generation") != pending.generation
         or (state.get("pending_assessment") not in (None, pending))
         or (state["phase"] not in {"submitted", "passed", "ready"})
     ):
         return False
-    admit(slot, pending["turn_id"], "unknown", state.get("profile_context_turn_id"))
+    if pending.turn_id is None:
+        return False
+    admit(slot, pending.turn_id, "unknown", state.get("profile_context_turn_id"))
     finish_assessment(slot, pending)
     return True
 
 
 def finish_assessment(
     slot: TransferStateSlot,
-    pending: PendingAssessmentRecord,
+    pending: PendingAssessment,
     assessed_profile: ActiveProfile | None = None,
 ) -> None:
     state = slot.load()
@@ -149,8 +148,8 @@ def finish_assessment(
         state.get("pending_assessment") == pending
         or (
             state.get("pending_assessment") is None
-            and generation_known(pending.get("generation"))
-            and (state.get("assessment_generation") == pending["generation"])
+            and generation_known(pending.generation)
+            and (state.get("assessment_generation") == pending.generation)
         )
     ):
         state.pop("pending_assessment", None)
@@ -160,7 +159,7 @@ def finish_assessment(
 
 
 def consume_submission(
-    slot: TransferStateSlot, turn_id: str, pending: PendingAssessmentRecord
+    slot: TransferStateSlot, turn_id: str, pending: PendingAssessment
 ) -> None:
     current = slot.load()
     require_consumption(current, pending)

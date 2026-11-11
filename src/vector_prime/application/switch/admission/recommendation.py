@@ -3,7 +3,7 @@ from vector_prime.application.switch import lifecycle as switch_lifecycle
 from vector_prime.application.assessment.types.request import ProfileAssessmentInput
 from vector_prime.application.assessment.types.decision import AssessmentDecision
 from vector_prime.application.submission.helpers import content as codec
-from vector_prime.application.assessment.types.state import PendingAssessmentRecord
+from vector_prime.application.assessment.types.state import PendingAssessment
 from vector_prime.application.switch.types.disposition import (
     TurnDisposition,
 )
@@ -50,7 +50,7 @@ def retain_manual_recommendation(
     result: AssessmentDecision,
     output: TurnDisposition,
     *,
-    expected_submission: PendingAssessmentRecord | None = None,
+    expected_submission: PendingAssessment | None = None,
     recommendations: ResultCache,
     store: TransferStateStore,
 ) -> TurnDisposition:
@@ -62,13 +62,12 @@ def retain_manual_recommendation(
     ) as slot:
         switch_lifecycle.require_submission(slot, expected_submission)
         current = slot.load()
+        pending = current.get("pending_assessment") if current is not None else None
         submitted = (
             current is not None
             and current["phase"] == "submitted"
-            and (
-                (current.get("pending_assessment") or {}).get("turn_id")
-                == event.turn_id
-            )
+            and pending is not None
+            and pending.turn_id == event.turn_id
         )
         if (
             current is None

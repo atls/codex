@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from vector_prime.application.switch.lifecycle import abstain_assessment
+from vector_prime.application.assessment.types.state import Running
 from vector_prime.entrypoints.hooks.operations import guard_tool
 from vector_prime.infrastructure.adapters.filesystem.state import (
     read_state,
@@ -21,6 +22,7 @@ class AssessmentGenerationTests(unittest.TestCase):
             "turn_id": turn_id,
             "generation": 0,
             "status": "running",
+            "future_extension": {"source": ["fixture"]},
         }
         with (
             tempfile.TemporaryDirectory() as home,
@@ -38,7 +40,15 @@ class AssessmentGenerationTests(unittest.TestCase):
                 },
             )
             with FileStore().transaction(thread_id) as slot:
-                self.assertTrue(abstain_assessment(slot, pending))
+                loaded = slot.load()
+                assert (
+                    loaded is not None and loaded.get("pending_assessment") is not None
+                )
+                current = loaded["pending_assessment"]
+                self.assertIsInstance(current.progress, Running)
+                slot.save_transition(loaded)
+                self.assertEqual(read_state(path)["pending_assessment"], pending)
+                self.assertTrue(abstain_assessment(slot, current))
             unavailable = Mock(side_effect=OSError("fixture source unavailable"))
             with patch(
                 "vector_prime.entrypoints.hooks.operations.native_conversation",

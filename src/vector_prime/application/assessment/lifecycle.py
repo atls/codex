@@ -21,8 +21,13 @@ from vector_prime.application.assessment.request import require_reassessment
 from vector_prime.application.assessment.helpers.context import requirements_context
 from vector_prime.application.submission.helpers.content import prompt_digest
 from uuid import uuid4
-from vector_prime.application.assessment.types.state import PendingAssessmentRecord
-from vector_prime.application.assessment.guards.generation import require_waiting
+from vector_prime.application.assessment.types.state import (
+    PendingAssessment,
+    Waiting,
+    Running,
+    Failed,
+)
+from dataclasses import replace
 from vector_prime.application.submission.types.input import SubmissionInput
 
 
@@ -100,35 +105,47 @@ def assess(
     return complete(proposal, relation, active, models)
 
 
-def register(event: SubmissionInput, prompt_hash: str) -> PendingAssessmentRecord:
-    generation = new_generation()
-    pending: PendingAssessmentRecord = {
-        "thread_id": event.thread_id,
-        "turn_id": event.turn_id,
-        "root_session_id": event.session_id or event.thread_id,
-        "agent_id": event.thread_id
+def register(event: SubmissionInput, prompt_hash: str) -> PendingAssessment:
+    return PendingAssessment(
+        progress=Waiting(),
+        thread_id=event.thread_id,
+        turn_id=event.turn_id,
+        root_session_id=event.session_id or event.thread_id,
+        agent_id=event.thread_id
         if event.session_id and event.session_id != event.thread_id
         else None,
-        "working_directory": event.working_directory,
-        "active_model": event.active_model,
-        "prompt_hash": prompt_hash,
-        "empty_text": not event.text.strip(),
-        "status": "waiting",
-        "generation": generation,
-    }
-    return pending
+        working_directory=event.working_directory,
+        active_model=event.active_model,
+        prompt_hash=prompt_hash,
+        empty_text=not event.text.strip(),
+        stored_fields=frozenset(
+            {
+                "thread_id",
+                "turn_id",
+                "root_session_id",
+                "agent_id",
+                "working_directory",
+                "active_model",
+                "prompt_hash",
+                "empty_text",
+                "generation",
+            }
+        ),
+        generation=new_generation(),
+    )
 
 
-def start(pending: PendingAssessmentRecord) -> PendingAssessmentRecord:
-    require_waiting(pending)
-    pending["status"] = "running"
-    return pending
+def start(pending: PendingAssessment) -> PendingAssessment:
+    if not isinstance(pending.progress, Waiting):
+        raise RuntimeError("Submitted Model Fit input is not awaiting assessment")
+    return replace(pending, progress=Running(pending.failure_reason))
 
 
-def fail(pending: PendingAssessmentRecord, reason: str | None = None) -> None:
-    pending["status"] = "failed"
-    if reason is not None:
-        pending["failure_reason"] = reason
+def fail(pending: PendingAssessment, reason: str | None = None) -> PendingAssessment:
+    return replace(
+        pending,
+        progress=Failed(reason if reason is not None else pending.failure_reason),
+    )
 
 
 def complete(

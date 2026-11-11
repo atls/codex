@@ -84,9 +84,13 @@ class TransferRouteTests(unittest.TestCase):
             "official_guidance": "fixture guidance",
             "task_inference": "fixture inference",
         }
-        context = instructions.control_context("thread", "source", state)[
-            "hookSpecificOutput"
-        ]["additionalContext"]
+        from vector_prime.application.handoff.helpers.instruction import (
+            transfer_instruction,
+        )
+
+        context = instructions.control_context(
+            "thread", "source", transfer_instruction(state)
+        )["hookSpecificOutput"]["additionalContext"]
         self.assertIn("mcp__codex_app__send_message_to_thread", context)
         self.assertIn("Use the codex_app MCP server", context)
         arguments = {

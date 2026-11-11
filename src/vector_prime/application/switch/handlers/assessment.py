@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from vector_prime.application.handoff.helpers.instruction import transfer_instruction
 from vector_prime.application.switch.admission.recovery import admit_assessment_recovery
 
 from vector_prime.application.assessment.exceptions.context_unavailable import (
@@ -18,7 +19,7 @@ from collections.abc import Callable
 
 from vector_prime.application.assessment.guards.generation import require_generation
 from vector_prime.application.assessment.types.profile import ActiveProfile
-from vector_prime.application.assessment.types.state import PendingAssessmentRecord
+from vector_prime.application.assessment.types.state import PendingAssessment, Running
 from vector_prime.application.assessment.exceptions.superseded import (
     AssessmentSuperseded,
 )
@@ -55,7 +56,7 @@ from vector_prime.application.handoff.types.clock import Clock
 
 
 def assess(
-    decode: Callable[[PendingAssessmentRecord, str], SubmissionInput],
+    decode: Callable[[PendingAssessment, str], SubmissionInput],
     *,
     assessor: AssessmentRunner,
     audit: AuditWriter,
@@ -77,7 +78,9 @@ def assess(
             pending = state.get("pending_assessment")
             if pending is None:
                 if state["phase"] == "ready":
-                    return PreparedTransfer(thread_id, state["source_turn_id"], state)
+                    return PreparedTransfer(
+                        thread_id, state["source_turn_id"], transfer_instruction(state)
+                    )
                 if state["phase"] == "queued":
                     if state.get("replay_turn_id") is not None:
                         return ContinueWork(WorkContext.REPLAY)
@@ -87,7 +90,7 @@ def assess(
                 return TurnNotice(
                     "Model Fit: no new assessment was performed; suitability is unknown."
                 )
-            if pending["status"] == "running":
+            if isinstance(pending.progress, Running):
                 return TurnNotice(
                     "Model Fit: assessment is already running; wait for the first invocation's result."
                 )
@@ -114,10 +117,12 @@ def assess(
                 ) as slot:
                     current = slot.load()
                     switch_lifecycle.require_submission(slot, pending)
+                    if pending.prompt_hash is None or pending.empty_text is None:
+                        raise ValueError("Pending assessment has no input evidence")
                     blocked = blocking_recommendation(
                         event,
-                        prompt_hash=pending["prompt_hash"],
-                        empty_input=pending["empty_text"],
+                        prompt_hash=pending.prompt_hash,
+                        empty_input=pending.empty_text,
                         recommendations=recommendations,
                     )
                     if blocked is not None:
@@ -261,7 +266,7 @@ def assess(
                         require_generation(
                             thread_id,
                             event.turn_id,
-                            pending["generation"],
+                            pending.generation,
                             current.get("assessment_generation")
                             if current is not None
                             else None,
@@ -309,7 +314,7 @@ def assess(
                 require_generation(
                     thread_id,
                     event.turn_id,
-                    pending["generation"],
+                    pending.generation,
                     current.get("assessment_generation")
                     if current is not None
                     else None,
@@ -326,7 +331,7 @@ def assess(
                 assessment_audit_outcome(output),
                 {
                     "hook_event": "assessment",
-                    "assessment_generation": str(pending["generation"]),
+                    "assessment_generation": str(pending.generation),
                     "root_session_id": event.session_id or thread_id,
                 },
             )
