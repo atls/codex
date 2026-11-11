@@ -71,6 +71,7 @@ def test_variants_share_assessor_and_exclude_development_files(source, archives)
     assert metadata["version"] == marketplace["version"] == project["version"]
     assert marketplace["name"] == project["name"] == "vector-prime"
     assert metadata["name"] == "vector-prime-guidance"
+    assert metadata["author"] == marketplace["author"] == {"name": "Torin Asakura"}
     assert metadata["extensions"]["com.openai"]["requires_local_executor"]
     assert "hooks" not in metadata
     assert "hooks" not in metadata["extensions"]["com.openai"]

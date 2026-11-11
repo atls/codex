@@ -3,6 +3,9 @@
   "name": "vector-prime-guidance",
   "version": "0.1.0",
   "description": "Explicit task profile assessment through a local Codex CLI.",
+  "author": {
+    "name": "Torin Asakura"
+  },
   "repository": "https://github.com/atls/codex",
   "extensions": {
     "com.openai": {
