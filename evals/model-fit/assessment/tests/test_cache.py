@@ -3,8 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from model_fit.infrastructure.adapters.filesystem.assessment_cache import (
-    FileAssessmentCache,
+from model_fit.infrastructure.adapters.filesystem.cache import (
+    Assessment,
 )
 
 
@@ -27,7 +27,7 @@ class AssessmentCacheTests(unittest.TestCase):
                 )
             )
             original = path.read_bytes()
-            cache = FileAssessmentCache(lambda _: path)
+            cache = Assessment(lambda _: path)
             self.assertEqual(
                 cache.load("fixture-thread"),
                 {
@@ -59,5 +59,5 @@ class AssessmentCacheTests(unittest.TestCase):
             )
             original = path.read_bytes()
             with self.assertRaises(ValueError):
-                FileAssessmentCache(lambda _: path).load("fixture-thread")
+                Assessment(lambda _: path).load("fixture-thread")
             self.assertEqual(path.read_bytes(), original)

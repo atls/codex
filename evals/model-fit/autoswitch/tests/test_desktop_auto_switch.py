@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch
 
 ROOT = Path(__file__).resolve().parents[4]
 SCRIPTS = ROOT / "plugins/model-fit/src/model_fit"
-from assessment_fixture import evaluate_request
+from fixtures.autoswitch.assessment import evaluate_request
 import model_fit.entrypoints.hooks.instructions as HOOKS_INSTRUCTIONS
 import model_fit.entrypoints.hooks.native_contract as DESKTOP_CONFIGURATION
 import model_fit.entrypoints.hooks.operations as HANDOFF_GUARDS

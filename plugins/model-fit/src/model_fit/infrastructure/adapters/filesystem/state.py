@@ -15,7 +15,7 @@ from model_fit.application.submission.types.json import JsonValue
 
 from model_fit.infrastructure.adapters.codex.identity import SESSION_ID_PATTERN
 from model_fit.application.switch.types.state import ProcessSnapshot
-from model_fit.infrastructure.adapters.filesystem.state_codec import decode_state
+from pydantic import TypeAdapter, ValidationError
 
 STATE_DIRECTORY = ".tmp/model-fit-auto-switch"
 
@@ -93,6 +93,16 @@ def lock_owner(thread_id: str) -> dict[str, JsonValue]:
     if type(owner.get("acquired_at_ns")) is int:
         details["holder_acquired_at_ns"] = owner["acquired_at_ns"]
     return details
+
+
+LEGACY_STATE = TypeAdapter(ProcessSnapshot)
+
+
+def decode_state(value: object) -> ProcessSnapshot:
+    try:
+        return LEGACY_STATE.validate_python(value, strict=True, extra="allow")
+    except ValidationError:
+        raise ValueError("Invalid Model Fit handoff state") from None
 
 
 def read_state(path: Path) -> ProcessSnapshot | None:

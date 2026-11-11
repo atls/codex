@@ -422,8 +422,8 @@ class DesktopHookTests(unittest.TestCase):
         triage.assert_not_called()
 
     def test_selected_profile_clears_only_its_thread_through_shared_storage(self):
-        from model_fit.infrastructure.adapters.filesystem.assessment_cache import (
-            FileAssessmentCache,
+        from model_fit.infrastructure.adapters.filesystem.cache import (
+            Assessment,
         )
 
         request = {"task": self.event["prompt"], "active_profile": self.active}
@@ -440,7 +440,7 @@ class DesktopHookTests(unittest.TestCase):
         }
         with tempfile.TemporaryDirectory() as home:
             with patch.dict(os.environ, {"CODEX_HOME": home}):
-                store = FileAssessmentCache()
+                store = Assessment()
                 store.save("thread-a", request, decision)
                 store.save("thread-b", request, decision)
                 other_before = HOOK.pending_path("thread-b").read_bytes()
@@ -586,7 +586,7 @@ class DesktopHookTests(unittest.TestCase):
             with (
                 patch.object(HOOK, "triage", return_value=decision),
                 patch(
-                    "model_fit.infrastructure.adapters.filesystem.assessment_cache.save_pending",
+                    "model_fit.infrastructure.adapters.filesystem.cache.save_pending",
                     side_effect=OSError("disk full"),
                 ),
             ):

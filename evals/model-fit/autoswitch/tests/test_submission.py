@@ -9,7 +9,7 @@ import threading
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-from assessment_fixture import evaluate_request
+from fixtures.autoswitch.assessment import evaluate_request
 
 import model_fit.entrypoints.hooks.operations as api
 from model_fit.application.switch.exceptions.unavailable import SubmissionUnavailable
@@ -24,8 +24,8 @@ from model_fit.application.submission.helpers.content import input_digest
 from model_fit.infrastructure.adapters.codex.transport.connection import (
     AppServerRPCError,
 )
-from model_fit.infrastructure.adapters.filesystem.assessment_cache import (
-    FileAssessmentCache,
+from model_fit.infrastructure.adapters.filesystem.cache import (
+    Assessment,
 )
 from model_fit.infrastructure.adapters.filesystem.state import (
     locked_state,
@@ -694,7 +694,7 @@ class SubmittedInputTests(unittest.TestCase):
             "blocking_recommendation",
         ):
             if case == "blocking_recommendation":
-                FileAssessmentCache().save(
+                Assessment().save(
                     "submitted-thread",
                     {"task": "Inspect both", "active_profile": self.profile},
                     {
@@ -757,7 +757,7 @@ class SubmittedInputTests(unittest.TestCase):
                 )
                 self.assertEqual(path.read_bytes(), saved)
                 if case == "blocking_recommendation":
-                    self.assertIsNotNone(FileAssessmentCache().load("submitted-thread"))
+                    self.assertIsNotNone(Assessment().load("submitted-thread"))
 
     def test_retry_snapshot_cannot_clear_a_new_generation(self):
         api.submit_prompt(self.event)
@@ -1955,7 +1955,7 @@ class SubmittedInputTests(unittest.TestCase):
     def test_verified_effort_change_clears_stale_manual_block_for_attachment_only_input(
         self,
     ):
-        cache = FileAssessmentCache()
+        cache = Assessment()
         cache.save(
             "submitted-thread",
             {"task": "", "active_profile": self.profile},

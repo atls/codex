@@ -20,10 +20,10 @@ from model_fit.application.submission.helpers.content import (
 from model_fit.infrastructure.adapters.codex.history import session_input
 from model_fit.infrastructure.adapters.codex.identity import executor_thread_id
 from model_fit.infrastructure.adapters.filesystem.audit import record_audit
-from model_fit.infrastructure.adapters.filesystem.assessment_cache import (
-    FileAssessmentCache,
+from model_fit.infrastructure.adapters.filesystem.cache import (
+    Assessment,
 )
-from model_fit.infrastructure.adapters.filesystem.assessment_cache import pending_path
+from model_fit.infrastructure.adapters.filesystem.cache import pending_path
 
 PILOT_THREAD_ENV = "MODEL_FIT_PILOT_THREAD"
 
@@ -36,7 +36,7 @@ def decide(
     result = decide_prompt(
         request,
         thread_id=path.stem,
-        recommendations=FileAssessmentCache(lambda thread_id: path),
+        recommendations=Assessment(lambda thread_id: path),
         assessor=triage,
         digest=prompt_hash,
         observe=observe,

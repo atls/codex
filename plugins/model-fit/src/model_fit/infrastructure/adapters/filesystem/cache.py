@@ -63,7 +63,7 @@ def save_pending(
             temporary_path.unlink(missing_ok=True)
 
 
-class FileAssessmentCache:
+class Assessment:
     def __init__(self, path_for_thread: Callable[[str], Path] = pending_path) -> None:
         self.path_for_thread = path_for_thread
 
