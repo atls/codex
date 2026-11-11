@@ -15,7 +15,7 @@ Read the [assessment policy](references/assessment-policy.md) before assessing a
 
 ## Explicit assessment
 
-Use `vp` with JSON input as described in the [CLI reference](../../README.md#cli-reference). Report the recommendation and its explanation. Ask for missing profile values.
+Send one JSON object to `vp` on stdin. Supply `task` and an authoritative `active_profile` with `model`, `effort`, and `speed`. Use `null` for an unknown speed and ask for missing model or effort. Report the recommendation and its explanation.
 
 ## Response
 
