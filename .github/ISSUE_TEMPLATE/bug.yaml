@@ -1,5 +1,5 @@
 name: Bug
-description: Something is broken
+description: Report something that went wrong in Vector Prime
 title: '[Bug] '
 type: 'Bug'
 assignees:
@@ -8,53 +8,54 @@ body:
   - type: textarea
     id: bug-description
     attributes:
-      label: Bug location
-      description: 'For example: after pressing the button, the message is not sent'
+      label: What happened?
+      description: Describe where it went wrong. For a profile change, include the model and reasoning effort before and after, if known.
     validations:
       required: true
 
   - type: textarea
     id: reproduce
     attributes:
-      label: Reproduction
-      description: 'Steps to reproduce'
+      label: Steps to reproduce
+      description: Use a short example that can be shared publicly.
       placeholder: |
-        1. Open the screen
-        2. Enter a message
-        3. Press the button
-        4. See the error
+        1. Open a new Codex Desktop chat.
+        2. Select a model and reasoning effort.
+        3. Run an explicit assessment or send a request with automatic hooks enabled.
+        4. Describe what Vector Prime and Codex did.
     validations:
       required: true
 
   - type: textarea
     id: expected-behavior
     attributes:
-      label: Expected behavior
-      placeholder: 'For example: after pressing the button, the message is sent'
+      label: What did you expect?
+      placeholder: For example, I expected a question about the previous answer to keep my current profile.
     validations:
       required: true
 
   - type: textarea
     id: logs
     attributes:
-      label: Attach logs
-      description: Attach logs if the error is system-related and a screenshot will not help with analysis or troubleshooting. Logs will be formatted after insertion.
-      render: bash
+      label: Error codes or relevant log excerpts
+      description: If known, say whether the request was queued and whether it resumed. Share only sanitized excerpts. Remove credentials and private conversation text.
+      render: text
 
   - type: textarea
     id: assets
     attributes:
-      label: Media
-      description: Attach screenshots if the error is visual and collecting logs is not acceptable.
+      label: Screenshots
+      description: If this is visible in Codex Desktop, attach a screenshot with private content removed.
 
   - type: textarea
     id: env
     attributes:
-      label: Environment data
+      label: Environment
       placeholder: |
-        - OS and version [for example: iOS@18.2, Android@11.1.0, Windows@11.1]
-        - Browser and version [for example: Chrome@64, Safari@13]
-        - Server (for example: Server1 => Debian@11, Clickhouse@4.7)
-        - One of the services (for example: recommender@1.2)
+        - OS and version:
+        - Codex Desktop and CLI versions:
+        - Vector Prime version or commit:
+        - Integration (explicit CLI or automatic hooks):
+        - Configuration scope, if using hooks:
     validations:
       required: true

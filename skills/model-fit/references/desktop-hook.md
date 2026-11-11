@@ -4,14 +4,14 @@ Read this reference when connecting or diagnosing the Desktop hook or performing
 
 ## Connect
 
-Install Model Fit through Codex Desktop's native local marketplace. The plugin contains `.codex-plugin/plugin.json`, `hooks/hooks.json`, its Python package and this skill. To verify a local checkout:
+Install Vector Prime through Codex Desktop's native local marketplace. The plugin contains `.codex-plugin/plugin.json`, `hooks/hooks.json`, its Python package and this skill. To verify a local checkout:
 
 ```sh
 codex plugin marketplace add .
 codex plugin add vector-prime@atls-codex
 ```
 
-Run `uv sync --locked` from the installed plugin directory. The supported compatibility manifest is used for Codex 0.166, whose portable manifest does not load plugin hooks. Hooks use Codex's `PLUGIN_ROOT`; their definitions are not copied into the user's `hooks.json`. Disable any previous Model Fit connection when switching integrations so two handlers do not process one request.
+Run `uv sync --locked` from the installed plugin directory. The supported compatibility manifest is used for Codex 0.166, whose portable manifest does not load plugin hooks. Hooks use Codex's `PLUGIN_ROOT`; their definitions are not copied into the user's `hooks.json`. Disable any previous Vector Prime integration when switching integrations so two handlers do not process one request.
 
 Trust the exact definitions through `/hooks`, then inspect their sources and states through `hooks/list`. Inventory establishes discovery; an audit record for a specific turn establishes invocation.
 

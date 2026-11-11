@@ -5,7 +5,7 @@ from typing import Protocol
 from vector_prime.application.handoff.types.accepted_input import (
     AcceptedNativeInput,
 )
-from vector_prime.application.handoff.types.queue_receipt import NativeQueueReceipt
+from vector_prime.application.handoff.types.queue import NativeQueueReceipt
 from vector_prime.application.handoff.errors.queue_rejection import NativeQueueRejection
 from vector_prime.application.handoff.types.source import HandoffSource
 

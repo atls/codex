@@ -1,4 +1,4 @@
-from vector_prime.application.handoff.types.queue_receipt import NativeQueueReceipt
+from vector_prime.application.handoff.types.queue import NativeQueueReceipt
 from vector_prime.application.submission.types.json import JsonValue
 
 

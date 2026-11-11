@@ -1,38 +1,28 @@
-name: Feature
-description: Change that adds new capabilities
+name: Feature request
+description: Suggest a new capability or an improvement to Vector Prime
 title: '[Feature] '
-type: 'feature'
+type: 'Feature'
 assignees:
   - TorinAsakura
 body:
-  - type: input
+  - type: textarea
     id: motivation
     attributes:
-      label: What is this request about?
-      placeholder: Think through whether this task is actually needed
+      label: What are you trying to do?
+      description: Describe the Codex workflow and where Vector Prime falls short today.
     validations:
       required: true
 
   - type: textarea
-    id: plan
+    id: proposal
     attributes:
-      label: Describe the implementation plan
-      placeholder: Explain in a couple of sentences how this will be implemented
+      label: What should Vector Prime do?
+      description: Give an example of the behavior you want and say whether it applies to explicit assessment, automatic hooks, or both.
     validations:
       required: true
 
   - type: textarea
-    id: dod
+    id: alternatives
     attributes:
-      label: Task definition of done
-      placeholder: |
-        Criteria used to assess task completion, for example:
-        - initialization:
-          - the application works in the environment
-        - data handling:
-          - input - product JSON object
-          - output - product JSON object with price in another currency
-        - artifacts:
-          - log entry
-    validations:
-      required: true
+      label: Alternatives or workarounds
+      description: If you have a workaround, describe it and explain what is still missing.

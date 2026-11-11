@@ -51,12 +51,11 @@ from vector_prime.application.handoff.types.progress import (
     AcceptedHandoff,
     AttemptedHandoff,
 )
-from vector_prime.application.handoff.types.queue import QueueConfirmation
+from vector_prime.application.handoff.types.queue import QueueConfirmation, QueueStore
 
 from vector_prime.application.handoff.errors.queue_rejection import NativeQueueRejection
 from vector_prime.application.handoff.exceptions.queue_rejected import QueueRejected
 from typing import Callable
-from vector_prime.application.handoff.types.queue_storage import QueueStore
 from vector_prime.application.handoff.types.clock import Clock
 
 

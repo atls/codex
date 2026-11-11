@@ -2,9 +2,9 @@
 
 Bug reports, documentation improvements, reproducible evaluation cases and focused code changes are welcome. This project follows the [ATLS contribution practices](https://github.com/atls/convention/blob/master/CONTRIBUTING.md) and repository issue/PR templates.
 
-## Report a problem
+## Report a bug or request a feature
 
-Open an [issue](https://github.com/atls/codex/issues) with:
+Choose [Bug](https://github.com/atls/codex/issues/new?template=bug.yaml) or [Feature request](https://github.com/atls/codex/issues/new?template=feature.yaml). For a feature, describe what you are trying to do and how Vector Prime should help. For a bug, include:
 
 - Codex Desktop and CLI versions, operating system and installed Vector Prime version
 - Whether you used the explicit CLI or automatic hooks, and the configuration scope

@@ -2,7 +2,7 @@
 
 Desktop-only automatic assessment and native input handoff. Requires Python 3.11+, Git, uv and an authenticated Codex Desktop/CLI with plugin hooks and the native queue APIs used by this release.
 
-Install `model-fit` from this repository's Git marketplace with `codex plugin add vector-prime@atls-codex`. Enable `features.hooks = true` in the intended native Codex configuration scope. Review and trust the bundled UserPromptSubmit, PreToolUse and Stop definitions in Codex; installation alone does not grant hook trust. Enable the plugin only in the desired scope using native Codex configuration. Existing loaded sessions may need a Desktop restart after an update; confirm actual hook execution, not only inventory.
+Install Vector Prime from this repository's Git marketplace with `codex plugin add vector-prime@atls-codex`. Enable `features.hooks = true` in the intended native Codex configuration scope. Review and trust the bundled UserPromptSubmit, PreToolUse and Stop definitions in Codex; installation alone does not grant hook trust. Enable the plugin only in the desired scope using native Codex configuration. Existing loaded sessions may need a Desktop restart after an update; confirm actual hook execution, not only inventory.
 
 This package also exposes the standalone assessment command documented in the repository README. Both paths use the same assessor. The automatic path additionally owns submission state and native queue/replay checks, preserves an explicit user profile and passes original native input without rebuilding attachments.
 

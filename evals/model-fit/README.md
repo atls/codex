@@ -1,10 +1,10 @@
-# Model Fit Evaluations
+# Vector Prime evaluations
 
 ## Setup
 
 Production runtime lives in `src/vector_prime` and hooks live in `hooks`; the skill instructions are in `skills/model-fit`.
 
-Requirements: Node within the package's `engines.node` range, the verified Raijin/Yarn pair, uv, and an existing ChatGPT login. Codex CLI is pinned in `devDependencies` and installed with the project dependencies. `CODEX_EVAL_HOME` selects the source login. Evaluation copies its authentication file into a temporary home with mode 0600; API-key providers are disabled.
+Requirements: Node within the supported Node version range, the verified Raijin/Yarn pair, uv, and an existing ChatGPT login. Codex CLI is pinned as a development dependency and installed with the project dependencies. `CODEX_EVAL_HOME` selects the source login. Evaluation copies its authentication file into a temporary home with mode 0600; API-key providers are disabled.
 
 ```sh
 yarn install --immutable
