@@ -49,7 +49,7 @@ uv run acceptance/verify.py
 
 The runner uses a temporary candidate home and scratch worktree. It exercises the unavailable-source fallback only when the zero-turn capability probe observes that boundary. If the boundary is absent, it records not_applicable without model execution or a passing acceptance claim. The deterministic suite also sends a complete synthetic provider record through the real Promptfoo Python-grade bridge; that validates the bridge, not native model execution.
 
-The handoff scenarios are in `evals/model-fit/autoswitch/tests/test_transfer_journey.py`. They check the public commands, persistent local state, queueing, and replay. Assessment and context are controlled, as are native RPC calls; these tests do not measure model execution. The suite also checks that an unknown queue outcome prevents a retry.
+The handoff scenarios are in `evals/model-fit/handoff/tests/test_transfer_journey.py`. They check the public commands, persistent local state, queueing, and replay. Assessment and context are controlled, as are native RPC calls; these tests do not measure model execution. The suite also checks that an unknown queue outcome prevents a retry.
 
 ## Language validation
 

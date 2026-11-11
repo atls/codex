@@ -10,7 +10,7 @@
     "test:assessment": "uv run pytest assessment/tests",
     "test:ordinary": "uv run pytest assessment/ordinary/tests",
     "test:execution": "uv run pytest autoswitch/execution/tests",
-    "test:autoswitch": "uv run pytest autoswitch/tests",
+    "test:autoswitch": "uv run pytest handoff/tests switch/tests answer/tests acceptance/tests/test_hook_scope.py",
     "test:acceptance": "uv run pytest acceptance/tests",
     "calibrate": "uv run python evaluate.py calibration",
     "eval:assessment": "uv run python evaluate.py assessment",
