@@ -2,7 +2,7 @@ from vector_prime.application.handoff.guards.queue import (
     queue_preparation,
     require_rejection_state,
 )
-from vector_prime.application.switch.helpers.transfer import handoff_source
+from vector_prime.infrastructure.adapters.filesystem.handoff import handoff_source
 from vector_prime.application.handoff.types.progress import (
     AttemptedHandoff,
     AcceptedHandoff,
@@ -12,15 +12,15 @@ from vector_prime.application.handoff.types.queue import (
     QueueCandidate,
     QueueConfirmation,
 )
-from vector_prime.application.switch.types.state import ProcessSnapshot
+from vector_prime.infrastructure.adapters.filesystem.record import FileRecord
 from vector_prime.infrastructure.adapters.filesystem.handoff import transfer_state
-from vector_prime.application.switch.types.storage import TransferStateSlot
+from vector_prime.infrastructure.adapters.filesystem.slot import FileSlot
 
 
 class FileQueueSlot:
-    def __init__(self, slot: TransferStateSlot) -> None:
+    def __init__(self, slot: FileSlot) -> None:
         self.slot = slot
-        self.state = slot.load()
+        self.state = slot.load_record()
 
     def prepare(self, turn_id: str, now: float) -> PreparedQueue | QueueConfirmation:
         current = self.state
@@ -49,17 +49,17 @@ class FileQueueSlot:
         state["queued_prompt_digest"] = prompt_digest
         state["queued_hook_prompt_digest"] = hook_prompt_digest
         state["phase"] = "attempting"
-        self.slot.save_transition(state)
+        self.slot.save_record_transition(state)
 
     def write_receipt_id(self, submission_id: str) -> None:
         state = self._snapshot()
         state["queued_submission_id"] = submission_id
-        self.slot.save_transition(state)
+        self.slot.save_record_transition(state)
 
     def write_accepted_digest(self, digest: str) -> None:
         state = self._snapshot()
         state["queued_input_digest"] = digest
-        self.slot.save_transition(state)
+        self.slot.save_record_transition(state)
 
     def confirm(self, accepted: AcceptedHandoff, queued_at: int) -> None:
         state = self._snapshot()
@@ -67,15 +67,15 @@ class FileQueueSlot:
         state["queued_input_digest"] = accepted.input_evidence.digest
         state["phase"] = "queued"
         state["queued_at"] = queued_at
-        self.slot.save_transition(state)
+        self.slot.save_record_transition(state)
 
     def reject(self) -> None:
         state = self._snapshot()
         require_rejection_state(transfer_state(state))
         state["phase"] = "rejected"
-        self.slot.save_transition(state)
+        self.slot.save_record_transition(state)
 
-    def _snapshot(self) -> ProcessSnapshot:
+    def _snapshot(self) -> FileRecord:
         if self.state is None:
             raise RuntimeError("Missing handoff snapshot")
         return self.state

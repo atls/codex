@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import fcntl
 import json
+import hashlib
 import os
 import stat
 import tempfile
@@ -17,7 +18,9 @@ from vector_prime.infrastructure.adapters.filesystem.constraints.is_safe_key imp
     is_safe_key,
 )
 from typing_extensions import TypedDict
-from vector_prime.application.switch.types.state import ProcessSnapshot, Snapshot
+from vector_prime.application.switch.types.state import ProcessSnapshot
+from vector_prime.infrastructure.adapters.filesystem.record import FileRecord, Snapshot
+from vector_prime.infrastructure.adapters.filesystem.handoff import transfer_state
 from vector_prime.application.assessment.types.state import (
     PendingAssessment,
     Waiting,
@@ -116,13 +119,12 @@ class LegacyAssessmentRecord(TypedDict, total=False):
 
 LegacySnapshot = Snapshot[LegacyAssessmentRecord]
 LEGACY_STATE = TypeAdapter(LegacySnapshot)
+RECORD_STATE = TypeAdapter(FileRecord)
 RUNTIME_STATE = TypeAdapter(ProcessSnapshot)
+COORDINATION_FIELDS = ProcessSnapshot.__annotations__.keys() - {"transfer", "revision"}
 
 
-def read_snapshot(path: Path) -> ProcessSnapshot | None:
-    stored = read_state(path)
-    if stored is None:
-        return None
+def decode_record(stored: LegacySnapshot) -> FileRecord:
     payload: dict[str, object] = dict(stored)
     pending = stored.get("pending_assessment")
     if pending is not None:
@@ -156,10 +158,52 @@ def read_snapshot(path: Path) -> ProcessSnapshot | None:
                 }
             ),
         )
-    return RUNTIME_STATE.validate_python(payload, strict=True, extra="allow")
+    return RECORD_STATE.validate_python(payload, strict=True, extra="allow")
 
 
-def write_snapshot(path: Path, snapshot: ProcessSnapshot) -> None:
+def read_record(path: Path) -> FileRecord | None:
+    stored = read_state(path)
+    return decode_record(stored) if stored is not None else None
+
+
+def read_snapshot(path: Path) -> ProcessSnapshot | None:
+    stored = read_state(path)
+    if stored is None:
+        return None
+    record = decode_record(stored)
+    projection = {
+        key: value for key, value in record.items() if key in COORDINATION_FIELDS
+    }
+    projection["transfer"] = transfer_state(record)
+    projection["revision"] = hashlib.sha256(
+        json.dumps(stored, sort_keys=True, ensure_ascii=False).encode()
+    ).hexdigest()
+    return RUNTIME_STATE.validate_python(projection, strict=True)
+
+
+def coordinator_record(
+    snapshot: ProcessSnapshot, current: FileRecord | None
+) -> FileRecord:
+    payload = {
+        key: value for key, value in snapshot.items() if key in COORDINATION_FIELDS
+    }
+    if (
+        current is not None
+        and "revision" in snapshot
+        and current["phase"] == snapshot["phase"]
+    ):
+        payload = {
+            **{
+                key: value
+                for key, value in current.items()
+                if key not in COORDINATION_FIELDS
+            },
+            **payload,
+        }
+    return RECORD_STATE.validate_python(payload, strict=True, extra="allow")
+
+
+def write_record(path: Path, snapshot: FileRecord) -> None:
     payload: dict[str, object] = dict(snapshot)
     pending = snapshot.get("pending_assessment")
     if pending is not None:

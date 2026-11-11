@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from vector_prime.application.handoff.types.state import QueuedTransfer
 from vector_prime.application.switch.helpers.transfer import transfer_instruction
 from vector_prime.application.switch.admission.recovery import admit_assessment_recovery
 
@@ -82,7 +83,11 @@ def assess(
                         thread_id, state["source_turn_id"], transfer_instruction(state)
                     )
                 if state["phase"] == "queued":
-                    if state.get("replay_turn_id") is not None:
+                    transfer = state.get("transfer")
+                    if (
+                        isinstance(transfer, QueuedTransfer)
+                        and transfer.replay_turn_id is not None
+                    ):
                         return ContinueWork(WorkContext.REPLAY)
                     return QueuePending()
                 if state.get("assessment_decision") == "keep":

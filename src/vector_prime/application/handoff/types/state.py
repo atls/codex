@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from vector_prime.application.handoff.types.instruction import TransferInstruction
+from vector_prime.application.handoff.types.source import HandoffSource
 from vector_prime.application.handoff.types.plan import TransferTarget
 from vector_prime.application.handoff.types.preparation import TransferContinuation
 from vector_prime.application.handoff.types.progress import (
@@ -15,6 +17,8 @@ class ReadyTransfer:
     continuation: TransferContinuation | None
     prepared: PreparedHandoff | None
     continuation_turn_ids: tuple[str, ...]
+    control_turn_id: str | None
+    instruction: TransferInstruction | None
 
 
 @dataclass(frozen=True)
@@ -28,16 +32,21 @@ class QueuedTransfer:
     input_evidence: TransferInputEvidence | None
     hook_prompt_digest: str | None
     continuation_turn_ids: tuple[str, ...]
+    control_turn_id: str | None
+    source: HandoffSource
+    task_inference: str | None
 
 
 @dataclass(frozen=True)
 class RejectedTransfer:
     source_turn_id: str
+    control_turn_id: str | None
 
 
 @dataclass(frozen=True)
 class AttemptingTransfer:
-    pass
+    source_turn_id: str
+    control_turn_id: str | None
 
 
 TransferState = ReadyTransfer | QueuedTransfer | RejectedTransfer | AttemptingTransfer

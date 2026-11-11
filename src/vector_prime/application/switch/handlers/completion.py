@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from vector_prime.application.assessment.types.state import Failed
-from vector_prime.application.switch.helpers.transfer import handoff_source
+from vector_prime.application.switch.helpers.transfer import is_control_turn
+from vector_prime.application.handoff.types.state import QueuedTransfer
 
 from vector_prime.application.switch import lifecycle as switch_lifecycle
 
@@ -54,7 +55,7 @@ def finish(
         if (
             state is not None
             and state["phase"] == "ready"
-            and (turn_id in {state["source_turn_id"], state.get("control_turn_id")})
+            and is_control_turn(state, turn_id)
         ):
             switch_lifecycle.admit(slot, turn_id)
             audit(
@@ -75,21 +76,32 @@ def finish(
         and state["source_turn_id"] == turn_id
         and (state.get("assessment_decision") == "keep")
     )
-    replay_bound = state["phase"] == "queued" and state.get("replay_turn_id") == turn_id
-    if not assessed and (not replay_bound):
+    transfer = state.get("transfer")
+    queued = (
+        transfer
+        if isinstance(transfer, QueuedTransfer) and transfer.replay_turn_id == turn_id
+        else None
+    )
+    if not assessed and queued is None:
         return None
     with conversation(event.working_directory) as app:
         if assessed:
             content = app.accepted_input(thread_id, turn_id).content
             verified_input = content
         else:
-            content = app.handoff_input(thread_id, handoff_source(state))
+            assert queued is not None
+            content = app.handoff_input(thread_id, queued.source)
             replay = app.replay_input(thread_id, turn_id)
             if replay is None:
                 audit(thread_id, turn_id, "auto_stop_steered_or_unverified")
                 return None
             verified_input = replay
-            if codec.input_digest(replay) != state["queued_input_digest"]:
+            evidence = queued.input_evidence
+            if (
+                evidence is None
+                or evidence.kind != "native_input"
+                or codec.input_digest(replay) != evidence.digest
+            ):
                 audit(thread_id, turn_id, "auto_stop_input_unverified")
                 return None
     if any((item.get("type") != "text" for item in content)):
@@ -103,7 +115,9 @@ def finish(
     ):
         audit(thread_id, turn_id, "auto_stop_size_unchecked")
         return None
-    verdict = relevance(request, state.get("task_inference", ""), answer)
+    verdict = relevance(
+        request, (queued.task_inference or "") if queued is not None else "", answer
+    )
     audit(thread_id, turn_id, f"auto_stop_{verdict}")
     if verdict != "unrelated":
         return None

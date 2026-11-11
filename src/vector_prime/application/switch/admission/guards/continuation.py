@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from vector_prime.application.switch.helpers.transfer import is_bound_replay
 from vector_prime.application.assessment.types.state import Failed
 
 from vector_prime.application.switch.types.state import ProcessSnapshot
@@ -27,7 +28,7 @@ def can_continue_admitted_tool(
     if state["phase"] == "passed":
         return state["source_turn_id"] == event.turn_id
     if state["phase"] == "queued":
-        return state.get("replay_turn_id") == event.turn_id
+        return is_bound_replay(state, event.turn_id)
     return False
 
 

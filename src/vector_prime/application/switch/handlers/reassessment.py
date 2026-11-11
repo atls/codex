@@ -1,4 +1,6 @@
 from __future__ import annotations
+from vector_prime.application.handoff.types.state import QueuedTransfer
+from vector_prime.application.handoff.types.plan import TransferTarget
 from vector_prime.application.assessment import lifecycle as assessment_lifecycle
 from vector_prime.application.assessment.request import require_reassessment
 
@@ -54,10 +56,10 @@ def reassess(
         or snapshot["phase"] not in {"passed", "queued"}
     ):
         raise SubmissionUnavailable(thread_id, "reassessment_not_admitted")
+    transfer = snapshot.get("transfer")
+    queued = transfer if isinstance(transfer, QueuedTransfer) else None
     turn_id = (
-        snapshot.get("replay_turn_id")
-        if snapshot["phase"] == "queued"
-        else snapshot["source_turn_id"]
+        queued.replay_turn_id if queued is not None else snapshot["source_turn_id"]
     )
     if not turn_id:
         raise SubmissionUnavailable(thread_id, "reassessment_not_admitted")
@@ -65,9 +67,10 @@ def reassess(
     with conversation(cwd) as app:
         if app.latest_turn_id(thread_id) != turn_id:
             raise SubmissionUnavailable(thread_id, "reassessment_turn_changed")
-        if snapshot["phase"] == "queued" and snapshot[
-            "queued_submission_id"
-        ] in app.queued_ids(thread_id):
+        if queued is not None and (
+            queued.submission_id is None
+            or queued.submission_id in app.queued_ids(thread_id)
+        ):
             raise SubmissionUnavailable(thread_id, "reassessment_queue_pending")
         accepted = app.accepted_input(thread_id, turn_id)
         model, effort = app.profile(thread_id)
@@ -111,9 +114,9 @@ def reassess(
         pending = switch_lifecycle.register_submission(
             slot, event, codec.prompt_digest(source), assessment=refreshed.submission
         )
-        if snapshot["phase"] == "queued":
+        if queued is not None:
             switch_lifecycle.consume_submission(slot, turn_id, pending)
-            if (model, effort) != (snapshot["target_model"], snapshot["target_effort"]):
+            if TransferTarget(model, effort) != queued.target:
                 switch_lifecycle.admit(
                     slot,
                     turn_id,

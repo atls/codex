@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+from vector_prime.application.switch.helpers.transfer import (
+    is_bound_replay,
+    is_control_turn,
+)
+from vector_prime.application.handoff.types.state import ReadyTransfer
+
 from vector_prime.application.submission.types.json import JsonValue
 
 from vector_prime.application.switch.admission.types.result import (
@@ -91,7 +97,7 @@ def guard_tool(
             and (not state.get("pending_assessment"))
             and (state["phase"] == "queued")
             and isinstance(event.turn_id, str)
-            and (state.get("replay_turn_id") == event.turn_id)
+            and is_bound_replay(state, event.turn_id)
         ):
             audit(
                 thread_id,
@@ -153,7 +159,7 @@ def guard_tool(
     if (
         state is not None
         and state["phase"] == "ready"
-        and (event.turn_id in {state["source_turn_id"], state.get("control_turn_id")})
+        and is_control_turn(state, event.turn_id)
         and actions.matches_assessment(event)
     ):
         return AllowedTool()
@@ -165,14 +171,16 @@ def guard_tool(
     if (
         state is None
         or state["phase"] == "passed"
-        or event.turn_id not in {state["source_turn_id"], state.get("control_turn_id")}
+        or not is_control_turn(state, event.turn_id)
     ):
         return deny_unprepared_transfer(
             event, state, actions=actions, audit=audit, replay_context=replay_context
         )
-    if state["phase"] == "ready" and (
-        actions.matches_profile_switch(event, state)
-        or actions.matches_queue(event, state)
+    transfer = state.get("transfer")
+    prepared = transfer.prepared if isinstance(transfer, ReadyTransfer) else None
+    if prepared is not None and (
+        actions.matches_profile_switch(event, prepared)
+        or actions.matches_queue(event, prepared)
     ):
         return authorize_transfer(
             event,
@@ -182,8 +190,8 @@ def guard_tool(
             clock=clock,
             store=store,
         )
-    if state["phase"] == "ready":
-        bound = actions.bound_transfer_input(event, state)
+    if prepared is not None:
+        bound = actions.bound_transfer_input(event, prepared)
         if bound is not None:
             return authorize_transfer(
                 event,

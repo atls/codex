@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 import pytest
 import zipfile
 from pathlib import Path
@@ -65,6 +66,11 @@ def test_variants_share_assessor_and_exclude_development_files(source, archives)
             any(("tests/" in name or name.startswith("evals/") for name in files))
         )
     metadata = json.loads(cli["plugin.json"])
+    marketplace = json.loads(full[".codex-plugin/plugin.json"])
+    project = tomllib.loads(cli["pyproject.toml"].decode())["project"]
+    assert metadata["version"] == marketplace["version"] == project["version"]
+    assert marketplace["name"] == project["name"] == "vector-prime"
+    assert metadata["name"] == "vector-prime-guidance"
     assert metadata["extensions"]["com.openai"]["requires_local_executor"]
     assert "hooks" not in metadata
     assert "hooks" not in metadata["extensions"]["com.openai"]

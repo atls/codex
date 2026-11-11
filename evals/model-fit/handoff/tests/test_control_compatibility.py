@@ -1,5 +1,8 @@
 import unittest
 
+from vector_prime.application.handoff.types.plan import TransferTarget
+from vector_prime.application.handoff.types.progress import PreparedHandoff
+
 from vector_prime.application.handoff.control_message import (
     CONTROL_PROMPT,
     CONTROL_PROMPTS,
@@ -11,7 +14,9 @@ from vector_prime.application.assessment.helpers.context import recent_context
 
 class ControlMessageCompatibilityTests(unittest.TestCase):
     def test_current_and_legacy_switches_keep_thread_and_profile_bounds(self):
-        state = {"target_model": "fixture-model", "target_effort": "medium"}
+        prepared = PreparedHandoff(
+            "source", TransferTarget("fixture-model", "medium"), 0, 0, "task", "digest"
+        )
         for marker in CONTROL_PROMPTS:
             with self.subTest(marker=marker):
                 args = {
@@ -26,16 +31,16 @@ class ControlMessageCompatibilityTests(unittest.TestCase):
                 }
                 event = ToolAdmissionInput("thread", "turn", source)
                 self.assertTrue(
-                    NativeTransferTools().matches_profile_switch(event, state)
+                    NativeTransferTools().matches_profile_switch(event, prepared)
                 )
                 args["threadId"] = "foreign"
                 self.assertFalse(
-                    NativeTransferTools().matches_profile_switch(event, state)
+                    NativeTransferTools().matches_profile_switch(event, prepared)
                 )
                 args["threadId"] = "thread"
                 args["model"] = "other-profile"
                 self.assertFalse(
-                    NativeTransferTools().matches_profile_switch(event, state)
+                    NativeTransferTools().matches_profile_switch(event, prepared)
                 )
         self.assertEqual(
             CONTROL_PROMPT, "Model Fit: complete the technical request handoff"
@@ -84,13 +89,15 @@ class TransferRouteTests(unittest.TestCase):
             "official_guidance": "fixture guidance",
             "task_inference": "fixture inference",
         }
-        from vector_prime.application.switch.helpers.transfer import (
-            transfer_instruction,
+        from vector_prime.infrastructure.adapters.filesystem.handoff import (
+            read_instruction,
         )
 
-        context = instructions.control_context(
-            "thread", "source", transfer_instruction(state)
-        )["hookSpecificOutput"]["additionalContext"]
+        instruction = read_instruction(state)
+        assert instruction is not None
+        context = instructions.control_context("thread", "source", instruction)[
+            "hookSpecificOutput"
+        ]["additionalContext"]
         self.assertIn("mcp__codex_app__send_message_to_thread", context)
         self.assertIn("Use the codex_app MCP server", context)
         arguments = {

@@ -1,3 +1,4 @@
+from vector_prime.application.handoff.types.state import ReadyTransfer
 from vector_prime.application.handoff.types.instruction import TransferInstruction
 from vector_prime.application.switch.types.state import ProcessSnapshot
 
@@ -5,14 +6,16 @@ from vector_prime.application.switch.types.state import ProcessSnapshot
 def preparation_is_current(
     current: ProcessSnapshot | None, expected: TransferInstruction
 ) -> bool:
-    if current is None or current["phase"] != "ready":
-        return False
-    return all(
-        (
-            current.get("assessment_generation") == expected.generation,
-            current["source_turn_id"] == expected.source_turn_id,
-            current.get("target_model") == expected.target.model,
-            current.get("target_effort") == expected.target.effort,
-            current.get("prompt_digest") == expected.prompt_digest,
-        )
+    transfer = current.get("transfer") if current is not None else None
+    instruction = transfer.instruction if isinstance(transfer, ReadyTransfer) else None
+    return instruction is not None and (
+        instruction.generation,
+        instruction.source_turn_id,
+        instruction.target,
+        instruction.prompt_digest,
+    ) == (
+        expected.generation,
+        expected.source_turn_id,
+        expected.target,
+        expected.prompt_digest,
     )

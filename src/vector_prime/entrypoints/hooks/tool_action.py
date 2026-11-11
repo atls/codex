@@ -2,7 +2,7 @@ import shlex
 from vector_prime.application.submission.types.json import JsonValue
 from vector_prime.application.submission.decoding import checked_object
 from vector_prime.application.switch.admission.types.input import ToolAdmissionInput
-from vector_prime.application.switch.types.state import ProcessSnapshot
+from vector_prime.application.handoff.types.progress import PreparedHandoff
 
 from vector_prime.application.handoff.control_message import (
     CONTROL_PROMPT,
@@ -26,7 +26,7 @@ class NativeTransferTools:
         )
 
     def matches_profile_switch(
-        self, request: ToolAdmissionInput, state: ProcessSnapshot
+        self, request: ToolAdmissionInput, prepared: PreparedHandoff
     ) -> bool:
         native = checked_object(request.source)
         arguments = native.get("tool_input")
@@ -36,15 +36,15 @@ class NativeTransferTools:
             and all(
                 (
                     arguments.get("threadId") == request.thread_id,
-                    arguments.get("model") == state["target_model"],
-                    arguments.get("thinking") == state["target_effort"],
+                    arguments.get("model") == prepared.target.model,
+                    arguments.get("thinking") == prepared.target.effort,
                     arguments.get("prompt") in CONTROL_PROMPTS,
                 )
             )
         )
 
     def matches_queue(
-        self, request: ToolAdmissionInput, state: ProcessSnapshot
+        self, request: ToolAdmissionInput, prepared: PreparedHandoff
     ) -> bool:
         native = checked_object(request.source)
         arguments = native.get("tool_input")
@@ -54,13 +54,13 @@ class NativeTransferTools:
             and (
                 request.command_arguments
                 == shlex.split(
-                    queue_command(request.thread_id, state["source_turn_id"])
+                    queue_command(request.thread_id, prepared.source_turn_id)
                 )[1:]
             )
         )
 
     def bound_transfer_input(
-        self, request: ToolAdmissionInput, state: ProcessSnapshot
+        self, request: ToolAdmissionInput, prepared: PreparedHandoff
     ) -> dict[str, JsonValue] | None:
         native = checked_object(request.source)
         arguments = native.get("tool_input")
@@ -69,13 +69,13 @@ class NativeTransferTools:
         if (
             native.get("tool_name") in PROFILE_SWITCH_TOOLS
             and arguments.get("prompt") in CONTROL_PROMPTS
-            and (arguments.get("model") == state["target_model"])
-            and (arguments.get("thinking") == state["target_effort"])
+            and (arguments.get("model") == prepared.target.model)
+            and (arguments.get("thinking") == prepared.target.effort)
         ):
             return {
                 "threadId": request.thread_id,
-                "model": state["target_model"],
-                "thinking": state["target_effort"],
+                "model": prepared.target.model,
+                "thinking": prepared.target.effort,
                 "prompt": CONTROL_PROMPT,
             }
         if native.get("tool_name") != "Bash" or not isinstance(
@@ -86,7 +86,7 @@ class NativeTransferTools:
         if command is None:
             return None
         expected = shlex.split(
-            queue_command(request.thread_id, state["source_turn_id"])
+            queue_command(request.thread_id, prepared.source_turn_id)
         )[1:]
         if (
             len(command) != len(expected)
@@ -96,7 +96,7 @@ class NativeTransferTools:
             return None
         return {
             **arguments,
-            "command": queue_command(request.thread_id, state["source_turn_id"]),
+            "command": queue_command(request.thread_id, prepared.source_turn_id),
         }
 
     def matches_transfer(self, request: ToolAdmissionInput) -> bool:

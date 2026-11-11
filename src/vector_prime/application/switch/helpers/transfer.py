@@ -1,24 +1,23 @@
+from vector_prime.application.handoff.exceptions.invalid_handoff import InvalidHandoff
 from vector_prime.application.handoff.types.instruction import TransferInstruction
-from vector_prime.application.handoff.types.plan import TransferTarget
-from vector_prime.application.handoff.types.source import HandoffSource
+from vector_prime.application.handoff.types.state import QueuedTransfer, ReadyTransfer
 from vector_prime.application.switch.types.state import ProcessSnapshot
 
 
 def transfer_instruction(state: ProcessSnapshot) -> TransferInstruction:
-    return TransferInstruction(
-        source_turn_id=state["source_turn_id"],
-        generation=state.get("assessment_generation"),
-        prompt_digest=state["prompt_digest"],
-        target=TransferTarget(state["target_model"], state["target_effort"]),
-        official_source_url=state["official_source_url"],
-        official_guidance=state["official_guidance"],
-        task_inference=state["task_inference"],
+    transfer = state.get("transfer")
+    if not isinstance(transfer, ReadyTransfer) or transfer.instruction is None:
+        raise InvalidHandoff("invalid_state")
+    return transfer.instruction
+
+
+def is_control_turn(state: ProcessSnapshot, turn_id: str | None) -> bool:
+    transfer = state.get("transfer")
+    return turn_id == state["source_turn_id"] or (
+        transfer is not None and turn_id == transfer.control_turn_id
     )
 
 
-def handoff_source(state: ProcessSnapshot) -> HandoffSource:
-    return HandoffSource(
-        state["source_turn_id"],
-        state.get("prompt"),
-        tuple(state.get("continuation_turn_ids", [])),
-    )
+def is_bound_replay(state: ProcessSnapshot, turn_id: str | None) -> bool:
+    transfer = state.get("transfer")
+    return isinstance(transfer, QueuedTransfer) and transfer.replay_turn_id == turn_id
