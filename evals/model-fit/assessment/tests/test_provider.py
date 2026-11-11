@@ -2,6 +2,7 @@ import vector_prime.infrastructure.adapters.codex.transport.assessment.session a
 
 "Check the thin provider's no-model controls and error result."
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -17,15 +18,23 @@ class AssessmentProviderTests(unittest.TestCase):
             Path(__file__).resolve().parents[2]
             / "infrastructure/adapters/promptfoo/provider.py"
         )
-        code = (
-            "import importlib.util,json,sys;sys.path.insert(0,"
-            + repr(str(provider.parents[3]))
-            + ");from infrastructure.adapters.codex.session import evaluation_session;import answer.evaluate;spec=importlib.util.spec_from_file_location('fresh_provider',"
-            + repr(str(provider))
-            + ");module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);result=module.call_api(json.dumps({'case_id':'user-choice-preserved'}),{},{});assert json.loads(result['output'])['decision']=='keep';assert result['metadata']['user_choice_bypass'] is True"
-        )
+        code = """
+import importlib.util
+import json
+import sys
+from infrastructure.adapters.codex.session import evaluation_session
+import answer.evaluate
+spec = importlib.util.spec_from_file_location("fresh_provider", sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+result = module.call_api(json.dumps({"case_id": "user-choice-preserved"}), {}, {})
+assert json.loads(result["output"])["decision"] == "keep"
+assert result["metadata"]["user_choice_bypass"] is True
+"""
         run = subprocess.run(
-            [sys.executable, "-I", "-c", code],
+            [sys.executable, "-c", code, str(provider)],
+            cwd=provider.parent,
+            env={**os.environ, "PYTHONPATH": str(provider.parents[3])},
             text=True,
             capture_output=True,
             timeout=30,

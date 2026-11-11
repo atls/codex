@@ -14,7 +14,6 @@ import vector_prime.infrastructure.adapters.codex.sources as SOURCES
 
 ROOT = Path(__file__).resolve().parents[4]
 HERE = ROOT / "evals/model-fit"
-MODULE_PATH = ROOT / "src/vector_prime/triage.py"
 import vector_prime.entrypoints.cli.assess as TRIAGE
 import vector_prime.entrypoints.cli.assess as CLI
 import vector_prime.infrastructure.adapters.runtime.assessment as ASSESSMENT_CLIENT

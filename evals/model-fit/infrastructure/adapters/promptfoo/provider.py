@@ -1,11 +1,9 @@
 """Promptfoo adapter to the production Model Fit assessor."""
 
 import json
-import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(HERE))
 import vector_prime.entrypoints.cli.assess as TRIAGE
 from assessment.scenarios import catalog_models, fixture_context, load_scenarios
 from vector_prime.application.assessment.exceptions.source_unavailable import (
