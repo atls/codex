@@ -7,8 +7,8 @@ import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1]
-from model_fit.application.answer.relevance import classify_answer
-from model_fit.infrastructure.adapters.codex.answer import evaluate_relevance
+from vector_prime.application.answer.relevance import classify_answer
+from vector_prime.infrastructure.adapters.codex.answer import evaluate_relevance
 
 
 def main() -> int:

@@ -9,8 +9,7 @@ import tempfile
 from pathlib import Path
 
 SUITE = Path(__file__).resolve().parent
-sys.path.insert(0, str(SUITE))
-from configuration import build_suite, suite_cases
+from infrastructure.adapters.promptfoo.suite import build_suite, suite_cases
 from infrastructure.adapters.codex.session import evaluation_session
 
 
@@ -38,6 +37,7 @@ def main():
     parser.add_argument("--validate", action="store_true")
     args, extra = parser.parse_known_args()
     os.environ["PROMPTFOO_PYTHON"] = sys.executable
+    worker_env = {**os.environ, "PYTHONPATH": str(SUITE)}
     if extra[:1] == ["--"]:
         extra = extra[1:]
     with evaluation_session(
@@ -51,7 +51,9 @@ def main():
             path.write_text(json.dumps(config, ensure_ascii=False))
             command = ["yarn", "exec", "promptfoo"]
             validate = subprocess.run(
-                [*command, "validate", "config", "--config", str(path)], cwd=SUITE
+                [*command, "validate", "config", "--config", str(path)],
+                cwd=SUITE,
+                env=worker_env,
             )
             if args.validate or validate.returncode:
                 return validate.returncode
@@ -67,6 +69,7 @@ def main():
                     *extra,
                 ],
                 cwd=SUITE,
+                env=worker_env,
             ).returncode
 
 

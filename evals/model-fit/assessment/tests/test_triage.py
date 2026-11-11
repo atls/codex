@@ -10,20 +10,20 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-import model_fit.infrastructure.adapters.codex.sources as SOURCES
+import vector_prime.infrastructure.adapters.codex.sources as SOURCES
 
 ROOT = Path(__file__).resolve().parents[4]
 HERE = ROOT / "evals/model-fit"
-MODULE_PATH = ROOT / "plugins/model-fit/src/model_fit/triage.py"
-import model_fit.entrypoints.cli.assess as TRIAGE
-import model_fit.entrypoints.cli.assess as CLI
-import model_fit.infrastructure.adapters.codex.assessment as ASSESSMENT_CLIENT
-from model_fit.application.assessment.exceptions.source_unavailable import (
+MODULE_PATH = ROOT / "src/vector_prime/triage.py"
+import vector_prime.entrypoints.cli.assess as TRIAGE
+import vector_prime.entrypoints.cli.assess as CLI
+import vector_prime.infrastructure.adapters.runtime.assessment as ASSESSMENT_CLIENT
+from vector_prime.application.assessment.exceptions.source_unavailable import (
     SourceUnavailable,
 )
-from model_fit.application.assessment.helpers.decision import empty_decision
-from model_fit.application.assessment.constraints.decision import validate
-from model_fit.infrastructure.adapters.codex.catalog import NativeCatalog
+from vector_prime.application.assessment.helpers.decision import empty_decision
+from vector_prime.application.assessment.decision import validate
+from vector_prime.infrastructure.adapters.codex.catalog import NativeCatalog
 
 
 class TriageContractTest(unittest.TestCase):
@@ -278,7 +278,7 @@ class TriageContractTest(unittest.TestCase):
             patch("sys.argv", ["triage.py"]),
             patch("sys.stdin", io.StringIO(json.dumps(request))),
             patch(
-                "model_fit.infrastructure.adapters.codex.sources.sources",
+                "vector_prime.infrastructure.adapters.codex.sources.sources",
                 side_effect=SourceUnavailable("Codex model catalog"),
             ),
             redirect_stdout(visible),
@@ -288,8 +288,7 @@ class TriageContractTest(unittest.TestCase):
         result = json.loads(visible.getvalue())
         schema = json.loads(
             (
-                ROOT
-                / "plugins/model-fit/src/model_fit/application/assessment/decision.schema.json"
+                ROOT / "src/vector_prime/application/assessment/decision.schema.json"
             ).read_text()
         )
         self.assertEqual(set(result), set(schema["required"]))
@@ -391,7 +390,7 @@ class TriageContractTest(unittest.TestCase):
         }
         diagnostics = {}
         with patch(
-            "model_fit.infrastructure.adapters.codex.sources.sources",
+            "vector_prime.infrastructure.adapters.codex.sources.sources",
             side_effect=AssertionError("model started"),
         ):
             result = TRIAGE.assess(
@@ -408,7 +407,7 @@ class TriageContractTest(unittest.TestCase):
             patch("sys.argv", ["triage.py"]),
             patch("sys.stdin", io.StringIO(json.dumps(request, ensure_ascii=False))),
             patch(
-                "model_fit.infrastructure.adapters.codex.sources.sources",
+                "vector_prime.infrastructure.adapters.codex.sources.sources",
                 side_effect=AssertionError("model started"),
             ),
             redirect_stdout(visible),

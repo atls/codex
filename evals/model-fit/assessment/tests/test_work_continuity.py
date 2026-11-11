@@ -1,6 +1,6 @@
 import unittest
 
-from model_fit.application.assessment.lifecycle import assess
+from vector_prime.application.assessment.lifecycle import assess
 
 
 class AvailableProfiles:

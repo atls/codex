@@ -11,23 +11,23 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 from fixtures.autoswitch.assessment import evaluate_request
 
-import model_fit.entrypoints.hooks.operations as api
-from model_fit.application.switch.exceptions.unavailable import SubmissionUnavailable
-from model_fit.entrypoints.hooks.instructions import (
+import vector_prime.entrypoints.hooks.operations as api
+from vector_prime.application.switch.exceptions.unavailable import SubmissionUnavailable
+from vector_prime.entrypoints.hooks.instructions import (
     CONTROL_PROMPT,
     assessment_command,
     pending_context,
     queue_command,
 )
-from model_fit.entrypoints.hooks.presentation import HookPresentation
-from model_fit.application.submission.helpers.content import input_digest
-from model_fit.infrastructure.adapters.codex.transport.connection import (
+from vector_prime.entrypoints.hooks.presentation import HookPresentation
+from vector_prime.application.submission.helpers.content import input_digest
+from vector_prime.infrastructure.adapters.codex.transport.connection import (
     AppServerRPCError,
 )
-from model_fit.infrastructure.adapters.filesystem.cache import (
+from vector_prime.infrastructure.adapters.filesystem.cache import (
     Assessment,
 )
-from model_fit.infrastructure.adapters.filesystem.state import (
+from vector_prime.infrastructure.adapters.filesystem.state import (
     locked_state,
     read_state,
     state_path,
@@ -135,9 +135,9 @@ class SubmittedInputTests(unittest.TestCase):
         )
 
     def test_previous_result_discussion_admits_work_without_preparing_transfer(self):
-        from model_fit.application.assessment.lifecycle import assess
-        from model_fit.application.assessment.helpers.decision import empty_decision
-        from model_fit.infrastructure.adapters.codex.catalog import NativeCatalog
+        from vector_prime.application.assessment.lifecycle import assess
+        from vector_prime.application.assessment.helpers.decision import empty_decision
+        from vector_prime.infrastructure.adapters.codex.catalog import NativeCatalog
 
         self.profile = {"model": "gpt-6.1-sol", "effort": "medium", "speed": None}
         self.event = {**self.event, "model": self.profile["model"]}
@@ -263,7 +263,7 @@ class SubmittedInputTests(unittest.TestCase):
         self.assertEqual(self.received, [])
 
     def test_reassessment_keeps_new_requirements_when_history_fills_context(self):
-        from model_fit.application.assessment.constraints.request import (
+        from vector_prime.application.assessment.request import (
             validated_request,
         )
 
@@ -867,7 +867,7 @@ class SubmittedInputTests(unittest.TestCase):
         different.write_text("not the active interpreter")
         with patch.object(sys, "executable", str(second)):
             command = shlex.join(
-                [str(first), "-m", "model_fit.entrypoints.hooks.cli", "assess"]
+                [str(first), "-m", "vector_prime.entrypoints.hooks.cli", "assess"]
             )
             self.assertIsNone(
                 api.guard_tool(
@@ -882,10 +882,15 @@ class SubmittedInputTests(unittest.TestCase):
                 command + "; touch forbidden",
                 command + " extra",
                 shlex.join(
-                    [str(foreign), "-m", "model_fit.entrypoints.hooks.cli", "assess"]
+                    [str(foreign), "-m", "vector_prime.entrypoints.hooks.cli", "assess"]
                 ),
                 shlex.join(
-                    [str(different), "-m", "model_fit.entrypoints.hooks.cli", "assess"]
+                    [
+                        str(different),
+                        "-m",
+                        "vector_prime.entrypoints.hooks.cli",
+                        "assess",
+                    ]
                 ),
                 shlex.join([str(first), "-m", "another_module", "assess"]),
                 shlex.join([str(first), "-c", "print(1)"]),
@@ -927,7 +932,7 @@ class SubmittedInputTests(unittest.TestCase):
             [
                 str(alias),
                 "-m",
-                "model_fit.entrypoints.hooks.cli",
+                "vector_prime.entrypoints.hooks.cli",
                 "queue",
                 "--thread-id",
                 "submitted-thread",
@@ -1419,7 +1424,7 @@ class SubmittedInputTests(unittest.TestCase):
     def test_keep_stop_does_not_judge_multimodal_input_as_plain_text(self):
         api.submit_prompt(self.event)
         self.assess()
-        with patch("model_fit.entrypoints.hooks.operations.check_answer") as judge:
+        with patch("vector_prime.entrypoints.hooks.operations.check_answer") as judge:
             result = api.guard_replay_answer(
                 {
                     **self.event,
@@ -1443,7 +1448,7 @@ class SubmittedInputTests(unittest.TestCase):
         self.assess()
         answer = "The virtual machine stopped responding four days ago; here are its old kernel logs."
         with patch(
-            "model_fit.entrypoints.hooks.operations.check_answer",
+            "vector_prime.entrypoints.hooks.operations.check_answer",
             return_value="unrelated",
         ) as judge:
             result = api.guard_replay_answer(
@@ -1480,14 +1485,14 @@ class SubmittedInputTests(unittest.TestCase):
             with (
                 self.subTest(verdict=verdict),
                 patch(
-                    "model_fit.entrypoints.hooks.operations.check_answer",
+                    "vector_prime.entrypoints.hooks.operations.check_answer",
                     return_value=verdict,
                 ),
             ):
                 self.assertIsNone(
                     api.guard_replay_answer(event, native_factory=lambda _: self.reader)
                 )
-        with patch("model_fit.entrypoints.hooks.operations.check_answer") as judge:
+        with patch("vector_prime.entrypoints.hooks.operations.check_answer") as judge:
             self.assertIsNone(
                 api.guard_replay_answer(
                     {**event, "stop_hook_active": True},
@@ -1508,7 +1513,7 @@ class SubmittedInputTests(unittest.TestCase):
             return "unrelated"
 
         with patch(
-            "model_fit.entrypoints.hooks.operations.check_answer",
+            "vector_prime.entrypoints.hooks.operations.check_answer",
             side_effect=changed,
         ):
             self.assertIsNone(
@@ -1541,7 +1546,7 @@ class SubmittedInputTests(unittest.TestCase):
             return "unrelated"
 
         with patch(
-            "model_fit.entrypoints.hooks.operations.check_answer",
+            "vector_prime.entrypoints.hooks.operations.check_answer",
             side_effect=steered,
         ):
             result = api.guard_replay_answer(
@@ -1559,7 +1564,7 @@ class SubmittedInputTests(unittest.TestCase):
         self.content = [{"type": "text", "text": "Prepare the local form."}]
         api.submit_prompt(self.event)
         self.assess(decision=lambda _: {"decision": "unknown"})
-        with patch("model_fit.entrypoints.hooks.operations.check_answer") as judge:
+        with patch("vector_prime.entrypoints.hooks.operations.check_answer") as judge:
             self.assertIsNone(
                 api.guard_replay_answer(
                     {
@@ -1579,7 +1584,7 @@ class SubmittedInputTests(unittest.TestCase):
                 "assessment_decision": "keep",
             },
         )
-        with patch("model_fit.entrypoints.hooks.operations.check_answer") as judge:
+        with patch("vector_prime.entrypoints.hooks.operations.check_answer") as judge:
             self.assertIsNone(
                 api.guard_replay_answer(
                     {

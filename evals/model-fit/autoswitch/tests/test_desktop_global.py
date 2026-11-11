@@ -9,12 +9,12 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 SCRIPTS = Path(__file__).resolve().parents[1]
-from model_fit.entrypoints.hooks import activation
-from model_fit.entrypoints.hooks import cli as ENTRY
-from model_fit.entrypoints.hooks import dispatch as GLOBAL
-import model_fit.entrypoints.hooks.handlers.assessment as CLI
-import model_fit.entrypoints.hooks.events.dispatch as EVENTS
-from model_fit.infrastructure.adapters.codex import hooks as NATIVE_HOOKS
+from vector_prime.entrypoints.hooks import activation
+from vector_prime.entrypoints.hooks import cli as ENTRY
+from vector_prime.entrypoints.hooks import dispatch as GLOBAL
+import vector_prime.entrypoints.hooks.handlers.assessment as CLI
+import vector_prime.entrypoints.hooks.events.dispatch as EVENTS
+from vector_prime.infrastructure.adapters.codex import hooks as NATIVE_HOOKS
 
 
 class GlobalHookTests(unittest.TestCase):
@@ -270,7 +270,7 @@ class GlobalHookTests(unittest.TestCase):
                 self.assertEqual(audit["turn_id"], "current-turn")
 
     def test_inventory_failure_cannot_admit_new_work_or_automatic_transfers(self):
-        from model_fit.entrypoints.hooks import instructions
+        from vector_prime.entrypoints.hooks import instructions
 
         passed = {"phase": "passed", "source_turn_id": "current-turn"}
         ordinary = {"tool_name": "Bash", "tool_input": {"command": "pwd"}}

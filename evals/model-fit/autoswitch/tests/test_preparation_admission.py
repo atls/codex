@@ -6,9 +6,9 @@ import unittest
 from contextlib import redirect_stdout
 from unittest.mock import patch
 
-from model_fit.application.handoff.control_message import CONTROL_PROMPT
-from model_fit.entrypoints.hooks.events.dispatch import handle_event
-from model_fit.infrastructure.adapters.filesystem.state import (
+from vector_prime.application.handoff.control_message import CONTROL_PROMPT
+from vector_prime.entrypoints.hooks.events.dispatch import handle_event
+from vector_prime.infrastructure.adapters.filesystem.state import (
     read_state,
     state_path,
     write_state,

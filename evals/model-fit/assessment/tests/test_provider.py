@@ -1,4 +1,4 @@
-import model_fit.infrastructure.adapters.codex.transport.assessment.session as NATIVE_SESSION
+import vector_prime.infrastructure.adapters.codex.transport.assessment.session as NATIVE_SESSION
 
 "Check the thin provider's no-model controls and error result."
 import json

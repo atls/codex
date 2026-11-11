@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from model_fit.infrastructure.adapters.codex.catalog import NativeCatalog
+from vector_prime.infrastructure.adapters.codex.catalog import NativeCatalog
 
 SUITE = Path(__file__).resolve().parents[2]
 

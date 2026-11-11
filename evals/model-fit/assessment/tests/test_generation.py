@@ -3,14 +3,14 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from model_fit.application.switch.lifecycle import abstain_assessment
-from model_fit.entrypoints.hooks.operations import guard_tool
-from model_fit.infrastructure.adapters.filesystem.state import (
+from vector_prime.application.switch.lifecycle import abstain_assessment
+from vector_prime.entrypoints.hooks.operations import guard_tool
+from vector_prime.infrastructure.adapters.filesystem.state import (
     read_state,
     state_path,
     write_state,
 )
-from model_fit.infrastructure.adapters.filesystem.store import FileStore
+from vector_prime.infrastructure.adapters.filesystem.store import FileStore
 
 
 class AssessmentGenerationTests(unittest.TestCase):
@@ -41,7 +41,7 @@ class AssessmentGenerationTests(unittest.TestCase):
                 self.assertTrue(abstain_assessment(slot, pending))
             unavailable = Mock(side_effect=OSError("fixture source unavailable"))
             with patch(
-                "model_fit.entrypoints.hooks.operations.native_conversation",
+                "vector_prime.entrypoints.hooks.operations.native_conversation",
                 return_value=unavailable,
             ):
                 self.assertIsNone(

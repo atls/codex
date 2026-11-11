@@ -1,5 +1,7 @@
 """Trust candidate-only temporary hooks, then run exactly two native media rows."""
 
+from fixtures.distribution import copy_source
+
 import hashlib
 import json
 import os
@@ -15,9 +17,9 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[3]
 SUITE = ROOT / "evals/model-fit"
 sys.path.insert(0, str(SUITE))
-from model_fit.infrastructure.adapters.codex.authentication import authenticated_home
-from model_fit.infrastructure.adapters.codex.history import unavailable_session_input
-from model_fit.infrastructure.adapters.codex.transport.connection import (
+from vector_prime.infrastructure.adapters.codex.authentication import authenticated_home
+from vector_prime.infrastructure.adapters.codex.history import unavailable_session_input
+from vector_prime.infrastructure.adapters.codex.transport.connection import (
     AppServerConnection,
     AppServerRPCError,
 )
@@ -74,7 +76,7 @@ def candidate_hooks(app, plugin, cwd, command):
     for hook in hooks:
         if (
             hook.get("isManaged", False)
-            or hook.get("pluginId") != "model-fit@media-acceptance"
+            or hook.get("pluginId") != "vector-prime@media-acceptance"
             or hook.get("async", False)
             or (hook["source"] != "plugin")
             or (
@@ -140,14 +142,8 @@ def trust(home, workspace, codex, command, plugin):
 
 def install_candidate(home, codex):
     market = home / "candidate-marketplace"
-    source = market / "plugins/model-fit"
-    shutil.copytree(
-        ROOT / "plugins/model-fit",
-        source,
-        ignore=shutil.ignore_patterns(
-            "__pycache__", "*.pyc", ".venv", "build", "dist", "*.egg-info"
-        ),
-    )
+    source = market
+    copy_source(ROOT, source)
     shutil.copyfile(
         Path(__file__).with_name("capture_hook.py"), source / "scripts/capture_hook.py"
     )
@@ -168,8 +164,8 @@ def install_candidate(home, codex):
                 "name": "media-acceptance",
                 "plugins": [
                     {
-                        "name": "model-fit",
-                        "source": {"source": "local", "path": "./plugins/model-fit"},
+                        "name": "vector-prime",
+                        "source": {"source": "local", "path": "."},
                         "policy": {
                             "installation": "AVAILABLE",
                             "authentication": "ON_INSTALL",
@@ -185,7 +181,7 @@ def install_candidate(home, codex):
     )
     for command in (
         [codex, "plugin", "marketplace", "add", str(market), "--json"],
-        [codex, "plugin", "add", "model-fit@media-acceptance", "--json"],
+        [codex, "plugin", "add", "vector-prime@media-acceptance", "--json"],
     ):
         subprocess.run(
             command,
@@ -196,7 +192,7 @@ def install_candidate(home, codex):
             timeout=30,
         )
     version = json.loads((source / ".codex-plugin/plugin.json").read_text())["version"]
-    plugin = (home / "plugins/cache/media-acceptance/model-fit" / version).resolve()
+    plugin = (home / "plugins/cache/media-acceptance/vector-prime" / version).resolve()
     subprocess.run(
         ["uv", "sync", "--locked", "--project", str(plugin)],
         capture_output=True,

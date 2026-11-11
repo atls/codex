@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-import model_fit.infrastructure.adapters.codex.history as queries
-from model_fit.application.assessment.helpers.context import recent_context
+import vector_prime.infrastructure.adapters.codex.history as queries
+from vector_prime.application.assessment.helpers.context import recent_context
 
 DELEGATION = {
     "type": "functionCallOutput",

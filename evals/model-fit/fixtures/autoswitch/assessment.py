@@ -2,15 +2,15 @@
 
 import time
 
-from model_fit.entrypoints.hooks import operations as api
-from model_fit.entrypoints.hooks.input import prompt_input
-from model_fit.entrypoints.hooks.delivery import deliver_disposition
-from model_fit.application.switch.handlers.processing import evaluate
-from model_fit.infrastructure.adapters.filesystem.audit import record_audit
-from model_fit.infrastructure.adapters.filesystem.cache import (
+from vector_prime.entrypoints.hooks import operations as api
+from vector_prime.entrypoints.hooks.input import prompt_input
+from vector_prime.entrypoints.hooks.delivery import deliver_disposition
+from vector_prime.application.switch.handlers.processing import evaluate
+from vector_prime.infrastructure.adapters.filesystem.audit import record_audit
+from vector_prime.infrastructure.adapters.filesystem.cache import (
     Assessment,
 )
-from model_fit.infrastructure.adapters.filesystem.store import FileStore
+from vector_prime.infrastructure.adapters.filesystem.store import FileStore
 
 
 def evaluate_request(event, *, context_reader=None, assessor=None, native_factory=None):

@@ -7,8 +7,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import model_fit.entrypoints.hooks.operations as api
-from model_fit.infrastructure.adapters.filesystem.state import read_state, state_path
+import vector_prime.entrypoints.hooks.operations as api
+from vector_prime.infrastructure.adapters.filesystem.state import read_state, state_path
 
 
 class TransferJourneyTests(unittest.TestCase):

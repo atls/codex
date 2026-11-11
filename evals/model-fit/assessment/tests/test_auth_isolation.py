@@ -9,11 +9,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[4]
-SCRIPTS = ROOT / "plugins/model-fit/src/model_fit"
+SCRIPTS = ROOT / "src/vector_prime"
 
 
 def load(name, path):
-    spec = importlib.util.spec_from_file_location("model_fit." + name, path)
+    spec = importlib.util.spec_from_file_location("vector_prime." + name, path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
@@ -22,10 +22,12 @@ def load(name, path):
 
 class AuthIsolationTests(unittest.TestCase):
     def test_missing_selected_assets_do_not_use_a_foreign_user_skill(self):
-        from model_fit.application.assessment.exceptions.source_unavailable import (
+        from vector_prime.application.assessment.exceptions.source_unavailable import (
             SourceUnavailable,
         )
-        from model_fit.infrastructure.adapters.codex.transport.assessment import session
+        from vector_prime.infrastructure.adapters.codex.transport.assessment import (
+            session,
+        )
 
         for missing in ("skill", "policy"):
             with (
@@ -74,7 +76,7 @@ class AuthIsolationTests(unittest.TestCase):
                 ):
                     app = module.AppServer(
                         home,
-                        ROOT / "plugins/model-fit/skills/model-fit",
+                        ROOT / "skills/model-fit",
                         home / "stderr.log",
                     )
                     try:
@@ -88,7 +90,7 @@ class AuthIsolationTests(unittest.TestCase):
                         app.home.cleanup()
 
     def test_relevance_evaluator_cannot_write_through_to_login(self):
-        from model_fit.application.answer.relevance import classify_answer
+        from vector_prime.application.answer.relevance import classify_answer
 
         module = load(
             "isolation_replay",
@@ -130,7 +132,7 @@ class AuthIsolationTests(unittest.TestCase):
             self.assertEqual(source.read_bytes(), original)
 
     def test_shared_home_cleans_up_on_exit_and_failed_copy(self):
-        from model_fit.infrastructure.adapters.codex import authentication as runtime
+        from vector_prime.infrastructure.adapters.codex import authentication as runtime
 
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
@@ -161,7 +163,7 @@ class AuthIsolationTests(unittest.TestCase):
                 self.assertFalse(Path(created.name).exists())
 
     def test_isolated_evaluator_spawn_and_initialize_failure_release_private_home(self):
-        from model_fit.infrastructure.adapters.codex import authentication as runtime
+        from vector_prime.infrastructure.adapters.codex import authentication as runtime
 
         module = load(
             "isolation_triage_failure",
@@ -193,9 +195,7 @@ class AuthIsolationTests(unittest.TestCase):
                     ),
                 ):
                     with self.assertRaises((OSError, RuntimeError)):
-                        module.AppServer(
-                            home, ROOT / "plugins/model-fit/skills/model-fit"
-                        )
+                        module.AppServer(home, ROOT / "skills/model-fit")
                 self.assertEqual(len(created), 1)
                 self.assertFalse(Path(created[0]).exists())
 
@@ -215,9 +215,7 @@ class AuthIsolationTests(unittest.TestCase):
                 patch.object(module.AppServer, "call", return_value={}),
                 patch.object(module.AppServer, "send"),
             ):
-                with module.AppServer(
-                    home, ROOT / "plugins/model-fit/skills/model-fit"
-                ):
+                with module.AppServer(home, ROOT / "skills/model-fit"):
                     command = spawn.call_args.args[0]
                     for flag in [
                         "features.hooks=false",

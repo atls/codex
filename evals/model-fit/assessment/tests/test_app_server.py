@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 SCRIPTS = Path(__file__).resolve().parents[1]
-from model_fit.infrastructure.adapters.codex.transport.connection import (
+from vector_prime.infrastructure.adapters.codex.transport.connection import (
     AppServerConnection,
     AppServerRPCError,
 )
@@ -182,11 +182,11 @@ class AppServerTransportTests(unittest.TestCase):
             app.process.stdout.close()
 
     def test_live_reader_keeps_live_home_and_original_process_flags(self):
-        from model_fit.infrastructure.adapters.codex.history import AppServerReader
+        from vector_prime.infrastructure.adapters.codex.history import AppServerReader
 
         with (
             patch(
-                "model_fit.infrastructure.adapters.codex.transport.reader.subprocess.Popen"
+                "vector_prime.infrastructure.adapters.codex.transport.reader.subprocess.Popen"
             ) as spawn,
             patch.object(AppServerReader, "call", return_value={}),
             patch.object(AppServerReader, "send"),

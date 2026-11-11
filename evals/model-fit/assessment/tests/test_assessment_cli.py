@@ -2,7 +2,7 @@
 
 import unittest
 
-from model_fit.infrastructure.adapters.codex.assessment import triage
+from vector_prime.infrastructure.adapters.runtime.assessment import triage
 
 
 class AssessmentCLITests(unittest.TestCase):

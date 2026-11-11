@@ -32,7 +32,10 @@ def build(variables, case, entry, config, task, active, sources, rubric):
     )
     assertions = [
         {"type": "is-json"},
-        {"type": "python", "value": "file://assessment/decision_assertion.py"},
+        {
+            "type": "python",
+            "value": "file://infrastructure/adapters/promptfoo/decision.py",
+        },
         {"type": "python", "value": "file://assessment/assertions.py"},
         {
             "type": "llm-rubric",

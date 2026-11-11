@@ -15,19 +15,19 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 ROOT = Path(__file__).resolve().parents[4]
-SCRIPTS = ROOT / "plugins/model-fit/src/model_fit"
+SCRIPTS = ROOT / "src/vector_prime"
 from fixtures.autoswitch.assessment import evaluate_request
-import model_fit.entrypoints.hooks.instructions as HOOKS_INSTRUCTIONS
-import model_fit.entrypoints.hooks.native_contract as DESKTOP_CONFIGURATION
-import model_fit.entrypoints.hooks.operations as HANDOFF_GUARDS
-import model_fit.entrypoints.hooks.operations as HANDOFF_PREPARATION
-import model_fit.entrypoints.hooks.operations as HANDOFF_QUEUE
-import model_fit.application.submission.helpers.content as HANDOFF_INPUT
-import model_fit.infrastructure.adapters.codex.history as HANDOFF_CODEX
-import model_fit.infrastructure.adapters.codex.transport.connection as CODEX_CONNECTION
-import model_fit.infrastructure.adapters.filesystem.state as HANDOFF_STATE
-import model_fit.entrypoints.hooks.events.dispatch as EVENTS
-import model_fit.entrypoints.hooks.handlers.queue as QUEUE
+import vector_prime.entrypoints.hooks.instructions as HOOKS_INSTRUCTIONS
+import vector_prime.entrypoints.hooks.native_contract as DESKTOP_CONFIGURATION
+import vector_prime.entrypoints.hooks.operations as HANDOFF_GUARDS
+import vector_prime.entrypoints.hooks.operations as HANDOFF_PREPARATION
+import vector_prime.entrypoints.hooks.operations as HANDOFF_QUEUE
+import vector_prime.application.submission.helpers.content as HANDOFF_INPUT
+import vector_prime.infrastructure.adapters.codex.history as HANDOFF_CODEX
+import vector_prime.infrastructure.adapters.codex.transport.connection as CODEX_CONNECTION
+import vector_prime.infrastructure.adapters.filesystem.state as HANDOFF_STATE
+import vector_prime.entrypoints.hooks.events.dispatch as EVENTS
+import vector_prime.entrypoints.hooks.handlers.queue as QUEUE
 
 
 class DesktopAutoSwitchTests(unittest.TestCase):
@@ -1646,7 +1646,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
 
     def test_lock_contention_identifies_other_process(self):
         self.stage()
-        script = f"import sys; sys.path.insert(0, {str(SCRIPTS.parent)!r}); from model_fit.infrastructure.adapters.filesystem.state import locked_state; \nwith locked_state('test-thread', operation='queue', turn_id='holder-turn'):\n print('locked', flush=True)\n sys.stdin.readline()"
+        script = f"import sys; sys.path.insert(0, {str(SCRIPTS.parent)!r}); from vector_prime.infrastructure.adapters.filesystem.state import locked_state; \nwith locked_state('test-thread', operation='queue', turn_id='holder-turn'):\n print('locked', flush=True)\n sys.stdin.readline()"
         holder = subprocess.Popen(
             [sys.executable, "-c", script],
             stdin=subprocess.PIPE,
@@ -2463,7 +2463,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         with (
             patch.object(HANDOFF_GUARDS, "AppServerReader") as reader,
             patch(
-                "model_fit.entrypoints.hooks.operations.check_answer",
+                "vector_prime.entrypoints.hooks.operations.check_answer",
                 return_value="unrelated",
             ) as classify,
         ):
@@ -2505,7 +2505,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         with (
             patch.object(HANDOFF_GUARDS, "AppServerReader") as reader,
             patch(
-                "model_fit.entrypoints.hooks.operations.check_answer",
+                "vector_prime.entrypoints.hooks.operations.check_answer",
                 return_value="relevant",
             ) as classify,
         ):
@@ -2535,7 +2535,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         with (
             patch.object(HANDOFF_GUARDS, "AppServerReader") as reader,
             patch(
-                "model_fit.entrypoints.hooks.operations.check_answer",
+                "vector_prime.entrypoints.hooks.operations.check_answer",
                 return_value="relevant",
             ) as classify,
         ):
@@ -2574,7 +2574,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
         )
         with (
             patch.object(HANDOFF_GUARDS, "AppServerReader") as reader,
-            patch("model_fit.entrypoints.hooks.operations.check_answer") as classify,
+            patch("vector_prime.entrypoints.hooks.operations.check_answer") as classify,
         ):
             reader.return_value.__enter__.return_value.call.side_effect = [
                 self.source_response(original),
@@ -2587,7 +2587,7 @@ class DesktopAutoSwitchTests(unittest.TestCase):
             classify.assert_not_called()
         with (
             patch.object(HANDOFF_GUARDS, "AppServerReader") as reader,
-            patch("model_fit.entrypoints.hooks.operations.check_answer") as classify,
+            patch("vector_prime.entrypoints.hooks.operations.check_answer") as classify,
         ):
             reader.return_value.__enter__.return_value.call.side_effect = [
                 self.source_response(original),

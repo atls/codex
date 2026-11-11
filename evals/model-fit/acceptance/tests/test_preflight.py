@@ -24,7 +24,7 @@ class NativeTrustTests(unittest.TestCase):
                 "command": command,
                 "sourcePath": str(home / "hooks/hooks.json"),
                 "source": "plugin",
-                "pluginId": "model-fit@media-acceptance",
+                "pluginId": "vector-prime@media-acceptance",
                 "currentHash": f"native-hash-{index}",
                 "enabled": True,
                 "trustStatus": "trusted" if trusted else "untrusted",
@@ -223,7 +223,7 @@ class NativeTrustTests(unittest.TestCase):
 class RetainedProviderBridgeTests(unittest.TestCase):
     def test_complete_synthetic_record_passes_real_promptfoo_grade(self):
         import sys
-        from acceptance.tests.media_fixture import media_context
+        from fixtures.acceptance.media import media_context
 
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)

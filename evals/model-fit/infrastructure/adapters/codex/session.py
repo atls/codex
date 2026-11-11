@@ -10,7 +10,7 @@ from pathlib import Path
 
 SUITE = Path(__file__).resolve().parents[3]
 REPOSITORY = SUITE.parents[1]
-from model_fit.infrastructure.adapters.codex.authentication import authenticated_home
+from vector_prime.infrastructure.adapters.codex.authentication import authenticated_home
 
 from infrastructure.adapters.codex.configuration import (
     PROVIDER_ENV,
@@ -44,7 +44,7 @@ def evaluation_session(cases, *, install_skill=True, model="gpt-6.1-sol", effort
         skill = home / "skills/model-fit"
         if install_skill:
             shutil.copytree(
-                REPOSITORY / "plugins/model-fit/skills/model-fit",
+                REPOSITORY / "skills/model-fit",
                 skill,
                 ignore=shutil.ignore_patterns(
                     "__pycache__", "*.pyc", ".venv", "build", "dist", "*.egg-info"

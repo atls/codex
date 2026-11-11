@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from model_fit.infrastructure.adapters.filesystem.cache import (
+from vector_prime.infrastructure.adapters.filesystem.cache import (
     Assessment,
 )
 

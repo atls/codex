@@ -5,10 +5,10 @@
   },
   "plugins": [
     {
-      "name": "model-fit",
+      "name": "vector-prime",
       "source": {
         "source": "local",
-        "path": "./plugins/model-fit"
+        "path": "."
       },
       "policy": {
         "installation": "AVAILABLE",

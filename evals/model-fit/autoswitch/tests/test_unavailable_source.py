@@ -15,17 +15,17 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 SCRIPTS = Path(__file__).resolve().parents[1]
-import model_fit.entrypoints.hooks.instructions as HOOKS_INSTRUCTIONS
-import model_fit.entrypoints.hooks.native_contract as DESKTOP_CONFIGURATION
-import model_fit.entrypoints.hooks.operations as HANDOFF_GUARDS
-import model_fit.entrypoints.hooks.operations as HANDOFF_PREPARATION
-import model_fit.entrypoints.hooks.operations as HANDOFF_RECOMMENDATION
-import model_fit.application.submission.helpers.content as HANDOFF_INPUT
-import model_fit.infrastructure.adapters.codex.transport.connection as CODEX_CONNECTION
-import model_fit.infrastructure.adapters.filesystem.cache as RECOMMENDATION_STORE
-import model_fit.infrastructure.adapters.filesystem.state as HANDOFF_STATE
-import model_fit.entrypoints.hooks.handlers.assessment as CLI
-import model_fit.entrypoints.hooks.events.dispatch as EVENTS
+import vector_prime.entrypoints.hooks.instructions as HOOKS_INSTRUCTIONS
+import vector_prime.entrypoints.hooks.native_contract as DESKTOP_CONFIGURATION
+import vector_prime.entrypoints.hooks.operations as HANDOFF_GUARDS
+import vector_prime.entrypoints.hooks.operations as HANDOFF_PREPARATION
+import vector_prime.entrypoints.hooks.operations as HANDOFF_RECOMMENDATION
+import vector_prime.application.submission.helpers.content as HANDOFF_INPUT
+import vector_prime.infrastructure.adapters.codex.transport.connection as CODEX_CONNECTION
+import vector_prime.infrastructure.adapters.filesystem.cache as RECOMMENDATION_STORE
+import vector_prime.infrastructure.adapters.filesystem.state as HANDOFF_STATE
+import vector_prime.entrypoints.hooks.handlers.assessment as CLI
+import vector_prime.entrypoints.hooks.events.dispatch as EVENTS
 
 
 class UnavailableSourceTests(unittest.TestCase):
@@ -277,7 +277,7 @@ class UnavailableSourceTests(unittest.TestCase):
         self.assertTrue(path.is_symlink())
 
     def test_busy_lock_from_another_process_during_read_is_not_absence(self):
-        script = "import sys; sys.path.insert(0, sys.argv[1]); from model_fit.infrastructure.adapters.filesystem.state import locked_state\nwith locked_state('thread'):\n print('locked',flush=True)\n sys.stdin.readline()"
+        script = "import sys; sys.path.insert(0, sys.argv[1]); from vector_prime.infrastructure.adapters.filesystem.state import locked_state\nwith locked_state('thread'):\n print('locked',flush=True)\n sys.stdin.readline()"
         holder = None
 
         def unavailable(_):
@@ -638,7 +638,7 @@ class UnavailableSourceTests(unittest.TestCase):
                         "source_turn_id": "concurrent",
                         "sentinel": "preserved",
                     }
-                    script = "import json,sys; sys.path.insert(0,sys.argv[1]); from model_fit.infrastructure.adapters.filesystem.state import locked_state,write_state\nwith locked_state('thread') as path: write_state(path,json.loads(sys.argv[2]))\nprint('written',flush=True)\nsys.stdin.readline()"
+                    script = "import json,sys; sys.path.insert(0,sys.argv[1]); from vector_prime.infrastructure.adapters.filesystem.state import locked_state,write_state\nwith locked_state('thread') as path: write_state(path,json.loads(sys.argv[2]))\nprint('written',flush=True)\nsys.stdin.readline()"
 
                     def triage(_):
                         nonlocal holder

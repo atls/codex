@@ -14,8 +14,8 @@ jobs:
       - uses: astral-sh/ruff-action@v4.1.0
         with:
           version: '0.17.2'
-          src: plugins/model-fit evals/model-fit
-      - run: ruff format --check plugins/model-fit evals/model-fit
+          src: src scripts evals/model-fit
+      - run: ruff format --check src scripts evals/model-fit
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: '3.13'
@@ -24,11 +24,10 @@ jobs:
           node-version-file: evals/model-fit/package.json
       - run: yarn install --immutable
         working-directory: evals/model-fit
-      - run: yarn exec codex --version
-        working-directory: evals/model-fit
       - run: yarn run test
         working-directory: evals/model-fit
-      - run: uv run --project evals/model-fit --locked --no-editable --reinstall-package codex-model-fit mypy --strict --disallow-any-explicit -p model_fit
-      - uses: ./.github/actions/package
-        with:
-          output: dist
+      - run: uv run --project evals/model-fit --locked --no-editable --reinstall-package vector-prime mypy --strict --disallow-any-explicit -p vector_prime
+  package:
+    uses: ./.github/workflows/package.yml
+    with:
+      revision: ${{ github.sha }}

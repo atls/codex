@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from acceptance.tests.media_fixture import media_context
+from fixtures.acceptance.media import media_context
 
 PATH = Path(__file__).resolve().parents[1] / "grade.py"
 SPEC = importlib.util.spec_from_file_location("media_acceptance_grade", PATH)

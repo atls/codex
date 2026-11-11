@@ -1,12 +1,12 @@
 import unittest
 
-from model_fit.application.handoff.control_message import (
+from vector_prime.application.handoff.control_message import (
     CONTROL_PROMPT,
     CONTROL_PROMPTS,
 )
-from model_fit.application.switch.admission.types.input import ToolAdmissionInput
-from model_fit.entrypoints.hooks.tool_action import NativeTransferTools
-from model_fit.application.assessment.helpers.context import recent_context
+from vector_prime.application.switch.admission.types.input import ToolAdmissionInput
+from vector_prime.entrypoints.hooks.tool_action import NativeTransferTools
+from vector_prime.application.assessment.helpers.context import recent_context
 
 
 class ControlMessageCompatibilityTests(unittest.TestCase):
@@ -66,8 +66,8 @@ class TransferRouteTests(unittest.TestCase):
         import tempfile
         import time
         from unittest.mock import patch
-        from model_fit.entrypoints.hooks import instructions, operations
-        from model_fit.infrastructure.adapters.filesystem.state import (
+        from vector_prime.entrypoints.hooks import instructions, operations
+        from vector_prime.infrastructure.adapters.filesystem.state import (
             state_path,
             write_state,
         )

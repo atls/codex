@@ -10,13 +10,13 @@ import tempfile
 import unittest
 import zipfile
 
-import yaml
+from fixtures.distribution import WORKFLOW, archive, copy_source
 from pathlib import Path
 from contextlib import ExitStack
 
-from native_process import native_process
+from fixtures.acceptance.process import native_process
 
-from model_fit.infrastructure.adapters.codex.transport.connection import (
+from vector_prime.infrastructure.adapters.codex.transport.connection import (
     AppServerConnection,
 )
 
@@ -39,14 +39,14 @@ class PluginInstallationTests(unittest.TestCase):
             (home / "config.toml").write_text(
                 "[features]\nplugin_discovery_prefetch = false\n"
             )
-            marketplace_root = Path(directory) / "marketplace"
+            marketplace_root = Path(directory) / "vector-prime"
             index = marketplace_root / ".agents/plugins/marketplace.json"
             index.parent.mkdir(parents=True)
             definition = json.loads(
                 (repository / ".agents/plugins/marketplace.json").read_text()
             )
             definition["name"] = marketplace
-            definition["plugins"][0]["source"]["path"] = "./plugins/model-fit"
+            definition["plugins"][0]["source"]["path"] = "."
             index.write_text(json.dumps(definition))
             authoring = Path(directory) / "authoring"
             subprocess.run(
@@ -55,21 +55,12 @@ class PluginInstallationTests(unittest.TestCase):
                 capture_output=True,
                 timeout=30,
             )
-            shutil.copytree(
-                repository / "plugins",
-                authoring / "plugins",
-                ignore=shutil.ignore_patterns(
-                    ".venv", "__pycache__", "*.egg-info", ".ruff_cache", "dist"
-                ),
-            )
+            copy_source(repository, authoring)
             shutil.copytree(
                 repository / ".github/packaging", authoring / ".github/packaging"
             )
-            shutil.copytree(
-                repository / ".github/actions/package",
-                authoring / ".github/actions/package",
-            )
-            shutil.copyfile(repository / "LICENSE", authoring / "LICENSE")
+            (authoring / WORKFLOW.parent).mkdir(parents=True)
+            shutil.copyfile(repository / WORKFLOW, authoring / WORKFLOW)
             (authoring / ".gitignore").write_text("dist/\n")
             subprocess.run(
                 ["git", "-C", str(authoring), "add", "."],
@@ -110,25 +101,9 @@ class PluginInstallationTests(unittest.TestCase):
                 capture_output=True,
                 timeout=30,
             )
-            package_action = yaml.safe_load(
-                (candidate / ".github/actions/package/action.yml").read_text()
-            )
-            subprocess.run(
-                ["bash", "-e", "-c", package_action["runs"]["steps"][0]["run"]],
-                env={**os.environ, "PACKAGE_OUTPUT": str(candidate / "dist")},
-                cwd=candidate,
-                check=True,
-                capture_output=True,
-                timeout=30,
-            )
-            archive = next(
-                path
-                for path in (candidate / "dist").glob("model-fit-*.zip")
-                if not path.name.startswith("model-fit-guidance-")
-            )
-            with zipfile.ZipFile(archive) as built:
-                built.extractall(marketplace_root / "plugins")
-            plugin_id = "model-fit@" + marketplace
+            with zipfile.ZipFile(archive(candidate, "vector-prime")) as built:
+                built.extractall(marketplace_root.parent)
+            plugin_id = "vector-prime@" + marketplace
             environment = {**os.environ, "CODEX_HOME": str(home)}
             environment.pop("PYTHONPATH", None)
             for command in (
@@ -202,7 +177,7 @@ class PluginInstallationTests(unittest.TestCase):
                 self.assertEqual(len(selected), 1)
                 self.assertTrue(Path(selected[0]["path"]).is_file())
             plugin = next(
-                (home / "plugins/cache" / marketplace / "model-fit").glob("*")
+                (home / "plugins/cache" / marketplace / "vector-prime").glob("*")
             )
             clean = subprocess.run(
                 ["git", "-C", str(candidate), "status", "--porcelain"],
@@ -313,7 +288,7 @@ class PluginInstallationTests(unittest.TestCase):
                     edits.append(
                         {
                             "keyPath": "plugins."
-                            + json.dumps("model-fit@agent-tools")
+                            + json.dumps("vector-prime@agent-tools")
                             + ".enabled",
                             "value": False,
                             "mergeStrategy": "replace",
@@ -357,7 +332,7 @@ class PluginInstallationTests(unittest.TestCase):
                         issuer = [
                             str(plugin / ".venv/bin" / issuing),
                             "-m",
-                            "model_fit.entrypoints.hooks.cli",
+                            "vector_prime.entrypoints.hooks.cli",
                             "hook",
                         ]
                         response = subprocess.run(
@@ -374,7 +349,7 @@ class PluginInstallationTests(unittest.TestCase):
                             [
                                 str(plugin / ".venv/bin/python"),
                                 "-m",
-                                "model_fit.entrypoints.hooks.cli",
+                                "vector_prime.entrypoints.hooks.cli",
                                 "assess",
                             ]
                         )
@@ -393,7 +368,7 @@ class PluginInstallationTests(unittest.TestCase):
                         guard = [
                             str(plugin / ".venv/bin" / guarding),
                             "-m",
-                            "model_fit.entrypoints.hooks.cli",
+                            "vector_prime.entrypoints.hooks.cli",
                             "hook",
                         ]
                         permitted = subprocess.run(
@@ -450,7 +425,7 @@ class PluginInstallationTests(unittest.TestCase):
                     [
                         str(plugin_python),
                         "-m",
-                        "model_fit.entrypoints.hooks.cli",
+                        "vector_prime.entrypoints.hooks.cli",
                         "assess",
                     ],
                     cwd=directory,
@@ -465,7 +440,7 @@ class PluginInstallationTests(unittest.TestCase):
                     [
                         str(plugin_python),
                         "-m",
-                        "model_fit.entrypoints.hooks.cli",
+                        "vector_prime.entrypoints.hooks.cli",
                         "queue",
                         "--thread-id",
                         "current",

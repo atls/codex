@@ -1,13 +1,14 @@
 """Boundary checks for the Promptfoo production-contract assertion."""
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-from assessment.decision_assertion import get_assert
+from infrastructure.adapters.promptfoo.decision import get_assert
 
 
 class PromptfooContractTests(unittest.TestCase):
@@ -79,18 +80,19 @@ class PromptfooContractTests(unittest.TestCase):
         self.assertFalse(result["pass"])
         self.assertIn("Target differs", result["reason"])
 
-    def test_assertion_loads_in_an_isolated_process_without_suite_pythonpath(self):
-        assertion = Path(__file__).resolve().parents[1] / "decision_assertion.py"
+    def test_assertion_loads_in_a_cold_worker_with_the_suite_environment(self):
+        suite = Path(__file__).resolve().parents[2]
+        assertion = suite / "infrastructure/adapters/promptfoo/decision.py"
         with tempfile.TemporaryDirectory() as directory:
             result = subprocess.run(
                 [
                     sys.executable,
-                    "-I",
                     "-c",
                     "import runpy,sys; assert callable(runpy.run_path(sys.argv[1])['get_assert'])",
                     str(assertion),
                 ],
                 cwd=directory,
+                env={**os.environ, "PYTHONPATH": str(suite)},
                 capture_output=True,
                 text=True,
             )

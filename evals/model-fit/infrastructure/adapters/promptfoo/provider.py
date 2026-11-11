@@ -6,12 +6,12 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(HERE))
-import model_fit.entrypoints.cli.assess as TRIAGE
+import vector_prime.entrypoints.cli.assess as TRIAGE
 from assessment.scenarios import catalog_models, fixture_context, load_scenarios
-from model_fit.application.assessment.exceptions.source_unavailable import (
+from vector_prime.application.assessment.exceptions.source_unavailable import (
     SourceUnavailable,
 )
-from model_fit.application.assessment.helpers.decision import empty_decision
+from vector_prime.application.assessment.helpers.decision import empty_decision
 
 
 def provider_evidence(diagnostics, request, prompt, error=None):

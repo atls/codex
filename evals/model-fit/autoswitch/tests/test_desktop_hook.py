@@ -10,9 +10,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[4]
-import model_fit.infrastructure.adapters.codex.history as RUNTIME
-import model_fit.infrastructure.adapters.filesystem.audit as AUDIT
-from model_fit.entrypoints.hooks import prompt as HOOK
+import vector_prime.infrastructure.adapters.codex.history as RUNTIME
+import vector_prime.infrastructure.adapters.filesystem.audit as AUDIT
+from vector_prime.entrypoints.hooks import prompt as HOOK
 
 
 class DesktopHookTests(unittest.TestCase):
@@ -422,7 +422,7 @@ class DesktopHookTests(unittest.TestCase):
         triage.assert_not_called()
 
     def test_selected_profile_clears_only_its_thread_through_shared_storage(self):
-        from model_fit.infrastructure.adapters.filesystem.cache import (
+        from vector_prime.infrastructure.adapters.filesystem.cache import (
             Assessment,
         )
 
@@ -463,7 +463,7 @@ class DesktopHookTests(unittest.TestCase):
                 )
 
     def test_cached_proposal_cannot_bypass_changed_context_or_input(self):
-        from model_fit.application.assessment.helpers.decision import empty_decision
+        from vector_prime.application.assessment.helpers.decision import empty_decision
 
         request = {
             "task": "Explain this result.",
@@ -586,7 +586,7 @@ class DesktopHookTests(unittest.TestCase):
             with (
                 patch.object(HOOK, "triage", return_value=decision),
                 patch(
-                    "model_fit.infrastructure.adapters.filesystem.cache.save_pending",
+                    "vector_prime.infrastructure.adapters.filesystem.cache.save_pending",
                     side_effect=OSError("disk full"),
                 ),
             ):

@@ -8,7 +8,7 @@ from jsonschema import Draft202012Validator
 class DecisionSchemaTests(unittest.TestCase):
     def test_generated_schema_preserves_the_public_decision_contract(self):
         schema = json.loads(
-            files("model_fit.application.assessment")
+            files("vector_prime.application.assessment")
             .joinpath("decision.schema.json")
             .read_text()
         )

@@ -1,3 +1,5 @@
+from fixtures.distribution import copy_source
+
 """Native hook discovery and process isolation without inference requests."""
 
 import json
@@ -11,8 +13,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[4]
-SCRIPTS = ROOT / "plugins/model-fit/src/model_fit"
-from model_fit.entrypoints.hooks import prompt as HOOK
+from vector_prime.entrypoints.hooks import prompt as HOOK
 
 
 @unittest.skipUnless(shutil.which("codex"), "Installed Codex app-server is required")
@@ -24,12 +25,8 @@ class DesktopHookScopeTests(unittest.TestCase):
         self.home = self.root / "codex-home"
         self.home.mkdir()
         self.plugin = self.home / "plugins/model-fit"
-        self.handler = self.plugin / "src/model_fit/entrypoints/hooks/cli.py"
-        shutil.copytree(
-            SCRIPTS.parent,
-            self.plugin,
-            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".venv"),
-        )
+        self.handler = self.plugin / "src/vector_prime/entrypoints/hooks/cli.py"
+        copy_source(ROOT, self.plugin)
         self.projects = {}
         for name in ("first-project", "second-project", "unrelated-project"):
             repo = self.root / name
@@ -50,7 +47,7 @@ class DesktopHookScopeTests(unittest.TestCase):
         for name in ("first-project", "second-project"):
             path = self.projects[name] / ".codex/hooks.json"
             path.parent.mkdir()
-            command = f"MODEL_FIT_AUTO_THREAD={name}-thread uv run --quiet --project {shlex.quote(str(self.plugin))} python -m model_fit.entrypoints.hooks.cli lifecycle"
+            command = f"MODEL_FIT_AUTO_THREAD={name}-thread uv run --quiet --project {shlex.quote(str(self.plugin))} python -m vector_prime.entrypoints.hooks.cli lifecycle"
             path.write_text(
                 json.dumps(
                     {
@@ -91,7 +88,9 @@ class DesktopHookScopeTests(unittest.TestCase):
                 **kwargs,
             ),
         ):
-            from model_fit.infrastructure.adapters.codex.history import AppServerReader
+            from vector_prime.infrastructure.adapters.codex.history import (
+                AppServerReader,
+            )
 
             app = AppServerReader(str(self.root))
         return app

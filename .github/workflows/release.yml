@@ -4,51 +4,39 @@ on:
   pull_request_target:
     types: [closed]
     branches: [master]
-    paths:
-      - 'plugins/**'
-      - LICENSE
-      - .github/actions/package/**
-      - .github/packaging/**
-      - .github/workflows/release.yml
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  release:
+  package:
     if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'master'
+    uses: ./.github/workflows/package.yml
+    with:
+      revision: ${{ github.event.pull_request.merge_commit_sha }}
+
+  release:
+    needs: package
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
-      - uses: astral-sh/ruff-action@v4.1.0
+      - uses: actions/download-artifact@v4
         with:
-          version: '0.17.2'
-          src: plugins/model-fit evals/model-fit
-      - run: ruff format --check plugins/model-fit evals/model-fit
-      - uses: astral-sh/setup-uv@v7
-        with:
-          python-version: '3.13'
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: evals/model-fit/package.json
-      - run: yarn install --immutable
-        working-directory: evals/model-fit
-      - run: yarn run test
-        working-directory: evals/model-fit
-      - uses: ./.github/actions/package
-        with:
-          output: dist
+          path: dist
+          merge-multiple: true
       - name: Read release version
         id: version
-        run: echo "value=$(jq -er '.version' plugins/model-fit/.codex-plugin/plugin.json)" >> "$GITHUB_OUTPUT"
+        run: echo "value=$(jq -er '.version' .codex-plugin/plugin.json)" >> "$GITHUB_OUTPUT"
       - name: Publish GitHub Release
         uses: ncipollo/release-action@v1
         with:
           tag: v${{ steps.version.outputs.value }}
           commit: ${{ github.event.pull_request.merge_commit_sha }}
-          name: Model Fit v${{ steps.version.outputs.value }}
+          name: Vector Prime v${{ steps.version.outputs.value }}
           artifacts: dist/*.zip
           artifactErrorsFailBuild: true
           allowUpdates: false

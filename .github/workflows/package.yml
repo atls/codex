@@ -1,0 +1,45 @@
+name: Package Vector Prime
+
+on:
+  workflow_call:
+    inputs:
+      revision:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: vector-prime
+            inventory: .github/packaging/marketplace.files
+          - name: vector-prime-guidance
+            inventory: .github/packaging/directory/files
+            manifest: .github/packaging/directory/plugin.json
+    env:
+      PACKAGE_NAME: ${{ matrix.name }}
+      PACKAGE_FILES: ${{ matrix.inventory }}
+      PACKAGE_MANIFEST: ${{ matrix.manifest }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.revision }}
+      - run: mkdir -p dist
+      - name: Copy declared files
+        run: rsync -r --no-links --exclude __pycache__ --exclude '*.pyc' --files-from="$PACKAGE_FILES" ./ "dist/$PACKAGE_NAME/"
+      - name: Copy Directory manifest
+        if: matrix.manifest != ''
+        run: cp "$PACKAGE_MANIFEST" "dist/$PACKAGE_NAME/plugin.json"
+      - name: Archive package
+        working-directory: dist
+        run: zip -qr "$PACKAGE_NAME.zip" "$PACKAGE_NAME"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: dist/${{ matrix.name }}.zip
+          if-no-files-found: error

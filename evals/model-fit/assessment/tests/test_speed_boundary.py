@@ -7,10 +7,10 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 from jsonschema import Draft202012Validator
 
-import model_fit.entrypoints.cli.assess as cli
-import model_fit.infrastructure.adapters.codex.assessment as client
-from model_fit.application.assessment.constraints.decision import validate
-from model_fit.infrastructure.adapters.codex.transport.assessment import execution
+import vector_prime.entrypoints.cli.assess as cli
+import vector_prime.infrastructure.adapters.runtime.assessment as client
+from vector_prime.application.assessment.decision import validate
+from vector_prime.infrastructure.adapters.codex.transport.assessment import execution
 
 
 class SpeedBoundaryTests(unittest.TestCase):

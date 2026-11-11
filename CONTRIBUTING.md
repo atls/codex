@@ -1,4 +1,4 @@
-# Contributing to Model Fit
+# Contributing to Vector Prime
 
 Bug reports, documentation improvements, reproducible evaluation cases and focused code changes are welcome. This project follows the [ATLS contribution practices](https://github.com/atls/convention/blob/master/CONTRIBUTING.md) and repository issue/PR templates.
 
@@ -6,7 +6,7 @@ Bug reports, documentation improvements, reproducible evaluation cases and focus
 
 Open an [issue](https://github.com/atls/codex/issues) with:
 
-- Codex Desktop and CLI versions, operating system and installed Model Fit version
+- Codex Desktop and CLI versions, operating system and installed Vector Prime version
 - Whether you used the explicit CLI or automatic hooks, and the configuration scope
 - The task, active model/effort, expected behavior and observed behavior
 - Minimal reproduction steps and sanitized error codes or audit references
@@ -29,8 +29,8 @@ To update the tooling pair, follow the [Raijin setup guide](https://github.com/a
 
 ## Build and verify the two packages
 
-GitHub Actions assembles both distributions with the shared package action in
-`.github/actions/package/action.yml`. Contents are declared in `.github/packaging`;
+GitHub Actions assembles both distributions with the package workflow in
+`.github/workflows/package.yml`. Contents are declared in `.github/packaging`;
 standard file tools copy sources and create ZIPs without rewriting instructions
 or Python metadata. The release workflow publishes only after a confirmed PR
 merge into master, using the exact merge commit.
@@ -40,25 +40,25 @@ Run the same composition commands and extracted-package checks locally:
 ```sh
 cd evals/model-fit
 yarn test:packaging
-uv run --locked --no-editable --reinstall-package codex-model-fit mypy --strict --disallow-any-explicit -p model_fit
+uv run --locked --no-editable --reinstall-package vector-prime mypy --strict --disallow-any-explicit -p vector_prime
 ```
 
-Packaging tests execute the action's actual shell commands in an isolated source
+Packaging tests execute the workflow's archive commands in an isolated source
 fixture without evaluation files. Native installation tests also build through
-that action before testing cached hooks, trust and revocation. The Python package
-uses the conventional `src/model_fit` layout and `uv_build` discovery.
+that workflow before testing cached hooks, trust and revocation. The Python package
+uses the conventional `src/vector_prime` layout and `uv_build` discovery.
 
 The public decision JSON Schema is generated from `AssessmentDecision` with
 Pydantic. After changing that accepted wire contract, regenerate its checked-in
 schema from the repository root:
 
 ```sh
-uv run --project plugins/model-fit --locked python - <<'PY'
+uv run --project . --locked python - <<'PY'
 import json
 from pathlib import Path
-from model_fit.application.assessment.decoding import DECISION_ADAPTER
+from vector_prime.application.assessment.decoding import DECISION_ADAPTER
 
-Path("plugins/model-fit/src/model_fit/application/assessment/decision.schema.json").write_text(
+Path("src/vector_prime/application/assessment/decision.schema.json").write_text(
     json.dumps(DECISION_ADAPTER.json_schema(), indent=2) + "\n"
 )
 PY
