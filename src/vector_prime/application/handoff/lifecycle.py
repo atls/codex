@@ -3,7 +3,6 @@ from vector_prime.application.handoff.guards.receipt import (
     accepted_content,
     require_receipt_identity,
 )
-from vector_prime.application.handoff.helpers.source import handoff_source
 from vector_prime.application.handoff.types.conversation import (
     NativeConversationFactory,
 )
@@ -26,7 +25,6 @@ from vector_prime.application.handoff.guards.authorization import require_queue_
 from vector_prime.application.handoff.guards.authorization import (
     require_transfer_profile,
 )
-from vector_prime.application.handoff.guards.queue import queue_preparation
 from vector_prime.application.handoff.types.progress import TransferInputEvidence
 from vector_prime.application.handoff.guards.authorization import (
     require_preparation_state,
@@ -37,7 +35,6 @@ from vector_prime.application.handoff.guards.continuation import (
     require_replay_turn,
 )
 from vector_prime.application.handoff.guards.queue import (
-    require_rejection_state,
     require_release_state,
 )
 from vector_prime.application.assessment.types.decision import AssessmentDecision
@@ -50,26 +47,21 @@ from vector_prime.application.assessment.decoding import required_text
 from vector_prime.application.handoff.types.preparation import TransferPreparation
 from vector_prime.application.switch.types.state import ProcessSnapshot
 from vector_prime.application.switch.types.storage import TransferStateSlot
-from vector_prime.application.switch.lifecycle import save_snapshot
-from vector_prime.application.handoff.types.queue_receipt import NativeQueueReceipt
-from vector_prime.application.submission.types.json import JsonValue
 from vector_prime.application.submission.helpers import content as codec
 from vector_prime.application.handoff.helpers.progress import (
     prepared_handoff,
     replay_evidence,
-    attempted_handoff,
     queued_handoff,
 )
 from vector_prime.application.handoff.types.progress import (
     AcceptedHandoff,
     AttemptedHandoff,
 )
-from vector_prime.application.handoff.types.progress import QueuedHandoff
 from vector_prime.application.handoff.types.queue import QueueConfirmation
 
 from vector_prime.application.handoff.errors.queue_rejection import NativeQueueRejection
 from typing import Callable
-from vector_prime.application.switch.types.storage import TransferStateStore
+from vector_prime.application.handoff.types.queue_storage import QueueStore
 from vector_prime.application.handoff.types.clock import Clock
 
 
@@ -103,7 +95,7 @@ def authorize_transfer(
     slot: TransferStateSlot, state: ProcessSnapshot, now: float
 ) -> None:
     prepared_handoff(state)
-    save_snapshot(slot, {**state, "transfer_authorized_at": now})
+    slot.save_transition({**state, "transfer_authorized_at": now})
 
 
 def stage(slot: TransferStateSlot, preparation: TransferPreparation) -> ProcessSnapshot:
@@ -125,7 +117,7 @@ def stage(slot: TransferStateSlot, preparation: TransferPreparation) -> ProcessS
         state["control_turn_id"] = preparation["control_turn_id"]
     if "continuation_turn_ids" in preparation:
         state["continuation_turn_ids"] = preparation["continuation_turn_ids"]
-    return save_snapshot(slot, state)
+    return slot.save_transition(state)
 
 
 def continue_transfer(
@@ -137,7 +129,7 @@ def continue_transfer(
         continuations = state.setdefault("continuation_turn_ids", [])
         if turn_id not in continuations:
             continuations.append(turn_id)
-    save_snapshot(slot, state)
+    slot.save_transition(state)
 
 
 def bind_replay(slot: TransferStateSlot, state: ProcessSnapshot, turn_id: str) -> None:
@@ -145,72 +137,7 @@ def bind_replay(slot: TransferStateSlot, state: ProcessSnapshot, turn_id: str) -
     require_replay_turn(queued, turn_id)
     state.pop("pending_assessment", None)
     state["replay_turn_id"] = turn_id
-    save_snapshot(slot, state)
-
-
-def begin_queue(
-    slot: TransferStateSlot,
-    state: ProcessSnapshot,
-    client_message_id: str,
-    content: list[dict[str, JsonValue]],
-) -> AttemptedHandoff:
-    prepared_handoff(state)
-    state["queued_client_message_id"] = client_message_id
-    state.pop("prompt")
-    state["source_input_digest"] = codec.input_digest(content)
-    state["queued_input_digest"] = codec.input_digest(content)
-    state["queued_prompt_digest"] = codec.prompt_digest(codec.input_text(content))
-    state["queued_hook_prompt_digest"] = codec.prompt_digest(codec.hook_prompt(content))
-    state["phase"] = "attempting"
-    save_snapshot(slot, state)
-
-    return attempted_handoff(state)
-
-
-def receipt(
-    slot: TransferStateSlot,
-    state: ProcessSnapshot,
-    attempt: AttemptedHandoff,
-    submission: NativeQueueReceipt,
-) -> AcceptedHandoff:
-    state["queued_submission_id"] = submission.submission_id
-    # A native acknowledgement must survive malformed content: retrying an
-    # externally accepted submission is unsafe even when its payload is unknown.
-    save_snapshot(slot, state)
-    state["queued_input_digest"] = codec.input_digest(accepted_content(submission))
-    save_snapshot(slot, state)
-
-    require_receipt_identity(submission)
-    return AcceptedHandoff(
-        attempt.source_turn_id,
-        attempt.target,
-        submission.submission_id,
-        TransferInputEvidence("native_input", state["queued_input_digest"]),
-    )
-
-
-def reject(slot: TransferStateSlot, state: ProcessSnapshot) -> None:
-    require_rejection_state(state)
-    state["phase"] = "rejected"
-    save_snapshot(slot, state)
-
-
-def confirm_queue(
-    slot: TransferStateSlot,
-    state: ProcessSnapshot,
-    accepted: AcceptedHandoff,
-    timestamp: float,
-) -> QueuedHandoff:
-    state["phase"] = "queued"
-    state["queued_at"] = int(timestamp)
-    save_snapshot(slot, state)
-    return QueuedHandoff(
-        accepted.source_turn_id,
-        accepted.target,
-        accepted.submission_id,
-        accepted.input_evidence,
-        None,
-    )
+    slot.save_transition(state)
 
 
 def release(slot: TransferStateSlot) -> None:
@@ -218,8 +145,7 @@ def release(slot: TransferStateSlot) -> None:
     require_release_state(current)
     pending = current.get("pending_assessment") if current is not None else None
     if pending:
-        save_snapshot(
-            slot,
+        slot.save_transition(
             {
                 "phase": "submitted",
                 "source_turn_id": pending["turn_id"],
@@ -237,27 +163,44 @@ def enqueue(
     caller_thread: str | None,
     clock: Clock,
     conversation: NativeConversationFactory,
-    store: TransferStateStore,
+    store: QueueStore,
     working_directory: Callable[[], str],
 ) -> QueueConfirmation:
     require_queue_executor(caller_thread, thread_id)
-    with store.transaction(thread_id, operation="queue", turn_id=turn_id) as slot:
-        state = slot.load()
-        prepared = queue_preparation(state, turn_id, clock())
+    with store.queue(thread_id, turn_id) as slot:
+        prepared = slot.prepare(turn_id, clock())
         if isinstance(prepared, QueueConfirmation):
             return prepared
-        assert state is not None
         with conversation(working_directory()) as app:
-            require_transfer_profile(prepared, app.profile(thread_id))
-            content = app.handoff_input(thread_id, handoff_source(state))
-            attempt = begin_queue(slot, state, turn_id, content)
+            require_transfer_profile(prepared.transfer, app.profile(thread_id))
+            content = app.handoff_input(thread_id, prepared.source)
+            attempt = AttemptedHandoff(
+                prepared.transfer.source_turn_id,
+                prepared.transfer.target,
+                turn_id,
+                TransferInputEvidence("native_input", codec.input_digest(content)),
+            )
+            slot.write_attempt(
+                attempt,
+                codec.prompt_digest(codec.input_text(content)),
+                codec.prompt_digest(codec.hook_prompt(content)),
+            )
             submission = app.enqueue(thread_id, attempt.client_message_id, content)
             if isinstance(submission, NativeQueueRejection):
-                reject(slot, state)
+                slot.reject()
                 raise submission.error
-            accepted = receipt(slot, state, attempt, submission)
-        confirmed = confirm_queue(slot, state, accepted, clock())
-        return QueueConfirmation(confirmed.submission_id)
+            slot.write_receipt_id(submission.submission_id)
+            digest = codec.input_digest(accepted_content(submission))
+            slot.write_accepted_digest(digest)
+            require_receipt_identity(submission)
+            accepted = AcceptedHandoff(
+                attempt.source_turn_id,
+                attempt.target,
+                submission.submission_id,
+                TransferInputEvidence("native_input", digest),
+            )
+        slot.confirm(accepted, int(clock()))
+        return QueueConfirmation(accepted.submission_id)
 
 
 def plan_transfer(

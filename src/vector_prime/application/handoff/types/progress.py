@@ -26,7 +26,6 @@ class AttemptedHandoff:
     target: TransferTarget
     client_message_id: str
     input_evidence: TransferInputEvidence
-    submission_id: str | None
 
 
 @dataclass(frozen=True)

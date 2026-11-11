@@ -1,3 +1,4 @@
+from vector_prime.infrastructure.adapters.filesystem.queue import FileQueueSlot
 from collections.abc import Iterator
 from vector_prime.application.submission.types.json import JsonValue
 from vector_prime.application.switch.types.state import ProcessSnapshot
@@ -21,6 +22,11 @@ class FileStore:
             thread_id, nonblocking=nonblocking, operation=operation, turn_id=turn_id
         ) as path:
             yield FileSlot(path)
+
+    @contextmanager
+    def queue(self, thread_id: str, turn_id: str) -> Iterator[FileQueueSlot]:
+        with self.transaction(thread_id, operation="queue", turn_id=turn_id) as slot:
+            yield FileQueueSlot(slot)
 
     def snapshot(self, thread_id: str) -> ProcessSnapshot | None:
         return state.read_state(state.state_path(thread_id))

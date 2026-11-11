@@ -16,23 +16,6 @@ from vector_prime.application.switch.types.state import ProcessSnapshot
 from vector_prime.application.switch.types.storage import TransferStateSlot
 
 
-def save_snapshot(slot: TransferStateSlot, state: ProcessSnapshot) -> ProcessSnapshot:
-    current = slot.load()
-    pending = state.get("pending_assessment")
-    generation = pending.get("generation") if pending is not None else None
-    if generation is None and current is not None:
-        current_pending = current.get("pending_assessment")
-        generation = (
-            current_pending.get("generation", current.get("assessment_generation"))
-            if current_pending is not None
-            else current.get("assessment_generation")
-        )
-    if generation is not None:
-        state = {**state, "assessment_generation": generation}
-    slot.save(state)
-    return state
-
-
 def admit(
     slot: TransferStateSlot,
     turn_id: str,
@@ -68,7 +51,7 @@ def admit(
         state["assessment_generation"] = assessment_lifecycle.new_generation()
         slot.save(state)
     else:
-        save_snapshot(slot, state)
+        slot.save_transition(state)
 
 
 @overload
@@ -115,7 +98,7 @@ def register_submission(
         else assessment_lifecycle.register(event, prompt_hash)
     )
     state["pending_assessment"] = pending
-    save_snapshot(slot, state)
+    slot.save_transition(state)
     return pending
 
 
@@ -125,7 +108,7 @@ def start_assessment(slot: TransferStateSlot) -> PendingAssessmentRecord:
     if state is None or not pending:
         raise ValueError("No submitted Model Fit input")
     assessment_lifecycle.start(pending)
-    save_snapshot(slot, state)
+    slot.save_transition(state)
     return pending
 
 
@@ -136,7 +119,7 @@ def fail_assessment(
     stored = state.get("pending_assessment") if state is not None else None
     if state is not None and stored is not None and stored == pending:
         assessment_lifecycle.fail(stored, reason)
-        save_snapshot(slot, state)
+        slot.save_transition(state)
 
 
 def abstain_assessment(
@@ -173,7 +156,7 @@ def finish_assessment(
         state.pop("pending_assessment", None)
         if state["phase"] == "passed" and assessed_profile is not None:
             state["assessed_profile"] = assessed_profile
-        save_snapshot(slot, state)
+        slot.save_transition(state)
 
 
 def consume_submission(
@@ -181,8 +164,7 @@ def consume_submission(
 ) -> None:
     current = slot.load()
     require_consumption(current, pending)
-    save_snapshot(
-        slot,
+    slot.save_transition(
         {
             "phase": "submitted",
             "source_turn_id": turn_id,
