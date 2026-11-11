@@ -1,3 +1,4 @@
+from vector_prime.application.handoff.types.preparation import TransferContinuation
 from vector_prime.application.switch.types.state import ProcessSnapshot
 from vector_prime.application.handoff.helpers.progress import prepared_handoff
 from vector_prime.application.handoff.types.progress import QueuedHandoff
@@ -22,8 +23,7 @@ def require_accepted_replay(state: ProcessSnapshot, queued_ids: set[str]) -> Non
         raise RuntimeError("Previous native submission is still queued")
 
 
-def reuses_original_input(turn_id: str, state: ProcessSnapshot) -> bool:
-    return turn_id in {
-        state["source_turn_id"],
-        *state.get("continuation_turn_ids", []),
-    }
+def reuses_original_input(turn_id: str, transfer: TransferContinuation) -> bool:
+    return (
+        turn_id == transfer.source_turn_id or turn_id in transfer.continuation_turn_ids
+    )

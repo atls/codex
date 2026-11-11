@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 
-from vector_prime.application.switch.types.state import ProcessSnapshot
+from vector_prime.application.handoff.types.preparation import TransferContinuation
 
 
 @dataclass(frozen=True)
 class ReconciledHandoff:
-    pending_transfer: ProcessSnapshot | None
+    pending_transfer: TransferContinuation | None
 
 
 @dataclass(frozen=True)

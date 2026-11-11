@@ -44,7 +44,12 @@ from vector_prime.application.handoff.types.plan import (
     TransferTarget,
 )
 from vector_prime.application.assessment.decoding import required_text
-from vector_prime.application.handoff.types.preparation import TransferPreparation
+from vector_prime.application.handoff.types.preparation import (
+    TransferPreparation,
+    TransferContinuation,
+)
+from vector_prime.application.handoff.types.instruction import TransferInstruction
+from vector_prime.application.handoff.helpers.instruction import transfer_instruction
 from vector_prime.application.switch.types.state import ProcessSnapshot
 from vector_prime.application.switch.types.storage import TransferStateSlot
 from vector_prime.application.submission.helpers import content as codec
@@ -98,7 +103,9 @@ def authorize_transfer(
     slot.save_transition({**state, "transfer_authorized_at": now})
 
 
-def stage(slot: TransferStateSlot, preparation: TransferPreparation) -> ProcessSnapshot:
+def stage(
+    slot: TransferStateSlot, preparation: TransferPreparation
+) -> TransferInstruction:
     current = slot.load()
     require_preparation_state(current)
     state: ProcessSnapshot = {
@@ -117,7 +124,7 @@ def stage(slot: TransferStateSlot, preparation: TransferPreparation) -> ProcessS
         state["control_turn_id"] = preparation["control_turn_id"]
     if "continuation_turn_ids" in preparation:
         state["continuation_turn_ids"] = preparation["continuation_turn_ids"]
-    return slot.save_transition(state)
+    return transfer_instruction(slot.save_transition(state))
 
 
 def continue_transfer(
@@ -234,8 +241,8 @@ def prepare(
     target: TransferTarget,
     decision: AssessmentDecision,
     timestamp: float,
-    continuation: ProcessSnapshot | None,
-) -> ProcessSnapshot:
+    continuation: TransferContinuation | None,
+) -> TransferInstruction:
     preparation: TransferPreparation = {
         "created_at": int(timestamp),
         "source_turn_id": turn_id,
@@ -248,13 +255,11 @@ def prepare(
         "task_inference": decision["task_inference"],
     }
     if continuation is not None:
-        preparation["source_turn_id"] = continuation["source_turn_id"]
-        preparation["prompt"] = continuation["prompt"]
-        preparation["prompt_digest"] = continuation["prompt_digest"]
+        preparation["source_turn_id"] = continuation.source_turn_id
+        preparation["prompt"] = continuation.prompt
+        preparation["prompt_digest"] = continuation.prompt_digest
         preparation["control_turn_id"] = turn_id
-        preparation["continuation_turn_ids"] = list(
-            continuation.get("continuation_turn_ids", [])
-        )
+        preparation["continuation_turn_ids"] = list(continuation.continuation_turn_ids)
         if (
             turn_id != preparation["source_turn_id"]
             and turn_id not in preparation["continuation_turn_ids"]
@@ -294,7 +299,12 @@ def reconcile(
                 or codec.prompt_digest(prompt) != prior["prompt_digest"]
             )
         ):
-            pending = prior
+            pending = TransferContinuation(
+                prior["source_turn_id"],
+                prior["prompt"],
+                prior["prompt_digest"],
+                tuple(prior.get("continuation_turn_ids", [])),
+            )
         else:
             continue_transfer(slot, prior, turn_id)
             audit(thread_id, turn_id, "auto_handoff_continued")

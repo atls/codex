@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from vector_prime.application.handoff.helpers.instruction import transfer_instruction
+from vector_prime.application.handoff.types.preparation import TransferContinuation
 from vector_prime.application.handoff import lifecycle as handoff_lifecycle
 from vector_prime.application.handoff.types.plan import (
     ManualHandoff,
@@ -51,7 +51,7 @@ def apply_decision(
     request: ProfileAssessmentInput,
     result: AssessmentDecision,
     *,
-    pending: ProcessSnapshot | None,
+    pending: TransferContinuation | None,
     handoff_snapshot: ProcessSnapshot | None,
     manual_evidence: RecommendationRecord | None,
     profile_context_turn_id: str | None,
@@ -214,7 +214,7 @@ def apply_decision(
                 current_handoff["phase"] if current_handoff else "missing",
                 audit=audit,
             )
-        prepared_state = handoff_lifecycle.prepare(
+        instruction = handoff_lifecycle.prepare(
             slot,
             turn_id=turn_id,
             prompt=prompt,
@@ -225,4 +225,4 @@ def apply_decision(
         )
         if pending is not None:
             audit(thread_id, turn_id, "auto_handoff_continued")
-    return PreparedTransfer(thread_id, turn_id, transfer_instruction(prepared_state))
+    return PreparedTransfer(thread_id, turn_id, instruction)

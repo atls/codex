@@ -1,4 +1,3 @@
-from vector_prime.application.handoff.helpers.source import handoff_source
 from vector_prime.application.assessment.helpers.context import restore_context
 from vector_prime.application.assessment.types.context import (
     ContextAugmentation,
@@ -46,8 +45,8 @@ def restore_work_context(
         content = None
         if "input" in request:
             with conversation(event.working_directory) as app:
-                content = app.handoff_input(event.thread_id, handoff_source(pending))
+                content = app.handoff_input(event.thread_id, pending.source())
         unfinished = UnfinishedRequest(
-            pending["prompt"], content, reuses_original_input(event.turn_id, pending)
+            pending.prompt, content, reuses_original_input(event.turn_id, pending)
         )
     return restore_context(request, ContextAugmentation(choice, unfinished))
