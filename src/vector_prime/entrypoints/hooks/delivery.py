@@ -1,5 +1,5 @@
 from vector_prime.entrypoints.hooks.types.output import HookOutput
-from vector_prime.application.handoff.guards.authorization import preparation_is_current
+from vector_prime.application.switch.guards.preparation import preparation_is_current
 from vector_prime.application.switch.types.storage import TransferStateStore
 from vector_prime.application.switch.types.audit import AuditWriter
 from vector_prime.application.switch.types.disposition import (

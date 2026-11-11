@@ -1,5 +1,6 @@
 from vector_prime.application.handoff.types.instruction import TransferInstruction
 from vector_prime.application.handoff.types.plan import TransferTarget
+from vector_prime.application.handoff.types.source import HandoffSource
 from vector_prime.application.switch.types.state import ProcessSnapshot
 
 
@@ -12,4 +13,12 @@ def transfer_instruction(state: ProcessSnapshot) -> TransferInstruction:
         official_source_url=state["official_source_url"],
         official_guidance=state["official_guidance"],
         task_inference=state["task_inference"],
+    )
+
+
+def handoff_source(state: ProcessSnapshot) -> HandoffSource:
+    return HandoffSource(
+        state["source_turn_id"],
+        state.get("prompt"),
+        tuple(state.get("continuation_turn_ids", [])),
     )

@@ -84,7 +84,7 @@ class TransferRouteTests(unittest.TestCase):
             "official_guidance": "fixture guidance",
             "task_inference": "fixture inference",
         }
-        from vector_prime.application.handoff.helpers.instruction import (
+        from vector_prime.application.switch.helpers.transfer import (
             transfer_instruction,
         )
 

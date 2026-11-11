@@ -7,6 +7,8 @@ import sys
 import tempfile
 import threading
 import unittest
+
+import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from fixtures.autoswitch.assessment import evaluate_request
@@ -36,15 +38,10 @@ from vector_prime.infrastructure.adapters.filesystem.state import (
 
 
 class SubmittedInputTests(unittest.TestCase):
-    def setUp(self):
-        self.home = tempfile.TemporaryDirectory()
-        self.addCleanup(self.home.cleanup)
-        self.env = patch.dict(
-            os.environ,
-            {"CODEX_HOME": self.home.name, "CODEX_THREAD_ID": "submitted-thread"},
-        )
-        self.env.start()
-        self.addCleanup(self.env.stop)
+    @pytest.fixture(autouse=True)
+    def isolated_codex(self, codex_home, monkeypatch):
+        self.home = codex_home
+        monkeypatch.setenv("CODEX_THREAD_ID", "submitted-thread")
         self.content = [
             {
                 "type": "text",
@@ -855,12 +852,12 @@ class SubmittedInputTests(unittest.TestCase):
 
     def test_assessment_interpreter_alias_keeps_venv_and_command_constraints(self):
         api.submit_prompt(self.event)
-        directory = Path(self.home.name) / "runtime/bin"
+        directory = self.home / "runtime/bin"
         directory.mkdir(parents=True)
         first, second = (directory / "python", directory / "python3")
         first.symlink_to(sys.executable)
         second.symlink_to(sys.executable)
-        foreign = Path(self.home.name) / "foreign/bin/python"
+        foreign = self.home / "foreign/bin/python"
         foreign.parent.mkdir(parents=True)
         foreign.symlink_to(sys.executable)
         different = directory / "other"

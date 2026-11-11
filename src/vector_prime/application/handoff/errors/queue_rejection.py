@@ -1,6 +1,5 @@
-from dataclasses import dataclass
+from enum import Enum
 
 
-@dataclass(frozen=True)
-class NativeQueueRejection:
-    error: RuntimeError
+class NativeQueueRejection(Enum):
+    REJECTED = "native_queue_rejected"

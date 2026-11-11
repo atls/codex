@@ -34,3 +34,17 @@ def recommended_profile(pending: RecommendationRecord) -> ActiveProfile:
         "effort": result.get("recommended_effort") or active["effort"],
         "speed": result.get("recommended_speed") or active["speed"],
     }
+
+
+def normalize_unchanged_decision(result: AssessmentDecision) -> AssessmentDecision:
+    normalized: AssessmentDecision = {
+        **result,
+        "recommended_model": None,
+        "recommended_effort": None,
+        "recommended_speed": None,
+    }
+    if result["decision"] == "keep":
+        normalized["official_source_url"] = None
+        normalized["official_guidance"] = None
+        normalized["task_inference"] = None
+    return normalized

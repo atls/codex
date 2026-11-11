@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from vector_prime.application.assessment.types.state import Failed
-from vector_prime.application.handoff.helpers.source import handoff_source
+from vector_prime.application.switch.helpers.transfer import handoff_source
 
 from vector_prime.application.switch import lifecycle as switch_lifecycle
 

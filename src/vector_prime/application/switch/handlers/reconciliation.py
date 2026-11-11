@@ -1,8 +1,9 @@
 from __future__ import annotations
-from vector_prime.application.handoff.helpers.instruction import transfer_instruction
+from vector_prime.application.switch.helpers.transfer import transfer_instruction
 from vector_prime.application.handoff.types.reconciliation import (
     ReconciliationDenied,
     TransferContinued,
+    TransferObservation,
 )
 from vector_prime.application.handoff.types.replay import ReplayBound
 from vector_prime.application.switch.denial import block_prompt
@@ -29,6 +30,26 @@ from vector_prime.application.submission.types.input import SubmissionInput
 from vector_prime.application.switch.types.storage import TransferStateStore
 
 from vector_prime.application.switch.types.reconciliation import ReconciledSubmission
+
+
+def audit_transfer(
+    audit: AuditWriter, thread_id: str, turn_id: str, observation: TransferObservation
+) -> None:
+    if observation is TransferObservation.CONTINUED:
+        audit(thread_id, turn_id, "auto_handoff_continued")
+    elif observation is TransferObservation.STEERED:
+        audit(thread_id, turn_id, "auto_steer")
+    elif observation is TransferObservation.TERMINAL_SOURCE_WITHOUT_REPLAY:
+        audit(
+            thread_id,
+            turn_id,
+            "auto_handoff_cancelled",
+            {
+                "hook_event": "UserPromptSubmit",
+                "reason_code": observation.value,
+                "state_phase": "queued",
+            },
+        )
 
 
 def reconcile(
@@ -74,8 +95,9 @@ def reconcile(
             reconciled = handoff_lifecycle.reconcile(
                 slot,
                 event,
-                prior,
-                audit=audit,
+                observe=lambda observation: audit_transfer(
+                    audit, thread_id, turn_id, observation
+                ),
                 conversation=conversation,
                 read_context=read_context,
             )

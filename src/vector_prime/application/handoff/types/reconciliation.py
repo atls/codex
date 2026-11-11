@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import Enum
 
 from vector_prime.application.handoff.types.preparation import TransferContinuation
 
@@ -17,3 +18,9 @@ class TransferContinued:
 class ReconciliationDenied:
     reason: str
     reason_code: str | None = None
+
+
+class TransferObservation(Enum):
+    CONTINUED = "continued"
+    STEERED = "steered"
+    TERMINAL_SOURCE_WITHOUT_REPLAY = "terminal_source_without_replay"

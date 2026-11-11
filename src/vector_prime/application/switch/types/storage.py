@@ -1,10 +1,11 @@
+from vector_prime.application.handoff.types.storage import HandoffSlot
 from typing import Protocol
 from vector_prime.application.submission.types.json import JsonValue
 from contextlib import AbstractContextManager
 from vector_prime.application.switch.types.state import ProcessSnapshot
 
 
-class TransferStateSlot(Protocol):
+class TransferStateSlot(HandoffSlot, Protocol):
     def load(self) -> ProcessSnapshot | None: ...
 
     def save(self, value: ProcessSnapshot) -> None: ...

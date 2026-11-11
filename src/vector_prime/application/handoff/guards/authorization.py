@@ -1,13 +1,5 @@
-from __future__ import annotations
-from vector_prime.application.switch.types.state import ProcessSnapshot
 from vector_prime.application.handoff.exceptions.invalid_handoff import InvalidHandoff
 from vector_prime.application.handoff.types.progress import PreparedHandoff
-from vector_prime.application.handoff.types.instruction import TransferInstruction
-
-
-def require_preparation_state(state: ProcessSnapshot | None) -> None:
-    if state is not None and state["phase"] not in {"passed", "ready", "submitted"}:
-        raise RuntimeError("Cannot stage a transfer while queue outcome is pending")
 
 
 def require_queue_executor(caller_thread: str | None, thread_id: str) -> None:
@@ -20,19 +12,3 @@ def require_transfer_profile(
 ) -> None:
     if selected != (prepared.target.model, prepared.target.effort):
         raise InvalidHandoff("profile_not_applied")
-
-
-def preparation_is_current(
-    current: ProcessSnapshot | None, expected: TransferInstruction
-) -> bool:
-    if current is None or current["phase"] != "ready":
-        return False
-    return all(
-        (
-            current.get("assessment_generation") == expected.generation,
-            current["source_turn_id"] == expected.source_turn_id,
-            current.get("target_model") == expected.target.model,
-            current.get("target_effort") == expected.target.effort,
-            current.get("prompt_digest") == expected.prompt_digest,
-        )
-    )

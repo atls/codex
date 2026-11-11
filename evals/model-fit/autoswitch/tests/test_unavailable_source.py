@@ -5,18 +5,15 @@ from fixtures.autoswitch.lock import held_lock, write_concurrent_state
 
 import io
 import json
-import os
-import tempfile
 import unittest
+
+import pytest
 from contextlib import ExitStack, redirect_stdout
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import vector_prime.entrypoints.hooks.instructions as HOOKS_INSTRUCTIONS
 import vector_prime.entrypoints.hooks.native_contract as DESKTOP_CONFIGURATION
-import vector_prime.entrypoints.hooks.operations as HANDOFF_GUARDS
-import vector_prime.entrypoints.hooks.operations as HANDOFF_PREPARATION
-import vector_prime.entrypoints.hooks.operations as HANDOFF_RECOMMENDATION
+from vector_prime.entrypoints.hooks import operations
 import vector_prime.application.submission.helpers.content as HANDOFF_INPUT
 import vector_prime.infrastructure.adapters.codex.transport.connection as CODEX_CONNECTION
 import vector_prime.infrastructure.adapters.filesystem.cache as RECOMMENDATION_STORE
@@ -35,19 +32,11 @@ class UnavailableSourceTests(unittest.TestCase):
         "prompt": "ordinary request",
     }
 
-    def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temporary.cleanup)
-        environment = patch.dict(
-            os.environ,
-            {
-                "CODEX_HOME": self.temporary.name,
-                "CODEX_THREAD_ID": "thread",
-                DESKTOP_CONFIGURATION.AUTO_THREAD_ENV: "thread",
-            },
-        )
-        environment.start()
-        self.addCleanup(environment.stop)
+    @pytest.fixture(autouse=True)
+    def isolated_codex(self, codex_home, monkeypatch):
+        self.home = codex_home
+        monkeypatch.setenv("CODEX_THREAD_ID", "thread")
+        monkeypatch.setenv(DESKTOP_CONFIGURATION.AUTO_THREAD_ENV, "thread")
 
     def error(self, **changes):
         fields = {
@@ -64,9 +53,9 @@ class UnavailableSourceTests(unittest.TestCase):
         with (
             patch("sys.argv", ["desktop.py"]),
             patch("sys.stdin", io.StringIO(json.dumps(event or self.event))),
-            patch.object(HANDOFF_PREPARATION, "session_input", side_effect=error),
-            patch.object(HANDOFF_PREPARATION, "triage") as triage,
-            patch.object(HANDOFF_PREPARATION, "AppServerReader") as reader,
+            patch.object(operations, "session_input", side_effect=error),
+            patch.object(operations, "triage") as triage,
+            patch.object(operations, "AppServerReader") as reader,
         ):
             with redirect_stdout(submitted):
                 self.assertEqual(EVENTS.handle_event(), 0)
@@ -122,15 +111,13 @@ class UnavailableSourceTests(unittest.TestCase):
             },
         )
         self.assertIsNone(
-            HANDOFF_GUARDS.guard_tool(
+            operations.guard_tool(
                 {**self.event, "tool_name": "Bash", "tool_input": {"command": "pwd"}}
             )
         )
         rows = [
             json.loads(line)
-            for line in (
-                Path(self.temporary.name) / ".tmp/model-fit-hook-audit/thread.jsonl"
-            )
+            for line in (self.home / ".tmp/model-fit-hook-audit/thread.jsonl")
             .read_text()
             .splitlines()
         ]
@@ -231,7 +218,7 @@ class UnavailableSourceTests(unittest.TestCase):
                         state,
                     )
                 self.assertEqual(
-                    HANDOFF_GUARDS.guard_tool(
+                    operations.guard_tool(
                         {
                             **event,
                             "turn_id": "source",
@@ -289,13 +276,13 @@ class UnavailableSourceTests(unittest.TestCase):
             )
 
     def test_same_capability_error_from_triage_is_not_session_input_fallback(self):
-        HANDOFF_PREPARATION.submit_prompt(self.event)
+        operations.submit_prompt(self.event)
         output = io.StringIO()
         with (
             patch("sys.argv", ["desktop.py"]),
             patch("sys.stdin", io.StringIO(json.dumps(self.event))),
             patch.object(
-                HANDOFF_PREPARATION,
+                operations,
                 "session_input",
                 return_value={
                     "task": "request",
@@ -306,9 +293,9 @@ class UnavailableSourceTests(unittest.TestCase):
                     },
                 },
             ),
-            patch.object(HANDOFF_PREPARATION, "triage", side_effect=self.error()),
+            patch.object(operations, "triage", side_effect=self.error()),
             patch.object(
-                HANDOFF_PREPARATION,
+                operations,
                 "AppServerReader",
                 return_value=self.accepted_reader(),
             ),
@@ -383,12 +370,10 @@ class UnavailableSourceTests(unittest.TestCase):
             "active_profile": {"model": "gpt-6-luna", "effort": "low", "speed": None},
         }
         with (
-            patch.object(HANDOFF_PREPARATION, "session_input", return_value=request),
+            patch.object(operations, "session_input", return_value=request),
+            patch.object(operations, "triage", return_value=self.recommendation()),
             patch.object(
-                HANDOFF_PREPARATION, "triage", return_value=self.recommendation()
-            ),
-            patch.object(
-                HANDOFF_PREPARATION,
+                operations,
                 "AppServerReader",
                 side_effect=RuntimeError("queue unavailable"),
             ),
@@ -454,10 +439,8 @@ class UnavailableSourceTests(unittest.TestCase):
             },
         }
         with (
-            patch.object(HANDOFF_PREPARATION, "session_input", return_value=selected),
-            patch.object(
-                HANDOFF_PREPARATION, "triage", return_value={"decision": "keep"}
-            ),
+            patch.object(operations, "session_input", return_value=selected),
+            patch.object(operations, "triage", return_value={"decision": "keep"}),
         ):
             self.assertIsNone(
                 evaluate_request(
@@ -500,10 +483,8 @@ class UnavailableSourceTests(unittest.TestCase):
             },
         }
         with (
-            patch.object(HANDOFF_PREPARATION, "session_input", return_value=selected),
-            patch.object(
-                HANDOFF_PREPARATION, "triage", return_value={"decision": "keep"}
-            ),
+            patch.object(operations, "session_input", return_value=selected),
+            patch.object(operations, "triage", return_value={"decision": "keep"}),
         ):
             self.assertIsNone(evaluate_request(dict(self.event, turn_id="selected")))
         self.assertFalse(RECOMMENDATION_STORE.pending_path("thread").exists())
@@ -511,10 +492,8 @@ class UnavailableSourceTests(unittest.TestCase):
     def test_fresh_unknown_releases_applicable_manual_recommendation(self):
         request = self.stage_manual_block()
         with (
-            patch.object(HANDOFF_PREPARATION, "session_input", return_value=request),
-            patch.object(
-                HANDOFF_PREPARATION, "triage", return_value={"decision": "unknown"}
-            ),
+            patch.object(operations, "session_input", return_value=request),
+            patch.object(operations, "triage", return_value={"decision": "unknown"}),
         ):
             output = evaluate_request(dict(self.event, turn_id="second"))
         self.assertNotEqual(output.get("decision"), "block")
@@ -529,10 +508,8 @@ class UnavailableSourceTests(unittest.TestCase):
     def test_authoritative_keep_clears_only_superseded_applicable_cache(self):
         request = self.stage_manual_block()
         with (
-            patch.object(HANDOFF_PREPARATION, "session_input", return_value=request),
-            patch.object(
-                HANDOFF_PREPARATION, "triage", return_value={"decision": "keep"}
-            ),
+            patch.object(operations, "session_input", return_value=request),
+            patch.object(operations, "triage", return_value={"decision": "keep"}),
         ):
             self.assertIsNone(evaluate_request(dict(self.event, turn_id="second")))
         self.assertFalse(RECOMMENDATION_STORE.pending_path("thread").exists())
@@ -549,10 +526,8 @@ class UnavailableSourceTests(unittest.TestCase):
             "active_profile": {"model": "gpt-6-luna", "effort": "low", "speed": None},
         }
         with (
-            patch.object(HANDOFF_PREPARATION, "session_input", return_value=request),
-            patch.object(
-                HANDOFF_PREPARATION, "triage", return_value={"decision": "keep"}
-            ),
+            patch.object(operations, "session_input", return_value=request),
+            patch.object(operations, "triage", return_value={"decision": "keep"}),
         ):
             self.assertIsNone(
                 evaluate_request(
@@ -567,23 +542,23 @@ class UnavailableSourceTests(unittest.TestCase):
         request = self.stage_manual_block()
 
         def keep(_):
-            with HANDOFF_RECOMMENDATION.FileStore().transaction("thread"):
-                HANDOFF_RECOMMENDATION.Assessment().save(
+            with operations.FileStore().transaction("thread"):
+                operations.Assessment().save(
                     "thread", {**request, "task": "another work"}, self.recommendation()
                 )
             return {"decision": "keep"}
 
-        HANDOFF_PREPARATION.submit_prompt(dict(self.event, turn_id="second"))
+        operations.submit_prompt(dict(self.event, turn_id="second"))
         output = io.StringIO()
         with (
             patch("sys.argv", ["desktop.py"]),
             patch(
                 "sys.stdin", io.StringIO(json.dumps(dict(self.event, turn_id="second")))
             ),
-            patch.object(HANDOFF_PREPARATION, "session_input", return_value=request),
-            patch.object(HANDOFF_PREPARATION, "triage", side_effect=keep),
+            patch.object(operations, "session_input", return_value=request),
+            patch.object(operations, "triage", side_effect=keep),
             patch.object(
-                HANDOFF_PREPARATION,
+                operations,
                 "AppServerReader",
                 return_value=self.accepted_reader(),
             ),
@@ -639,15 +614,13 @@ class UnavailableSourceTests(unittest.TestCase):
                     }
                     with (
                         patch.object(
-                            HANDOFF_PREPARATION,
+                            operations,
                             "session_input",
                             return_value=request,
                         ),
-                        patch.object(HANDOFF_PREPARATION, "triage", side_effect=triage),
-                        patch.object(
-                            HANDOFF_PREPARATION, "queued_ids", return_value=set()
-                        ),
-                        patch.object(HANDOFF_PREPARATION, "AppServerReader"),
+                        patch.object(operations, "triage", side_effect=triage),
+                        patch.object(operations, "queued_ids", return_value=set()),
+                        patch.object(operations, "AppServerReader"),
                     ):
                         result = evaluate_request(self.event)
                     self.assertEqual(result["decision"], "block")

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from vector_prime.application.handoff.helpers.instruction import transfer_instruction
+from vector_prime.application.switch.helpers.transfer import transfer_instruction
 from vector_prime.application.switch.admission.recovery import admit_assessment_recovery
 
 from vector_prime.application.assessment.exceptions.context_unavailable import (
@@ -186,10 +186,9 @@ def assess(
                     with store.transaction(
                         thread_id, operation="assessment", turn_id=event.turn_id
                     ) as slot:
-                        current = switch_lifecycle.require_submission(slot, pending)
+                        switch_lifecycle.require_submission(slot, pending)
                         replay = handoff_lifecycle.reconcile_accepted(
                             slot,
-                            current,
                             turn_id=event.turn_id,
                             accepted=accepted,
                             profile=request["active_profile"],

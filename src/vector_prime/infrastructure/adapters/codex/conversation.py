@@ -146,8 +146,8 @@ class ConversationGateway:
                 },
                 conversation.RPC_TIMEOUT_SECONDS,
             )
-        except AppServerRPCError as error:
-            return NativeQueueRejection(error)
+        except AppServerRPCError:
+            return NativeQueueRejection.REJECTED
         receipt = checked_object(result["queuedSubmission"])
         accepted_content = receipt.get("input")
         return NativeQueueReceipt(

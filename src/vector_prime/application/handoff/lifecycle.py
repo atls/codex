@@ -10,9 +10,9 @@ from vector_prime.application.handoff.types.reconciliation import (
     ReconciledHandoff,
     ReconciliationDenied,
     TransferContinued,
+    TransferObservation,
 )
 from vector_prime.application.handoff.control_message import CONTROL_PROMPTS
-from vector_prime.application.switch.types.audit import AuditWriter
 from vector_prime.application.assessment.types.execution import AssessmentContextReader
 from vector_prime.application.submission.types.input import SubmissionInput
 from vector_prime.application.handoff.types.replay import (
@@ -26,38 +26,27 @@ from vector_prime.application.handoff.guards.authorization import (
     require_transfer_profile,
 )
 from vector_prime.application.handoff.types.progress import TransferInputEvidence
-from vector_prime.application.handoff.guards.authorization import (
-    require_preparation_state,
-)
-from vector_prime.application.handoff.guards.continuation import (
-    require_accepted_replay,
-    require_control_state,
-    require_replay_turn,
-)
-from vector_prime.application.handoff.guards.queue import (
-    require_release_state,
-)
 from vector_prime.application.assessment.types.decision import AssessmentDecision
 from vector_prime.application.assessment.types.profile import ActiveProfile
 from vector_prime.application.handoff.types.plan import (
     ManualHandoff,
     TransferTarget,
 )
-from vector_prime.application.assessment.decoding import required_text
 from vector_prime.application.handoff.types.preparation import (
     TransferPreparation,
     TransferContinuation,
 )
 from vector_prime.application.handoff.types.instruction import TransferInstruction
-from vector_prime.application.handoff.helpers.instruction import transfer_instruction
-from vector_prime.application.switch.types.state import ProcessSnapshot
-from vector_prime.application.switch.types.storage import TransferStateSlot
-from vector_prime.application.submission.helpers import content as codec
-from vector_prime.application.handoff.helpers.progress import (
-    prepared_handoff,
-    replay_evidence,
-    queued_handoff,
+from vector_prime.application.handoff.types.storage import HandoffSlot
+from vector_prime.application.handoff.types.state import (
+    AttemptingTransfer,
+    QueuedTransfer,
+    ReadyTransfer,
+    RejectedTransfer,
 )
+from vector_prime.application.handoff.helpers.replay import replay_evidence
+from vector_prime.application.handoff.exceptions.invalid_handoff import InvalidHandoff
+from vector_prime.application.submission.helpers import content as codec
 from vector_prime.application.handoff.types.progress import (
     AcceptedHandoff,
     AttemptedHandoff,
@@ -65,6 +54,7 @@ from vector_prime.application.handoff.types.progress import (
 from vector_prime.application.handoff.types.queue import QueueConfirmation
 
 from vector_prime.application.handoff.errors.queue_rejection import NativeQueueRejection
+from vector_prime.application.handoff.exceptions.queue_rejected import QueueRejected
 from typing import Callable
 from vector_prime.application.handoff.types.queue_storage import QueueStore
 from vector_prime.application.handoff.types.clock import Clock
@@ -96,73 +86,48 @@ def _transfer_target(
     return target
 
 
-def authorize_transfer(
-    slot: TransferStateSlot, state: ProcessSnapshot, now: float
-) -> None:
-    prepared_handoff(state)
-    slot.save_transition({**state, "transfer_authorized_at": now})
+def authorize_transfer(slot: HandoffSlot, now: float) -> None:
+    state = slot.transfer_state()
+    if not isinstance(state, ReadyTransfer) or state.prepared is None:
+        raise InvalidHandoff("invalid_state")
+    slot.authorize_transfer(now)
 
 
-def stage(
-    slot: TransferStateSlot, preparation: TransferPreparation
-) -> TransferInstruction:
-    current = slot.load()
-    require_preparation_state(current)
-    state: ProcessSnapshot = {
-        "phase": "ready",
-        "created_at": preparation["created_at"],
-        "source_turn_id": preparation["source_turn_id"],
-        "prompt": preparation["prompt"],
-        "prompt_digest": preparation["prompt_digest"],
-        "target_model": preparation["target_model"],
-        "target_effort": preparation["target_effort"],
-        "official_source_url": required_text(preparation["official_source_url"]),
-        "official_guidance": required_text(preparation["official_guidance"]),
-        "task_inference": required_text(preparation["task_inference"]),
-    }
-    if "control_turn_id" in preparation:
-        state["control_turn_id"] = preparation["control_turn_id"]
-    if "continuation_turn_ids" in preparation:
-        state["continuation_turn_ids"] = preparation["continuation_turn_ids"]
-    return transfer_instruction(slot.save_transition(state))
+def stage(slot: HandoffSlot, preparation: TransferPreparation) -> TransferInstruction:
+    current = slot.transfer_state()
+    if current is not None and not isinstance(current, ReadyTransfer):
+        raise RuntimeError("Cannot stage a transfer while queue outcome is pending")
+    return slot.stage_transfer(preparation)
 
 
-def continue_transfer(
-    slot: TransferStateSlot, state: ProcessSnapshot, turn_id: str
-) -> None:
-    require_control_state(state)
-    state["control_turn_id"] = turn_id
-    if turn_id != state["source_turn_id"]:
-        continuations = state.setdefault("continuation_turn_ids", [])
-        if turn_id not in continuations:
-            continuations.append(turn_id)
-    slot.save_transition(state)
+def continue_transfer(slot: HandoffSlot, turn_id: str) -> None:
+    state = slot.transfer_state()
+    if not isinstance(state, (ReadyTransfer, QueuedTransfer)):
+        raise RuntimeError("Only a prepared transfer accepts a control turn")
+    if isinstance(state, ReadyTransfer) and state.prepared is None:
+        raise InvalidHandoff("invalid_state")
+    continuations = state.continuation_turn_ids
+    if turn_id != state.source_turn_id and turn_id not in continuations:
+        continuations = (*continuations, turn_id)
+    slot.write_control_turn(turn_id, continuations)
 
 
-def bind_replay(slot: TransferStateSlot, state: ProcessSnapshot, turn_id: str) -> None:
-    queued = queued_handoff(state)
-    require_replay_turn(queued, turn_id)
-    state.pop("pending_assessment", None)
-    state["replay_turn_id"] = turn_id
-    slot.save_transition(state)
+def bind_replay(slot: HandoffSlot, queued: QueuedTransfer, turn_id: str) -> None:
+    if (
+        queued.target is None
+        or queued.submission_id is None
+        or queued.input_evidence is None
+    ):
+        raise InvalidHandoff("invalid_state")
+    if queued.replay_turn_id not in (None, turn_id):
+        raise RuntimeError("Replay does not belong to this queued transfer")
+    slot.write_replay_turn(turn_id)
 
 
-def release(slot: TransferStateSlot) -> None:
-    current = slot.load()
-    require_release_state(current)
-    pending = current.get("pending_assessment") if current is not None else None
-    if pending:
-        if pending.turn_id is None:
-            raise ValueError("Pending assessment has no source turn")
-        slot.save_transition(
-            {
-                "phase": "submitted",
-                "source_turn_id": pending.turn_id,
-                "pending_assessment": pending,
-            },
-        )
-    else:
-        slot.clear()
+def release(slot: HandoffSlot) -> None:
+    if isinstance(slot.transfer_state(), AttemptingTransfer):
+        raise RuntimeError("An unresolved queue attempt cannot be released")
+    slot.release_transfer()
 
 
 def enqueue(
@@ -197,7 +162,7 @@ def enqueue(
             submission = app.enqueue(thread_id, attempt.client_message_id, content)
             if isinstance(submission, NativeQueueRejection):
                 slot.reject()
-                raise submission.error
+                raise QueueRejected()
             slot.write_receipt_id(submission.submission_id)
             digest = codec.input_digest(accepted_content(submission))
             slot.write_accepted_digest(digest)
@@ -234,7 +199,7 @@ def plan_transfer(
 
 
 def prepare(
-    slot: TransferStateSlot,
+    slot: HandoffSlot,
     *,
     turn_id: str,
     prompt: str,
@@ -269,78 +234,77 @@ def prepare(
 
 
 def reconcile(
-    slot: TransferStateSlot,
+    slot: HandoffSlot,
     event: SubmissionInput,
-    prior: ProcessSnapshot,
     *,
-    audit: AuditWriter,
+    observe: Callable[[TransferObservation], None],
     conversation: NativeConversationFactory,
     read_context: AssessmentContextReader,
 ) -> ReconciledHandoff | ReconciliationDenied | TransferContinued | ReplayBound | None:
     thread_id, turn_id, prompt = event.thread_id, event.turn_id, event.text
+    prior = slot.transfer_state()
     pending = None
-    if prior["phase"] == "attempting":
+    if isinstance(prior, AttemptingTransfer):
         return ReconciliationDenied(
             "Model Fit: the previous queue submission has an unknown outcome; submitting it again is forbidden.",
             "queue_outcome_unknown",
         )
-    if prior["phase"] == "rejected":
-        if prior["source_turn_id"] == turn_id:
+    if isinstance(prior, RejectedTransfer):
+        if prior.source_turn_id == turn_id:
             return ReconciliationDenied(
                 "Model Fit: the technical turn ended with a queue rejection; send a new instruction in a separate turn.",
                 "queue_rejected_same_turn",
             )
         release(slot)
-    if prior["phase"] == "ready":
-        if prior.get("pending_assessment") is not None or (
+    if isinstance(prior, ReadyTransfer):
+        if prior.pending_assessment or (
             prompt.strip() not in CONTROL_PROMPTS
             and (
-                turn_id != prior["source_turn_id"]
-                or codec.prompt_digest(prompt) != prior["prompt_digest"]
+                turn_id != prior.source_turn_id
+                or codec.prompt_digest(prompt)
+                != (
+                    prior.continuation.prompt_digest
+                    if prior.continuation is not None
+                    else None
+                )
             )
         ):
-            pending = TransferContinuation(
-                prior["source_turn_id"],
-                prior["prompt"],
-                prior["prompt_digest"],
-                tuple(prior.get("continuation_turn_ids", [])),
-            )
+            pending = prior.continuation
+            if pending is None:
+                raise InvalidHandoff("invalid_state")
         else:
-            continue_transfer(slot, prior, turn_id)
-            audit(thread_id, turn_id, "auto_handoff_continued")
+            continue_transfer(slot, turn_id)
+            observe(TransferObservation.CONTINUED)
             return TransferContinued()
-    elif prior["phase"] == "queued":
-        if "queued_client_message_id" in prior:
+    elif isinstance(prior, QueuedTransfer):
+        if prior.client_message_id is not None:
             return ReconciliationDenied(
                 "Model Fit: the assess command verifies the accepted continuation against native client identity."
             )
-        if prior.get("replay_turn_id") == turn_id:
-            audit(thread_id, turn_id, "auto_steer")
+        if prior.replay_turn_id == turn_id:
+            observe(TransferObservation.STEERED)
             return None
-        if prior["source_turn_id"] == turn_id:
+        if prior.source_turn_id == turn_id:
             return ReconciliationDenied(
                 "Model Fit: the technical turn already queued the request; send a new instruction in a separate turn.",
                 "source_turn_already_queued",
             )
-        if prior.get(
-            "queued_hook_prompt_digest", prior.get("queued_prompt_digest")
-        ) == codec.prompt_digest(prompt):
-            if prior.get("replay_turn_id") not in (None, turn_id):
+        if prior.submission_id is None:
+            raise InvalidHandoff("invalid_state")
+        if prior.hook_prompt_digest == codec.prompt_digest(prompt):
+            if prior.replay_turn_id not in (None, turn_id):
                 return ReconciliationDenied(
                     "Model Fit: repeating the request continuation is forbidden.",
                     "duplicate_replay",
                 )
             with conversation(event.working_directory) as app:
-                if prior["queued_submission_id"] in app.queued_ids(thread_id):
+                if prior.submission_id in app.queued_ids(thread_id):
                     return ReconciliationDenied(
                         "Model Fit: the continuation is still queued.",
                         "replay_still_queued",
                     )
             selected = read_context(event)["active_profile"]
-            if (selected["model"], selected["effort"]) != (
-                prior["target_model"],
-                prior["target_effort"],
-            ):
+            if TransferTarget(selected["model"], selected["effort"]) != prior.target:
                 return ReconciliationDenied(
                     "Model Fit: the queued request arrived on the wrong profile.",
                     "replay_wrong_profile",
@@ -348,55 +312,56 @@ def reconcile(
             bind_replay(slot, prior, turn_id)
             return ReplayBound()
         with conversation(event.working_directory) as app:
-            if prior["queued_submission_id"] in app.queued_ids(thread_id):
-                deleted = app.delete(thread_id, prior["queued_submission_id"])
+            if prior.submission_id in app.queued_ids(thread_id):
+                deleted = app.delete(thread_id, prior.submission_id)
                 if not deleted:
                     return ReconciliationDenied(
                         "Model Fit: the previous request is starting; repeat the new instruction after it completes.",
                         "prior_replay_starting",
                     )
             elif not app.replay_finished(thread_id, replay_evidence(prior)):
-                if prior.get(
-                    "replay_turn_id"
-                ) is not None or not app.source_terminal_without_replay(
-                    thread_id, prior["source_turn_id"], turn_id
+                if (
+                    prior.replay_turn_id is not None
+                    or not app.source_terminal_without_replay(
+                        thread_id, prior.source_turn_id, turn_id
+                    )
                 ):
                     return ReconciliationDenied(
                         "Model Fit: the previous request is running; repeat the new instruction after it completes.",
                         "prior_replay_running",
                     )
-                audit(
-                    thread_id,
-                    turn_id,
-                    "auto_handoff_cancelled",
-                    {
-                        "hook_event": "UserPromptSubmit",
-                        "reason_code": "terminal_source_without_replay",
-                        "state_phase": "queued",
-                    },
-                )
+                observe(TransferObservation.TERMINAL_SOURCE_WITHOUT_REPLAY)
         release(slot)
     return ReconciledHandoff(pending)
 
 
 def reconcile_accepted(
-    slot: TransferStateSlot,
-    state: ProcessSnapshot,
+    slot: HandoffSlot,
     *,
     turn_id: str,
     accepted: AcceptedNativeInput,
     profile: ActiveProfile,
     queued_ids: set[str],
 ) -> ReplayBound | OwnerProfileChanged | InputChanged:
-    require_accepted_replay(state, queued_ids)
-    same_source = accepted.client_message_id == state.get(
-        "queued_client_message_id", state["source_turn_id"]
+    state = slot.transfer_state()
+    if not isinstance(state, QueuedTransfer):
+        raise RuntimeError("Native queue receipt changed during assessment")
+    if state.submission_id is None:
+        raise InvalidHandoff("invalid_state")
+    if state.submission_id in queued_ids:
+        raise RuntimeError("Previous native submission is still queued")
+    same_source = accepted.client_message_id == (
+        state.client_message_id
+        if state.client_message_id is not None
+        else state.source_turn_id
     )
-    same_profile = (profile["model"], profile["effort"]) == (
-        state["target_model"],
-        state["target_effort"],
+    same_profile = TransferTarget(profile["model"], profile["effort"]) == state.target
+    evidence = state.input_evidence
+    unchanged = (
+        evidence is not None
+        and evidence.kind == "native_input"
+        and codec.input_digest(accepted.content) == evidence.digest
     )
-    unchanged = codec.input_digest(accepted.content) == state.get("queued_input_digest")
     if same_source and same_profile and unchanged:
         bind_replay(slot, state, turn_id)
         return ReplayBound()

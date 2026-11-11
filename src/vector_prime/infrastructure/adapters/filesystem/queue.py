@@ -2,16 +2,18 @@ from vector_prime.application.handoff.guards.queue import (
     queue_preparation,
     require_rejection_state,
 )
-from vector_prime.application.handoff.helpers.source import handoff_source
+from vector_prime.application.switch.helpers.transfer import handoff_source
 from vector_prime.application.handoff.types.progress import (
     AttemptedHandoff,
     AcceptedHandoff,
 )
 from vector_prime.application.handoff.types.queue import (
     PreparedQueue,
+    QueueCandidate,
     QueueConfirmation,
 )
 from vector_prime.application.switch.types.state import ProcessSnapshot
+from vector_prime.infrastructure.adapters.filesystem.handoff import transfer_state
 from vector_prime.application.switch.types.storage import TransferStateSlot
 
 
@@ -21,7 +23,17 @@ class FileQueueSlot:
         self.state = slot.load()
 
     def prepare(self, turn_id: str, now: float) -> PreparedQueue | QueueConfirmation:
-        result = queue_preparation(self.state, turn_id, now)
+        current = self.state
+        candidate = (
+            QueueCandidate(
+                current["source_turn_id"],
+                current.get("pending_assessment") is not None,
+                transfer_state(current),
+            )
+            if current is not None
+            else None
+        )
+        result = queue_preparation(candidate, turn_id, now)
         if isinstance(result, QueueConfirmation):
             return result
         return PreparedQueue(result, handoff_source(self._snapshot()))
@@ -59,7 +71,7 @@ class FileQueueSlot:
 
     def reject(self) -> None:
         state = self._snapshot()
-        require_rejection_state(state)
+        require_rejection_state(transfer_state(state))
         state["phase"] = "rejected"
         self.slot.save_transition(state)
 

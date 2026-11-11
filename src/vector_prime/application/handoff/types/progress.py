@@ -34,8 +34,3 @@ class AcceptedHandoff:
     target: TransferTarget
     submission_id: str
     input_evidence: TransferInputEvidence
-
-
-@dataclass(frozen=True)
-class QueuedHandoff(AcceptedHandoff):
-    replay_turn_id: str | None

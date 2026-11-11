@@ -36,7 +36,7 @@ def authorize_transfer(
             turn_id=event.turn_id,
         ) as slot:
             if slot.load() == state:
-                handoff_lifecycle.authorize_transfer(slot, state, clock())
+                handoff_lifecycle.authorize_transfer(slot, clock())
                 if bound is not None:
                     audit(
                         event.thread_id,
