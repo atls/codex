@@ -54,21 +54,35 @@ def finish(
             )
         if (
             state is not None
-            and state["phase"] == "ready"
-            and is_control_turn(state, turn_id)
+            and state["phase"] in {"ready", "rejected"}
+            and (
+                state["source_turn_id"] == turn_id
+                or (state["phase"] == "ready" and is_control_turn(state, turn_id))
+            )
         ):
-            switch_lifecycle.admit(slot, turn_id)
+            phase = state["phase"]
+            switch_lifecycle.admit(slot, turn_id, recover_rejected=True)
             audit(
                 thread_id,
                 turn_id,
                 "auto_handoff_not_queued",
                 {
                     "hook_event": "Stop",
-                    "reason_code": "technical_turn_finished_before_queue",
-                    "state_phase": "ready",
+                    "reason_code": (
+                        "queue_rejected"
+                        if phase == "rejected"
+                        else "technical_turn_finished_before_queue"
+                    ),
+                    "state_phase": phase,
                 },
             )
-            return None
+            if state["source_turn_id"] != turn_id:
+                return None
+            return BlockedTurn(
+                "Model Fit: the original request was not queued. The technical handoff instructions no longer apply. "
+                "Continue this turn on the active profile and respond to the original user input with its attachments. "
+                "Do not retry the handoff or ask the user to resend the input."
+            )
     if state is None:
         return None
     assessed = (

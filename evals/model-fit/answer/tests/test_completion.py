@@ -35,6 +35,8 @@ class CompletionTests(DesktopHandoffCase):
             "turn_id": self.turn_id,
             "last_assistant_message": "Profile switch unavailable; use Sol medium",
         }
+        result = operations.guard_replay_answer(event)
+        self.assertEqual(result["decision"], "block")
         self.assertIsNone(operations.guard_replay_answer(event))
         saved = HANDOFF_STATE.read_state(HANDOFF_STATE.state_path(self.thread_id))
         self.assertEqual(saved["phase"], "passed")

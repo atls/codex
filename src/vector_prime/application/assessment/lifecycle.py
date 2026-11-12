@@ -159,7 +159,7 @@ def complete(
         return empty_decision(
             active,
             "keep",
-            "Discussion or correction of the previous work retains its active model and reasoning effort.",
+            "Ordinary conversation and discussion of previous work retain the active model and reasoning effort.",
         )
     if relation is WorkRelation.UNCERTAIN:
         return empty_decision(

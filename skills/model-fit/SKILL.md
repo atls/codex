@@ -29,6 +29,6 @@ An established root recommendation is the only response for that turn. End the t
 
 A child recommendation is instead consumed directly when spawning that child.
 
-For an authorized Desktop-hook connection or diagnosis on macOS, read [Desktop hook](references/desktop-hook.md). Selecting this skill does not enable hooks. If an automatic handoff is not confirmed, do not perform the original task on the previous profile.
+For an authorized Desktop-hook connection or diagnosis on macOS, read [Desktop hook](references/desktop-hook.md). Selecting this skill does not enable hooks. If the Stop hook confirms the original input was not queued and resumes the turn, continue on the active profile. With an unknown queue outcome, leave the original task paused.
 
 When maintaining implementation, read `references/code-map.md` when available.
