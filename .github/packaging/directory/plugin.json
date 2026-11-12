@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "vector-prime-guidance",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Explicit task profile assessment through a local Codex CLI.",
   "author": {
     "name": "Torin Asakura"

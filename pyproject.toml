@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "vector-prime"
-version = "0.1.0-alpha.1"
+version = "0.1.0-alpha.2"
 description = "Codex profile assessment and native handoff"
 requires-python = ">=3.11"
 dependencies = ["pydantic>=2.12,<3", "typing-extensions>=4.14,<5"]
