@@ -2,8 +2,7 @@ name: Release
 
 on:
   workflow_dispatch:
-  pull_request_target:
-    types: [closed]
+  push:
     branches: [master]
 
 permissions:
@@ -14,10 +13,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  gate:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      merged: ${{ steps.merge.outputs.merged }}
+    steps:
+      - id: merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          merged=$(gh api --paginate "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
+            --jq '.[] | select(.base.ref == "master" and .merged_at != null) | .merge_commit_sha')
+          if grep -Fqx "$GITHUB_SHA" <<< "$merged"; then
+            echo 'merged=true' >> "$GITHUB_OUTPUT"
+          fi
+
   release:
-    if: >-
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') ||
-      (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'master')
+    needs: gate
+    if: needs.gate.outputs.merged == 'true' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/create-github-app-token@v3.2.0
