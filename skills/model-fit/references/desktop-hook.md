@@ -33,7 +33,7 @@ The utility obtains queue input from the native user message. Do not reconstruct
 
 An ephemeral thread without native history access receives an assessment-unavailable warning; no autoswitch is claimed. A child's native `session_id` identifies its parent while `agent_id` identifies the actual executor. State, native input and audit are scoped to that executor. Child recommendations return to the parent allocator; automatic child-chat UI handoff is not claimed.
 
-If a required tool or confirmed handoff is unavailable, report the reason and apply the [response rule](../SKILL.md#response). An unavailable-context warning means the profile was not assessed. Runtime scenarios own guards and state: do not delete pending state or manually repeat queue add with an unknown outcome.
+If a required tool or confirmed handoff is unavailable, report the reason. When Stop confirms no enqueue and resumes the original turn, respond to the original input on the active profile. An unavailable-context warning means the profile was not assessed. Runtime scenarios own guards and state: do not delete pending state or manually repeat queue add with an unknown outcome.
 
 ## Diagnose
 

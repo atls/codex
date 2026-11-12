@@ -12,6 +12,8 @@ If the user explicitly retains a profile after a recommendation, honor that choi
 
 ## Discussion of previous work
 
+Treat ordinary conversation with no new work requested as discussion for profile selection. A greeting, acknowledgement or personal update keeps the active profile. A new request embedded in a conversational message is assessed on the work actually requested.
+
 First distinguish discussion of an existing result from new execution requirements. When the user asks about the previous answer, its reasoning, evidence, mistakes, wording or omitted material, retain the active model and reasoning effort. This includes annotations, corrections to the same deliverable and requests to show parts that were already requested. A brief follow-up does not become an independent lightweight task because it is short or easy to phrase.
 
 During that discussion, an automatic recommendation must not change either profile axis. An explicit user request to reassess or change the model or effort permits profile selection again. A genuinely new task or materially changed execution requirements can also receive a fresh assessment; sharing a conversation does not make every future task a discussion follow-up. If the relationship cannot be established, preserve the current profile and report uncertainty.

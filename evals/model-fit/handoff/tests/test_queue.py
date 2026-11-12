@@ -320,6 +320,12 @@ class QueueTests(DesktopHandoffCase):
         with self.assertRaisesRegex(RuntimeError, "rejected"):
             operations.enqueue_handoff(self.thread_id, self.turn_id)
         self.assertEqual(evaluate_request(self.event)["decision"], "block")
+        stop_event = dict(guard_event, last_assistant_message="Queue rejected")
+        self.assertEqual(
+            operations.guard_replay_answer(stop_event)["decision"], "block"
+        )
+        self.assertIsNone(operations.guard_replay_answer(stop_event))
+        self.assertIsNone(operations.guard_tool(guard_event))
         next_event = dict(self.event, turn_id="new-turn")
         with (
             patch.object(

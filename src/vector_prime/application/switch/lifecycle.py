@@ -24,9 +24,16 @@ def admit(
     native_profile: ActiveProfile | None = None,
     *,
     supersede_assessment: bool = False,
+    recover_rejected: bool = False,
 ) -> None:
     current = slot.load()
-    require_admission_state(current)
+    if not (
+        recover_rejected
+        and current is not None
+        and current["phase"] == "rejected"
+        and current["source_turn_id"] == turn_id
+    ):
+        require_admission_state(current)
     state: ProcessSnapshot = {"phase": "passed", "source_turn_id": turn_id}
     if current is not None and current.get("assessed_profile") is not None:
         state["assessed_profile"] = current["assessed_profile"]
