@@ -25,7 +25,11 @@
   "devDependencies": {
     "@atls/raijin": "2.1.1",
     "@openai/codex": "0.167.0-alpha.3.2",
-    "promptfoo": "0.125.1"
+    "@semantic-release/exec": "7.1.0",
+    "@semantic-release/git": "10.0.1",
+    "conventional-changelog-conventionalcommits": "9.3.1",
+    "promptfoo": "0.125.1",
+    "semantic-release": "25.0.9"
   },
   "packageManager": "yarn@4.18.0"
 }

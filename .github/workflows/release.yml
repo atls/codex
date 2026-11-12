@@ -1,62 +1,56 @@
 name: Release
 
 on:
+  workflow_dispatch:
   pull_request_target:
     types: [closed]
     branches: [master]
-    paths:
-      - '.codex-plugin/**'
-      - '.github/packaging/**'
-      - '.github/workflows/package.yml'
-      - '.github/workflows/release.yml'
-      - 'assets/**'
-      - 'docs/desktop-hooks.md'
-      - 'hooks/**'
-      - 'scripts/**'
-      - 'skills/**'
-      - 'src/**'
-      - LICENSE
-      - README.md
-      - pyproject.toml
-      - uv.lock
 
 permissions:
   contents: read
 
-jobs:
-  package:
-    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'master'
-    uses: ./.github/workflows/package.yml
-    with:
-      revision: ${{ github.event.pull_request.merge_commit_sha }}
+concurrency:
+  group: vector-prime-release
+  cancel-in-progress: false
 
+jobs:
   release:
-    needs: package
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') ||
+      (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'master')
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
+      - uses: actions/create-github-app-token@v3.2.0
+        id: app-token
+        with:
+          client-id: ${{ vars.ATLANTIS_SUPER_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.ATLANTIS_SUPER_BOT_PRIVATE_KEY }}
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
-      - uses: actions/download-artifact@v4
+          ref: master
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+      - uses: actions/setup-node@v6
         with:
-          path: dist
-          merge-multiple: true
-      - name: Read release version
-        id: version
+          node-version-file: evals/model-fit/package.json
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.13'
+      - run: yarn install --immutable
+        working-directory: evals/model-fit
+      - name: Adopt the existing alpha history
         run: |
-          jq -er '.version | "value=\(.)", "prerelease=\(split("+")[0] | contains("-"))"' \
-            .codex-plugin/plugin.json >> "$GITHUB_OUTPUT"
-      - name: Publish GitHub Release
-        uses: ncipollo/release-action@v1
-        with:
-          tag: v${{ steps.version.outputs.value }}
-          commit: ${{ github.event.pull_request.merge_commit_sha }}
-          name: Vector Prime v${{ steps.version.outputs.value }}
-          artifacts: dist/*.zip
-          artifactErrorsFailBuild: true
-          prerelease: ${{ steps.version.outputs.prerelease == 'true' }}
-          allowUpdates: false
-          generateReleaseNotes: true
-          immutableCreate: true
+          set -euo pipefail
+          if ! git ls-remote --exit-code --heads origin stable >/dev/null; then
+            git push origin "$(git rev-parse "v0.1.0-alpha.1^{commit}")":refs/heads/stable
+          fi
+          note=refs/notes/semantic-release-v0.1.0-alpha.1
+          if ! git ls-remote --exit-code origin "$note" >/dev/null; then
+            git -c user.name=Atlantis -c user.email=release@users.noreply.github.com \
+              notes --ref "$note" add -m '{"channels":["alpha"]}' v0.1.0-alpha.1
+            git push origin "$note"
+          fi
+      - name: Publish alpha
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: ./evals/model-fit/node_modules/.bin/semantic-release
