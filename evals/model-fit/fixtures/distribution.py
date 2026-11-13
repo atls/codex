@@ -29,7 +29,8 @@ def archive(source: Path, name: str) -> Path:
     inventory = packaging / (
         "marketplace.files" if name == "vector-prime" else "directory/files"
     )
-    destination = source / (name + ".zip")
+    destination = source / "dist" / (name + ".zip")
+    destination.parent.mkdir(exist_ok=True)
     manifest = (
         ["--add-file=.github/packaging/directory/plugin.json"]
         if name == "vector-prime-guidance"
