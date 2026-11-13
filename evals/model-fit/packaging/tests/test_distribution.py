@@ -9,7 +9,7 @@ import pytest
 import zipfile
 from pathlib import Path
 
-from fixtures.distribution import ROOT, WORKFLOW, archive, copy_source
+from fixtures.distribution import ROOT, archive, copy_source
 
 
 @pytest.fixture
@@ -17,8 +17,6 @@ def source(tmp_path):
     root = tmp_path / "source"
     copy_source(ROOT, root)
     shutil.copytree(ROOT / ".github/packaging", root / ".github/packaging")
-    (root / WORKFLOW.parent).mkdir(parents=True)
-    shutil.copyfile(ROOT / WORKFLOW, root / WORKFLOW)
     return root
 
 

@@ -15,22 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - name: vector-prime
-            inventory: .github/packaging/marketplace.files
-          - name: vector-prime-guidance
-            inventory: .github/packaging/directory/files
-            manifest: .github/packaging/directory/plugin.json
-    env:
-      PACKAGE_NAME: ${{ matrix.name }}
-      PACKAGE_FILES: ${{ matrix.inventory }}
-      PACKAGE_MANIFEST: ${{ matrix.manifest }}
+        name: [vector-prime, vector-prime-guidance]
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.revision }}
       - name: Archive package
-        run: bash .github/packaging/archive.sh "$PACKAGE_NAME" "$PACKAGE_FILES" "$PACKAGE_MANIFEST"
+        run: python3 .github/packaging/build.py --distribution ${{ matrix.name }}
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}
