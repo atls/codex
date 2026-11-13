@@ -10,7 +10,7 @@ import tempfile
 import unittest
 import zipfile
 
-from fixtures.distribution import WORKFLOW, archive, copy_source
+from fixtures.distribution import archive, copy_source
 from pathlib import Path
 from contextlib import ExitStack
 
@@ -59,8 +59,6 @@ class PluginInstallationTests(unittest.TestCase):
             shutil.copytree(
                 repository / ".github/packaging", authoring / ".github/packaging"
             )
-            (authoring / WORKFLOW.parent).mkdir(parents=True)
-            shutil.copyfile(repository / WORKFLOW, authoring / WORKFLOW)
             (authoring / ".gitignore").write_text("dist/\n")
             subprocess.run(
                 ["git", "-C", str(authoring), "add", "."],

@@ -1,12 +1,8 @@
-import os
 import shutil
 import subprocess
 from pathlib import Path
 
-import yaml
-
 ROOT = Path(__file__).resolve().parents[3]
-WORKFLOW = Path(".github/workflows/package.yml")
 
 
 def copy_source(source: Path, destination: Path) -> None:
@@ -29,25 +25,32 @@ def copy_source(source: Path, destination: Path) -> None:
 
 
 def archive(source: Path, name: str) -> Path:
-    job = yaml.safe_load((source / WORKFLOW).read_text())["jobs"]["package"]
-    variant = next(
-        row for row in job["strategy"]["matrix"]["include"] if row["name"] == name
+    packaging = Path(".github/packaging")
+    inventory = packaging / (
+        "marketplace.files" if name == "vector-prime" else "directory/files"
     )
-    env = {
-        **os.environ,
-        "PACKAGE_NAME": name,
-        "PACKAGE_FILES": variant["inventory"],
-        "PACKAGE_MANIFEST": variant.get("manifest", ""),
-    }
-    for step in job["steps"]:
-        if "run" not in step or ("if" in step and not env["PACKAGE_MANIFEST"]):
-            continue
-        subprocess.run(
-            ["bash", "-ec", step["run"]],
-            cwd=source / step.get("working-directory", "."),
-            env=env,
-            check=True,
-            capture_output=True,
-            timeout=30,
-        )
-    return source / "dist" / (name + ".zip")
+    destination = source / "dist" / (name + ".zip")
+    destination.parent.mkdir(exist_ok=True)
+    manifest = (
+        ["--add-file=.github/packaging/directory/plugin.json"]
+        if name == "vector-prime-guidance"
+        else []
+    )
+    subprocess.run(
+        [
+            "git",
+            "archive",
+            "--format=zip",
+            f"--output={destination}",
+            f"--prefix={name}/",
+            *manifest,
+            "HEAD",
+            "--",
+            *(source / inventory).read_text().splitlines(),
+        ],
+        cwd=source,
+        check=True,
+        capture_output=True,
+        timeout=30,
+    )
+    return destination
