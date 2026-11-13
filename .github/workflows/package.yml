@@ -15,15 +15,23 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        name: [vector-prime, vector-prime-guidance]
+        include:
+          - name: vector-prime
+            inventory: .github/packaging/marketplace.files
+          - name: vector-prime-guidance
+            inventory: .github/packaging/directory/files
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.revision }}
       - name: Archive package
-        run: python3 .github/packaging/build.py --distribution ${{ matrix.name }}
+        run: >-
+          xargs git archive --format=zip --output=${{ matrix.name }}.zip
+          --prefix=${{ matrix.name }}/
+          ${{ matrix.name == 'vector-prime-guidance' && '--add-file=.github/packaging/directory/plugin.json' || '' }}
+          HEAD -- < ${{ matrix.inventory }}
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}
-          path: dist/${{ matrix.name }}.zip
+          path: ${{ matrix.name }}.zip
           if-no-files-found: error

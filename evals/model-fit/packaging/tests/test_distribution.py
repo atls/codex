@@ -17,6 +17,26 @@ def source(tmp_path):
     root = tmp_path / "source"
     copy_source(ROOT, root)
     shutil.copytree(ROOT / ".github/packaging", root / ".github/packaging")
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Distribution test",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "-c",
+            "core.hooksPath=/dev/null",
+            "commit",
+            "-qm",
+            "Distribution fixture",
+        ],
+        cwd=root,
+        check=True,
+    )
     return root
 
 
@@ -75,7 +95,7 @@ def test_variants_share_assessor_and_exclude_development_files(source, archives)
     assert "hooks" not in metadata["extensions"]["com.openai"]
 
 
-def test_unlisted_files_and_selected_symlinks_stay_out(source):
+def test_untracked_files_and_symlinks_stay_out(source):
     (source / "private-fixture.json").write_text('{"fixture":true}')
     (source / "src/vector_prime/linked.py").symlink_to(source / "private-fixture.json")
     with zipfile.ZipFile(archive(source, "vector-prime")) as package:
