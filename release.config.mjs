@@ -15,7 +15,7 @@ export default {
     ['@semantic-release/git', {
       assets: [
         '.codex-plugin/plugin.json',
-        '.github/packaging/directory/plugin.json',
+        'plugin.json',
         'pyproject.toml',
         'uv.lock',
         'evals/model-fit/uv.lock',

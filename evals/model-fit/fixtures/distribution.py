@@ -20,7 +20,7 @@ def copy_source(source: Path, destination: Path) -> None:
             destination / name,
             ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
         )
-    for name in ("README.md", "LICENSE", "pyproject.toml", "uv.lock"):
+    for name in ("README.md", "LICENSE", "pyproject.toml", "uv.lock", "plugin.json"):
         shutil.copyfile(source / name, destination / name)
 
 
@@ -29,12 +29,9 @@ def archive(source: Path, name: str) -> Path:
     inventory = packaging / (
         "marketplace.files" if name == "vector-prime" else "directory/files"
     )
-    destination = source / (name + ".zip")
-    manifest = (
-        ["--add-file=.github/packaging/directory/plugin.json"]
-        if name == "vector-prime-guidance"
-        else []
-    )
+    destination = source / "dist" / (name + ".zip")
+    destination.parent.mkdir(exist_ok=True)
+    manifest = ["plugin.json"] if name == "vector-prime-guidance" else []
     subprocess.run(
         [
             "git",
@@ -42,9 +39,9 @@ def archive(source: Path, name: str) -> Path:
             "--format=zip",
             f"--output={destination}",
             f"--prefix={name}/",
-            *manifest,
             "HEAD",
             "--",
+            *manifest,
             *(source / inventory).read_text().splitlines(),
         ],
         cwd=source,
