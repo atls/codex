@@ -17,22 +17,51 @@ jobs:
       matrix:
         include:
           - name: vector-prime
-            inventory: .github/packaging/marketplace.files
+            exclude: ''
           - name: vector-prime-guidance
-            inventory: .github/packaging/directory/files
-            manifest: .github/packaging/directory/plugin.json
-    env:
-      PACKAGE_NAME: ${{ matrix.name }}
-      PACKAGE_FILES: ${{ matrix.inventory }}
-      PACKAGE_MANIFEST: ${{ matrix.manifest }}
+            exclude: |
+              !.codex-plugin/
+              !docs/
+              !hooks/
+              !scripts/
+              !skills/model-fit/.gitignore
+              !skills/model-fit/references/code-map.md
+              !skills/model-fit/references/desktop-hook.md
+              !src/vector_prime/application/answer/
+              !src/vector_prime/application/handoff/
+              !src/vector_prime/application/switch/
+              !src/vector_prime/entrypoints/hooks/
+              !src/vector_prime/infrastructure/adapters/filesystem/
+              !src/vector_prime/infrastructure/adapters/runtime/
+              !src/vector_prime/infrastructure/adapters/codex/answer.py
+              !src/vector_prime/infrastructure/adapters/codex/chat_profile.py
+              !src/vector_prime/infrastructure/adapters/codex/context.py
+              !src/vector_prime/infrastructure/adapters/codex/conversation.py
+              !src/vector_prime/infrastructure/adapters/codex/history.py
+              !src/vector_prime/infrastructure/adapters/codex/hooks.py
+              !src/vector_prime/infrastructure/adapters/codex/transport/reader.py
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.revision }}
-      - name: Archive package
-        run: bash .github/packaging/archive.sh "$PACKAGE_NAME" "$PACKAGE_FILES" "$PACKAGE_MANIFEST"
-      - uses: actions/upload-artifact@v4
+          persist-credentials: false
+      - name: Place the Guidance manifest at the package root
+        if: matrix.name == 'vector-prime-guidance'
+        uses: actions/github-script@v9
+        with:
+          script: await require('node:fs/promises').copyFile('.github/packaging/directory/plugin.json', 'plugin.json')
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ matrix.name }}
-          path: dist/${{ matrix.name }}.zip
+          path: |
+            .
+            !.git/
+            !.github/
+            !.agents/
+            !.gitignore
+            !CONTRIBUTING.md
+            !evals/
+            !release.config.mjs
+            ${{ matrix.exclude }}
+          include-hidden-files: true
           if-no-files-found: error
