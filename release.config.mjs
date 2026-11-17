@@ -1,13 +1,8 @@
-import { createRequire } from 'node:module'
-
-const require = createRequire(new URL('./evals/model-fit/package.json', import.meta.url))
-const preset = require.resolve('conventional-changelog-conventionalcommits')
-
 export default {
   branches: ['stable', { name: 'master', prerelease: 'alpha', channel: 'alpha' }],
   plugins: [
-    ['@semantic-release/commit-analyzer', { config: preset }],
-    ['@semantic-release/release-notes-generator', { config: preset }],
+    ['@semantic-release/commit-analyzer', { preset: 'conventionalcommits' }],
+    ['@semantic-release/release-notes-generator', { preset: 'conventionalcommits' }],
     ['@semantic-release/exec', {
       prepareCmd: 'bash .github/release/prepare.sh <%= nextRelease.version %>',
       successCmd: 'bash .github/release/promote-alpha.sh <%= nextRelease.gitTag %>',
