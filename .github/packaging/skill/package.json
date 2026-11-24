@@ -1,0 +1,7 @@
+{
+  "name": "vector-prime-skill-distribution",
+  "private": true,
+  "dependencies": {
+    "@atls/skill-model-fit": "0.0.1"
+  }
+}
