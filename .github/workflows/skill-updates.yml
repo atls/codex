@@ -1,0 +1,71 @@
+name: Update Model Fit
+
+on:
+  repository_dispatch:
+    types: [skill-package-updated]
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: model-fit-package
+  cancel-in-progress: false
+
+jobs:
+  update:
+    if: startsWith(github.event.client_payload.tag, '@atls/skill-model-fit@') && github.actor == 'atlantis-courier[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: master
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        if: hashFiles('.github/packaging/skill/update.py') != ''
+        with:
+          node-version: '24'
+          registry-url: https://npm.pkg.github.com
+          scope: '@atls'
+
+      - name: Install the released policy
+        if: hashFiles('.github/packaging/skill/update.py') != ''
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+          MODEL_FIT_TAG: ${{ github.event.client_payload.tag }}
+        run: python3 .github/packaging/skill/update.py "$MODEL_FIT_TAG"
+
+      - uses: actions/create-github-app-token@v3.2.0
+        if: hashFiles('.github/packaging/skill/update.py') != ''
+        id: app-token
+        with:
+          client-id: ${{ vars.ATLANTIS_SUPER_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.ATLANTIS_SUPER_BOT_PRIVATE_KEY }}
+          repositories: codex
+          permission-contents: write
+          permission-pull-requests: write
+
+      - uses: peter-evans/create-pull-request@v8
+        if: hashFiles('.github/packaging/skill/update.py') != ''
+        id: pull-request
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: automation/model-fit-package
+          base: master
+          add-paths: |
+            .github/packaging/skill/package.json
+            .github/packaging/skill/package-lock.json
+            skills/model-fit/references/assessment-policy.md
+          commit-message: 'fix(model-fit): update the assessment policy'
+          title: 'fix(model-fit): update the assessment policy'
+          body: 'Update the locked Model Fit package and the policy shipped by Vector Prime.'
+          delete-branch: true
+          sign-commits: true
+
+      - uses: peter-evans/enable-pull-request-automerge@v3
+        if: steps.pull-request.outputs.pull-request-number != ''
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          pull-request-number: ${{ steps.pull-request.outputs.pull-request-number }}
+          merge-method: squash
