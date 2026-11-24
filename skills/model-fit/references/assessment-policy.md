@@ -51,7 +51,9 @@ Evaluate model and reasoning independently. More effort on the current model may
 
 This independence also applies to `keep`: retaining a model does not justify retaining its effort. Effort follows the planning and verification depth needed for the next work; the same requirement can affect both axes. If the initial profile is explicitly a technical seed, rather than a user choice, absence of prior failures or a separate request to save money does not establish that high effort is appropriate. This does not override a retained user choice.
 
-Change speed only when the user has expressed a time priority and the chosen model supports it. Leave an absent current speed unknown; do not fill in a default or propose changing an unknown field without a demonstrated goal.
+Recommend a speed change only when the current speed is known, the user has expressed a time priority, and the chosen model supports the target speed. If speed is unknown, return `null` for both `active_speed` and `recommended_speed`, even for an urgent task.
+
+For a known native `serviceTier`, `priority` maps to `fast` and `default` maps to `standard`. An omitted, null or unrecognized tier leaves speed unknown. A recommendation requires manual application when the handoff mechanism cannot carry the target speed and confirm it for the same thread.
 
 ## Child lane
 
