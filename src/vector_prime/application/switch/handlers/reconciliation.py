@@ -106,6 +106,9 @@ def reconcile(
             if isinstance(reconciled, TransferContinued):
                 return PreparedTransfer(thread_id, turn_id, transfer_instruction(prior))
             if isinstance(reconciled, ReplayBound):
+                if reconciled.speed_warning:
+                    audit(thread_id, turn_id, "auto_replay_speed_unconfirmed")
+                    return ContinueWork(reconciled.speed_warning)
                 return ContinueWork(WorkContext.REPLAY)
             if isinstance(reconciled, ReconciliationDenied):
                 if reconciled.reason_code is None:

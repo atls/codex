@@ -1917,6 +1917,89 @@ class SubmittedInputTests(unittest.TestCase):
         self.assertNotIn("native_profile", state)
         self.assertEqual(len(self.received), 1)
 
+    def recommend_fast(self, *, supported):
+        self.profile = {"model": "gpt-6.2-sol", "effort": "medium", "speed": "standard"}
+        self.event["model"] = self.profile["model"]
+        api.submit_prompt(self.event)
+        with patch(
+            "vector_prime.infrastructure.adapters.codex.conversation.supports_queued_tier",
+            return_value=supported,
+        ):
+            self.assess(
+                decision=lambda _: {
+                    "decision": "recommend_faster",
+                    "active_model": self.profile["model"],
+                    "active_effort": "medium",
+                    "active_speed": "standard",
+                    "recommended_model": None,
+                    "recommended_effort": None,
+                    "recommended_speed": "fast",
+                    "official_source_url": "https://developers.openai.com/api/docs/guides/reasoning",
+                    "official_guidance": "fixture",
+                    "task_inference": "fixture",
+                }
+            )
+
+    def test_speed_only_handoff_persists_and_checks_queue_receipt(self):
+        params_sent = []
+
+        def rpc(method, params, timeout):
+            response = self.rpc(method, params, timeout)
+            if method == "thread/queue/add":
+                params_sent.append(params)
+                response["queuedSubmission"]["serviceTierForTurn"] = params[
+                    "serviceTierForTurn"
+                ]
+            return response
+
+        self.reader.__enter__.return_value.call.side_effect = rpc
+        self.recommend_fast(supported=True)
+        self.assertEqual(
+            read_state(state_path("submitted-thread"))["target_speed"], "fast"
+        )
+        for expected_status in ("queued", "already_queued"):
+            receipt = api.enqueue_handoff(
+                "submitted-thread", "source-turn", native_factory=lambda _: self.reader
+            )
+            self.assertEqual(receipt["speed_receipt"], "priority")
+            self.assertEqual(receipt["status"], expected_status)
+        self.assertEqual(len(params_sent), 1)
+        self.assertEqual(params_sent[0]["serviceTierForTurn"], "priority")
+        self.assertNotIn("serviceTier", params_sent[0])
+        self.assertEqual(params_sent[0]["input"], self.content)
+        self.message_client = "source-turn"
+        self.profile["speed"] = "fast"
+        api.submit_prompt({**self.event, "turn_id": "replay"})
+        self.assess(decision=lambda _: self.fail("correct replay was reassessed"))
+        self.assertEqual(
+            read_state(state_path("submitted-thread"))["replay_turn_id"], "replay"
+        )
+
+    def test_legacy_queue_keeps_speed_change_manual(self):
+        self.recommend_fast(supported=False)
+        self.assertNotEqual(
+            read_state(state_path("submitted-thread"))["phase"], "ready"
+        )
+        self.assertEqual(self.received, [])
+
+    def test_missing_tier_echo_keeps_acknowledged_input_and_does_not_retry(self):
+        self.recommend_fast(supported=True)
+        for expected in ("queued", "already_queued"):
+            result = api.enqueue_handoff(
+                "submitted-thread", "source-turn", native_factory=lambda _: self.reader
+            )
+            self.assertEqual(result["status"], expected)
+            self.assertEqual(result["speed_receipt"], "unconfirmed")
+        self.assertEqual(len(self.received), 1)
+        self.message_client = "source-turn"
+        api.submit_prompt({**self.event, "turn_id": "unconfirmed-replay"})
+        output = self.assess(decision=lambda _: self.fail("replay should continue"))
+        self.assertIn("observed speed standard", str(output))
+        self.assertEqual(
+            read_state(state_path("submitted-thread"))["replay_turn_id"],
+            "unconfirmed-replay",
+        )
+
     def test_unsupported_speed_cannot_admit_work_while_preserving_profile_choice_context(
         self,
     ):

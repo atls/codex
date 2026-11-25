@@ -16,6 +16,7 @@ from vector_prime.application.submission.types.json import JsonValue
 class QueueConfirmation:
     submission_id: str
     already_confirmed: bool = False
+    speed_receipt: str | None = None
 
 
 @dataclass(frozen=True)
@@ -35,6 +36,7 @@ class QueueCandidate:
 class NativeQueueReceipt:
     submission_id: str
     accepted_input: list[dict[str, JsonValue]] | None
+    speed_receipt: str | None = None
 
 
 class QueueSlot(Protocol):

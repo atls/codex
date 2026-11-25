@@ -28,6 +28,10 @@ from vector_prime.application.assessment.types.context import ContextSource
 from vector_prime.infrastructure.adapters.codex.transport.exceptions.rpc import (
     AppServerRPCError,
 )
+import json
+import sqlite3
+import os
+from pathlib import Path
 from vector_prime.infrastructure.adapters.codex.transport.reader import AppServerReader
 from vector_prime.application.assessment.helpers.context import (
     CONTEXT_TURN_LIMIT,
@@ -392,9 +396,59 @@ def session_input(source: ContextSource) -> ProfileAssessmentInput:
     request: ProfileAssessmentInput = {
         "task": prompt
         or "Attachment-only request; account for the current work context.",
-        "active_profile": {"model": model, "effort": effort, "speed": None},
+        "active_profile": {
+            "model": model,
+            "effort": effort,
+            "speed": observed_speed(session_id, source.turn_id, model),
+        },
     }
     context = recent_context(prompt, turns, source.turn_id, CONTROL_PROMPTS)
     if context is not None:
         request["context"] = context
     return request
+
+
+def observed_speed(thread_id: str, turn_id: str | None, model: str) -> str | None:
+    if not turn_id:
+        return None
+    home = Path(
+        os.getenv("CODEX_SQLITE_HOME")
+        or os.getenv("CODEX_HOME")
+        or Path.home() / ".codex"
+    )
+    path = (home / "logs_2.sqlite").resolve()
+    span = f"run_sampling_request{{turn_id={turn_id} model={model} "
+    marker = "tags_json="
+    now = int(time.time())
+    try:
+        db = sqlite3.connect(f"{path.as_uri()}?mode=ro", uri=True, timeout=0.3)
+        try:
+            row = db.execute(
+                "SELECT substr(feedback_log_body,instr(feedback_log_body,?) + length(?), 65536) "
+                "FROM logs WHERE thread_id=? AND ts BETWEEN ? AND ? AND target='feedback_tags' "
+                "AND instr(feedback_log_body,?)>0 AND instr(feedback_log_body,?)>0 "
+                "AND instr(feedback_log_body,?)>0 ORDER BY id DESC LIMIT 1",
+                (
+                    marker,
+                    marker,
+                    thread_id,
+                    now - 86400,
+                    now,
+                    span,
+                    marker,
+                    '"service_tier":',
+                ),
+            ).fetchone()
+        finally:
+            db.close()
+        if row is None:
+            return None
+        tags, _ = json.JSONDecoder().raw_decode(row[0])
+        tier = checked_object(tags).get("service_tier")
+        return (
+            {"priority": "fast", "default": "standard"}.get(tier)
+            if isinstance(tier, str)
+            else None
+        )
+    except (OSError, sqlite3.Error, ValueError):
+        return None

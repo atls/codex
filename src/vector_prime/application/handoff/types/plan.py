@@ -5,6 +5,10 @@ from dataclasses import dataclass
 class TransferTarget:
     model: str
     effort: str
+    speed: str | None = None
+
+    def matches_quality(self, model: str, effort: str) -> bool:
+        return self.model == model and self.effort == effort
 
 
 @dataclass(frozen=True)

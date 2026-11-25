@@ -23,7 +23,17 @@ def queue_handoff(thread_id: str, turn_id: str) -> int:
                 audit_thread,
                 audit_turn,
                 f"auto_queue_{result['status']}",
-                {"hook_event": "queue"},
+                {
+                    "hook_event": "queue",
+                    **(
+                        {
+                            "speed_receipt": result["speed_receipt"],
+                            "queued_submission_id": result["queued_submission_id"],
+                        }
+                        if "speed_receipt" in result
+                        else {}
+                    ),
+                },
             )
         print(json.dumps(result))
         return 0

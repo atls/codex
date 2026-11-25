@@ -11,6 +11,7 @@ class TransferPreparation(TypedDict):
     prompt_digest: str
     target_model: str
     target_effort: str
+    target_speed: NotRequired[str]
     official_source_url: str | None
     official_guidance: str | None
     task_inference: str | None

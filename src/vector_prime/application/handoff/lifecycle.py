@@ -68,18 +68,14 @@ def _transfer_target(
             " Automatic child-agent handoff is not performed; pass the recommendation to the parent agent to choose the profile when allocating the work.",
             retain_profile_context=False,
         )
-    if result.get("recommended_speed") not in (None, active["speed"]):
-        return ManualHandoff(
-            "speed_switch_unsupported",
-            f" Automatic speed-tier handoff is unavailable; requested value: {result['recommended_speed']}.",
-        )
+    speed = result.get("recommended_speed")
     target = TransferTarget(
         result.get("recommended_model") or result["active_model"],
         result.get("recommended_effort") or result["active_effort"],
+        speed if speed != active["speed"] else None,
     )
-    if (target.model, target.effort) == (
-        result["active_model"],
-        result["active_effort"],
+    if target.speed is None and target.matches_quality(
+        active["model"], active["effort"]
     ):
         return ManualHandoff("no_model_or_effort_change")
     return target
@@ -158,7 +154,12 @@ def enqueue(
                 codec.prompt_digest(codec.input_text(content)),
                 codec.prompt_digest(codec.hook_prompt(content)),
             )
-            submission = app.enqueue(thread_id, attempt.client_message_id, content)
+            submission = app.enqueue(
+                thread_id,
+                attempt.client_message_id,
+                content,
+                speed=attempt.target.speed,
+            )
             if isinstance(submission, NativeQueueRejection):
                 slot.reject()
                 raise QueueRejected()
@@ -166,14 +167,20 @@ def enqueue(
             digest = codec.input_digest(accepted_content(submission))
             slot.write_accepted_digest(digest)
             require_receipt_identity(submission)
+            speed_receipt = (
+                submission.speed_receipt if attempt.target.speed is not None else None
+            )
             accepted = AcceptedHandoff(
                 attempt.source_turn_id,
                 attempt.target,
                 submission.submission_id,
                 TransferInputEvidence("native_input", digest),
+                speed_receipt,
             )
         slot.confirm(accepted, int(clock()))
-        return QueueConfirmation(accepted.submission_id)
+        return QueueConfirmation(
+            accepted.submission_id, speed_receipt=accepted.speed_receipt
+        )
 
 
 def plan_transfer(
@@ -189,6 +196,11 @@ def plan_transfer(
     if isinstance(plan, TransferTarget):
         try:
             with conversation(working_directory) as app:
+                if plan.speed is not None and not app.supports_queued_tier():
+                    return ManualHandoff(
+                        "speed_switch_unsupported",
+                        " The installed queue cannot accept a one-turn speed override.",
+                    )
                 app.queued_ids(thread_id)
         except (OSError, ValueError, RuntimeError, TimeoutError):
             return ManualHandoff(
@@ -218,6 +230,8 @@ def prepare(
         "official_guidance": decision["official_guidance"],
         "task_inference": decision["task_inference"],
     }
+    if target.speed is not None:
+        preparation["target_speed"] = target.speed
     if continuation is not None:
         preparation["source_turn_id"] = continuation.source_turn_id
         preparation["prompt"] = continuation.prompt
@@ -303,13 +317,15 @@ def reconcile(
                         "replay_still_queued",
                     )
             selected = read_context(event)["active_profile"]
-            if TransferTarget(selected["model"], selected["effort"]) != prior.target:
+            if prior.target is None or not prior.target.matches_quality(
+                selected["model"], selected["effort"]
+            ):
                 return ReconciliationDenied(
                     "Model Fit: the queued request arrived on the wrong profile.",
                     "replay_wrong_profile",
                 )
             bind_replay(slot, prior, turn_id)
-            return ReplayBound()
+            return ReplayBound(prior.target.speed, selected.get("speed"))
         with conversation(event.working_directory) as app:
             if prior.submission_id in app.queued_ids(thread_id):
                 deleted = app.delete(thread_id, prior.submission_id)
@@ -354,16 +370,18 @@ def reconcile_accepted(
         if state.client_message_id is not None
         else state.source_turn_id
     )
-    same_profile = TransferTarget(profile["model"], profile["effort"]) == state.target
+    same_profile = state.target is not None and state.target.matches_quality(
+        profile["model"], profile["effort"]
+    )
     evidence = state.input_evidence
     unchanged = (
         evidence is not None
         and evidence.kind == "native_input"
         and codec.input_digest(accepted.content) == evidence.digest
     )
-    if same_source and same_profile and unchanged:
+    if same_source and same_profile and unchanged and state.target is not None:
         bind_replay(slot, state, turn_id)
-        return ReplayBound()
+        return ReplayBound(state.target.speed, profile.get("speed"))
     release(slot)
     if not same_profile:
         return OwnerProfileChanged(same_source)

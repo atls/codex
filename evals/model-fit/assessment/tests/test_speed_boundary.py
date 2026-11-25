@@ -109,3 +109,33 @@ class SpeedBoundaryTests(unittest.TestCase):
         ):
             client.triage({"active_profile": active})
         self.assertEqual(type(propagated.exception).__name__, "UnknownSpeedChange")
+
+
+def test_sampling_speed_is_scoped_to_native_turn_and_model(tmp_path, monkeypatch):
+    import sqlite3
+    import time
+    from vector_prime.infrastructure.adapters.codex.history import observed_speed
+
+    monkeypatch.setenv("CODEX_SQLITE_HOME", str(tmp_path))
+    assert observed_speed("thread", "source", "sol") is None
+    assert not (tmp_path / "logs_2.sqlite").exists()
+    with sqlite3.connect(tmp_path / "logs_2.sqlite") as db:
+        db.execute(
+            "CREATE TABLE logs(id INTEGER PRIMARY KEY, ts INTEGER, thread_id TEXT, target TEXT, feedback_log_body TEXT)"
+        )
+        for thread, turn, model, tier in [
+            ("thread", "source", "sol", "default"),
+            ("thread", "replay", "sol", "priority"),
+            ("thread", "source", "other", "priority"),
+            ("other", "source", "sol", "priority"),
+            ("thread", "unknown", "sol", "flex"),
+        ]:
+            body = f'run_sampling_request{{turn_id={turn} model={model} cwd=/fixture}} tags_json={{"service_tier":"{tier}"}}'
+            db.execute(
+                "INSERT INTO logs(ts,thread_id,target,feedback_log_body) VALUES (?,?,?,?)",
+                (int(time.time()), thread, "feedback_tags", body),
+            )
+    assert observed_speed("thread", "source", "sol") == "standard"
+    assert observed_speed("thread", "replay", "sol") == "fast"
+    assert observed_speed("thread", "unknown", "sol") is None
+    assert observed_speed("thread", None, "sol") is None

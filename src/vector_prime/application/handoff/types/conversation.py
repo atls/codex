@@ -19,8 +19,15 @@ class NativeConversation(Protocol):
 
     def profile(self, thread_id: str) -> tuple[str | None, str | None]: ...
 
+    def supports_queued_tier(self) -> bool: ...
+
     def enqueue(
-        self, thread_id: str, turn_id: str, content: list[dict[str, JsonValue]]
+        self,
+        thread_id: str,
+        turn_id: str,
+        content: list[dict[str, JsonValue]],
+        *,
+        speed: str | None = None,
     ) -> NativeQueueReceipt | NativeQueueRejection: ...
 
     def delete(self, thread_id: str, submission_id: str) -> bool: ...

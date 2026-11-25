@@ -90,6 +90,11 @@ def enqueue_handoff(
         working_directory=os.getcwd,
     )
     return {
+        **(
+            {"speed_receipt": result.speed_receipt}
+            if result.speed_receipt is not None
+            else {}
+        ),
         "queued_submission_id": result.submission_id,
         "status": "already_queued" if result.already_confirmed else "queued",
     }

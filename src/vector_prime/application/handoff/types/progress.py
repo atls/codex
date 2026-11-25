@@ -34,3 +34,4 @@ class AcceptedHandoff:
     target: TransferTarget
     submission_id: str
     input_evidence: TransferInputEvidence
+    speed_receipt: str | None = None

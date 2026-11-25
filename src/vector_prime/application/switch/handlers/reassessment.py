@@ -1,6 +1,5 @@
 from __future__ import annotations
 from vector_prime.application.handoff.types.state import QueuedTransfer
-from vector_prime.application.handoff.types.plan import TransferTarget
 from vector_prime.application.assessment import lifecycle as assessment_lifecycle
 from vector_prime.application.assessment.request import require_reassessment
 
@@ -116,7 +115,9 @@ def reassess(
         )
         if queued is not None:
             switch_lifecycle.consume_submission(slot, turn_id, pending)
-            if TransferTarget(model, effort) != queued.target:
+            if queued.target is None or not queued.target.matches_quality(
+                model, effort
+            ):
                 switch_lifecycle.admit(
                     slot,
                     turn_id,
