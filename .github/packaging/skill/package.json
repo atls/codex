@@ -1,8 +1,7 @@
 {
   "name": "vector-prime-skill-distribution",
   "private": true,
-  "packageManager": "yarn@4.18.0",
   "dependencies": {
-    "@atls/skill-model-fit": "latest"
+    "@atls/skill-model-fit": "0.0.2"
   }
 }
