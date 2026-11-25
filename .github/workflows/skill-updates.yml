@@ -23,21 +23,25 @@ jobs:
           persist-credentials: false
 
       - uses: actions/setup-node@v7
-        if: hashFiles('.github/packaging/skill/update.py') != ''
         with:
           node-version: '24'
-          registry-url: https://npm.pkg.github.com
-          scope: '@atls'
 
-      - name: Install the released policy
-        if: hashFiles('.github/packaging/skill/update.py') != ''
+      - name: Update declared skill packages
+        working-directory: .github/packaging/skills
         env:
-          NODE_AUTH_TOKEN: ${{ github.token }}
-          MODEL_FIT_TAG: ${{ github.event.client_payload.tag }}
-        run: python3 .github/packaging/skill/update.py "$MODEL_FIT_TAG"
+          SKILLS_NPM_TOKEN: ${{ github.token }}
+        run: corepack yarn up -R '@atls/skill-*' --mode=update-lockfile
+
+      - name: Install the locked skill package
+        working-directory: .github/packaging/skills
+        env:
+          SKILLS_NPM_TOKEN: ${{ github.token }}
+        run: corepack yarn install --immutable
+
+      - name: Copy the policy into the plugin
+        run: cp .github/packaging/skills/node_modules/@atls/skill-model-fit/references/assessment-policy.md skills/model-fit/references/assessment-policy.md
 
       - uses: actions/create-github-app-token@v3.2.0
-        if: hashFiles('.github/packaging/skill/update.py') != ''
         id: app-token
         with:
           client-id: ${{ vars.ATLANTIS_SUPER_BOT_CLIENT_ID }}
@@ -47,15 +51,13 @@ jobs:
           permission-pull-requests: write
 
       - uses: peter-evans/create-pull-request@v8
-        if: hashFiles('.github/packaging/skill/update.py') != ''
         id: pull-request
         with:
           token: ${{ steps.app-token.outputs.token }}
           branch: automation/model-fit-package
           base: master
           add-paths: |
-            .github/packaging/skill/package.json
-            .github/packaging/skill/package-lock.json
+            .github/packaging/skills/yarn.lock
             skills/model-fit/references/assessment-policy.md
           commit-message: 'fix(model-fit): update the assessment policy'
           title: 'fix(model-fit): update the assessment policy'
