@@ -98,6 +98,8 @@ The evaluator is a separate local Codex process. The implementation temporarily 
 
 Exit codes: 0 for a validated decision, 1 for unavailable assessment (`unknown`), 2 for malformed input. The CLI does not change the active profile, create a handoff, install hooks, or require pending hook state.
 
+Use `--include-provenance` to include a validated `provenance` object with the decision. Its `decision_origin` is `user_choice`, `discussion_rule`, `evaluator` or `uncertain_relation`. A classified input also includes `work_relation`. The automatic hook requests this projection and records it with the native turn and assessment generation. The projection contains category codes only.
+
 The archive includes the CLI runtime and the selection rules.
 
 When the current speed is unknown, the evaluator output schema permits only null for active and recommended speed. A speed change from unknown state is rejected as UnknownSpeedChange; the CLI does not infer Standard or Fast. Known-speed assessment does not imply automatic Desktop speed switching.

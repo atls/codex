@@ -83,6 +83,44 @@ class HookAssessmentTests(DesktopHandoffCase):
         self.assertNotIn(request["context"], raw)
         self.assertNotIn(self.prompt, raw)
 
+    def test_runtime_provenance_reaches_native_hook_audit(self):
+        from vector_prime.infrastructure.adapters.runtime.assessment import triage
+        from vector_prime.application.assessment.helpers.decision import empty_decision
+
+        request = {
+            "task": self.prompt,
+            "active_profile": self.active,
+            "context": "private-sentinel",
+        }
+        result = empty_decision(self.active, "keep", "Fixture result")
+        result["provenance"] = {
+            "decision_origin": "discussion_rule",
+            "work_relation": "discussion",
+        }
+        with patch(
+            "vector_prime.infrastructure.adapters.runtime.assessment.subprocess.run",
+            return_value=subprocess.CompletedProcess([], 0, json.dumps(result), ""),
+        ):
+            self.assertIsNone(
+                evaluate_request(
+                    self.event,
+                    context_reader=lambda event: request,
+                    assessor=triage,
+                )
+            )
+        raw = (self.home / ".tmp/model-fit-hook-audit/test-thread.jsonl").read_text()
+        row = next(
+            json.loads(line)
+            for line in raw.splitlines()
+            if json.loads(line)["outcome"] == "auto_assessed"
+        )
+        self.assertEqual(row["turn_id"], self.turn_id)
+        self.assertEqual(row["executor_thread_id"], self.thread_id)
+        self.assertEqual(row["details"]["decision_origin"], "discussion_rule")
+        self.assertEqual(row["details"]["work_relation"], "discussion")
+        self.assertNotIn("private-sentinel", raw)
+        self.assertNotIn(self.prompt, raw)
+
     def test_recommendation_stages_exact_prompt_for_control_only_turn(self):
         request = {"task": self.prompt, "active_profile": self.active}
         with (

@@ -27,6 +27,8 @@ AUDIT_DETAIL_TYPES = {
     "failure_function": str,
     "failure_line": int,
     "triage_decision": str,
+    "decision_origin": str,
+    "work_relation": str,
     "active_model": str,
     "active_effort": str,
     "recommended_model": str,

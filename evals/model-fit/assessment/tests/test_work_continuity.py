@@ -27,7 +27,7 @@ class WorkContinuityTests(unittest.TestCase):
             "work_relation": relation,
         }
 
-    def evaluate(self, output):
+    def evaluate(self, output, diagnostics=None):
         return assess(
             {
                 "task": "Explain the omission in your previous result.",
@@ -37,6 +37,7 @@ class WorkContinuityTests(unittest.TestCase):
             "fixture-evaluator",
             "low",
             1,
+            diagnostics=diagnostics,
             source_reader=lambda: ("Fixture guidance", AvailableProfiles()),
             evaluator=lambda *args: output,
         )
@@ -73,3 +74,39 @@ class WorkContinuityTests(unittest.TestCase):
         del output["work_relation"]
         with self.assertRaises(ValueError):
             self.evaluate(output)
+
+    def test_diagnostics_distinguish_continuity_from_evaluator_decision(self):
+        for relation, origin in (
+            ("discussion", "discussion_rule"),
+            ("execution", "evaluator"),
+            ("explicit_reselection", "evaluator"),
+            ("uncertain", "uncertain_relation"),
+        ):
+            with self.subTest(relation=relation):
+                diagnostics = {}
+                self.evaluate(self.proposal(relation), diagnostics)
+                self.assertEqual(diagnostics["decision_origin"], origin)
+                self.assertEqual(diagnostics["work_relation"], relation)
+
+    def test_user_choice_has_a_distinct_origin_without_evaluator_execution(self):
+        diagnostics = {}
+        result = assess(
+            {
+                "task": "Continue the agreed work",
+                "active_profile": self.active,
+                "prior_choice": {
+                    "user_selected": True,
+                    "same_work": True,
+                    "profile": self.active,
+                },
+            },
+            "fixture-evaluator",
+            "low",
+            1,
+            diagnostics=diagnostics,
+            source_reader=lambda: self.fail("Unexpected source lookup"),
+            evaluator=lambda *args: self.fail("Unexpected inference"),
+        )
+        self.assertEqual(result["decision"], "keep")
+        self.assertEqual(diagnostics["decision_origin"], "user_choice")
+        self.assertNotIn("work_relation", diagnostics)

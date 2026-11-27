@@ -131,6 +131,31 @@ class SubmittedInputTests(unittest.TestCase):
             native_factory=lambda cwd: self.reader,
         )
 
+    def test_provenance_is_bound_to_the_registered_assessment_generation(self):
+        from vector_prime.infrastructure.adapters.runtime.assessment import triage
+        from vector_prime.application.assessment.helpers.decision import empty_decision
+
+        api.submit_prompt(self.event)
+        saved = read_state(state_path("submitted-thread"))
+        generation = str(saved["pending_assessment"]["generation"])
+        decision = empty_decision(self.profile, "keep", "Fixture result")
+        decision["provenance"] = {
+            "decision_origin": "discussion_rule",
+            "work_relation": "discussion",
+        }
+        with patch(
+            "vector_prime.infrastructure.adapters.runtime.assessment.subprocess.run",
+            return_value=subprocess.CompletedProcess([], 0, json.dumps(decision), ""),
+        ):
+            self.assess(decision=triage)
+        path = self.home / ".tmp/model-fit-hook-audit/submitted-thread.jsonl"
+        rows = [json.loads(line) for line in path.read_text().splitlines()]
+        row = next(item for item in rows if item["outcome"] == "auto_assessed")
+        self.assertEqual(row["turn_id"], self.event["turn_id"])
+        self.assertEqual(row["details"]["assessment_generation"], generation)
+        self.assertEqual(row["details"]["decision_origin"], "discussion_rule")
+        self.assertEqual(row["details"]["work_relation"], "discussion")
+
     def test_previous_result_discussion_admits_work_without_preparing_transfer(self):
         from vector_prime.application.assessment.lifecycle import assess
         from vector_prime.application.assessment.helpers.decision import empty_decision

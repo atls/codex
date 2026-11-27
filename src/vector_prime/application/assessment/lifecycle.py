@@ -64,6 +64,8 @@ def assess(
     task, active, context, prior = validated_request(request)
     if prior is not None:
         record_user_choice(diagnostics, request)
+        if diagnostics is not None:
+            diagnostics["decision_origin"] = "user_choice"
         return empty_decision(
             active,
             "keep",
@@ -102,6 +104,10 @@ def assess(
     relation, proposal = decode_evaluation(output)
     if diagnostics is not None:
         diagnostics["work_relation"] = relation.value
+        diagnostics["decision_origin"] = {
+            WorkRelation.DISCUSSION: "discussion_rule",
+            WorkRelation.UNCERTAIN: "uncertain_relation",
+        }.get(relation, "evaluator")
     return complete(proposal, relation, active, models)
 
 

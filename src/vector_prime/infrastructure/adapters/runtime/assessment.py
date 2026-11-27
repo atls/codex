@@ -4,6 +4,11 @@ import json
 import re
 import subprocess
 import sys
+from pydantic import TypeAdapter
+from vector_prime.application.assessment.types.provenance import (
+    AssessedDecision,
+    DecisionProvenance,
+)
 
 from vector_prime.application.assessment.decoding import decode_decision
 from vector_prime.application.assessment.decision import RECOMMENDATIONS
@@ -17,7 +22,7 @@ from vector_prime.application.assessment.types.decision import AssessmentDecisio
 from vector_prime.application.assessment.types.request import ProfileAssessmentInput
 
 
-def triage(request: ProfileAssessmentInput) -> AssessmentDecision:
+def triage(request: ProfileAssessmentInput) -> AssessmentDecision | AssessedDecision:
     process = subprocess.run(
         [
             sys.executable,
@@ -25,6 +30,7 @@ def triage(request: ProfileAssessmentInput) -> AssessmentDecision:
             "vector_prime.entrypoints.cli.assess",
             "--timeout",
             "45",
+            "--include-provenance",
         ],
         input=json.dumps(request, ensure_ascii=False),
         capture_output=True,
@@ -64,4 +70,12 @@ def triage(request: ProfileAssessmentInput) -> AssessmentDecision:
         result["decision"] == "unknown"
     ):
         raise ValueError("Triage exit status contradicts its decision")
-    return decode_decision(result)
+    decision = decode_decision(
+        {key: value for key, value in result.items() if key != "provenance"}
+    )
+    if "provenance" not in result:
+        return decision
+    provenance = TypeAdapter(DecisionProvenance).validate_python(
+        result["provenance"], strict=True
+    )
+    return {**decision, "provenance": provenance}
