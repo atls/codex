@@ -25,6 +25,11 @@ from vector_prime.application.assessment.exceptions.source_unavailable import (
 )
 from vector_prime.application.assessment.helpers.decision import empty_decision
 from vector_prime.application.assessment.request import validated_request
+from pydantic import TypeAdapter
+from vector_prime.application.assessment.types.provenance import (
+    AssessedDecision,
+    DecisionProvenance,
+)
 
 
 def assess(
@@ -78,7 +83,9 @@ def main() -> int:
         help="Evaluator reasoning effort",
     )
     parser.add_argument("--timeout", type=int, default=180)
+    parser.add_argument("--include-provenance", action="store_true")
     args = parser.parse_args()
+    diagnostics: dict[str, JsonValue] | None = {} if args.include_provenance else None
     try:
         request = json.load(sys.stdin)
         _, active, _, _ = validated_request(request)
@@ -86,7 +93,9 @@ def main() -> int:
         print(f"model-fit triage input error: {type(error).__name__}", file=sys.stderr)
         return 2
     try:
-        result = assess(request, args.model, args.effort, args.timeout)
+        result = assess(
+            request, args.model, args.effort, args.timeout, diagnostics=diagnostics
+        )
     except SourceUnavailable as error:
         print(f"model-fit triage error: {type(error).__name__}", file=sys.stderr)
         result = empty_decision(
@@ -104,7 +113,18 @@ def main() -> int:
         result = empty_decision(
             active, "unknown", "Triage did not return a validated decision"
         )
-    print(json.dumps(result, ensure_ascii=False))
+    output: AssessmentDecision | AssessedDecision = result
+    if diagnostics is not None and "decision_origin" in diagnostics:
+        provenance = {
+            key: diagnostics[key]
+            for key in ("decision_origin", "work_relation")
+            if key in diagnostics
+        }
+        verified = TypeAdapter(DecisionProvenance).validate_python(
+            provenance, strict=True
+        )
+        output = {**result, "provenance": verified}
+    print(json.dumps(output, ensure_ascii=False))
     return 0 if result["decision"] != "unknown" else 1
 
 

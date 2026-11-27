@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import cast
+from vector_prime.application.submission.types.json import JsonValue
+
 from vector_prime.application.assessment.exceptions.context_unavailable import (
     ContextUnavailable,
 )
@@ -140,6 +143,7 @@ def evaluate(
         {
             "hook_event": "UserPromptSubmit",
             "triage_decision": result["decision"],
+            **cast(dict[str, JsonValue], result.get("provenance", {})),
             **(
                 {"reason_code": "evaluator_abstained"}
                 if result["decision"] == "unknown"
