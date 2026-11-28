@@ -35,6 +35,7 @@ class QueuedTransfer:
     control_turn_id: str | None
     source: HandoffSource
     task_inference: str | None
+    speed_receipt: str | None = None
 
 
 @dataclass(frozen=True)

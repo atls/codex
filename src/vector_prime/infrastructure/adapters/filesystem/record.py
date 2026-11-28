@@ -28,6 +28,8 @@ class Snapshot(TypedDict, Generic[AssessmentT], total=False):
     prompt_digest: str
     target_model: str
     target_effort: str
+    target_speed: str
+    speed_receipt: str
     queued_submission_id: str
     queued_client_message_id: str
     source_input_digest: str

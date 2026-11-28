@@ -200,6 +200,13 @@ def assess(
                             queued_ids=queued,
                         )
                         if isinstance(replay, ReplayBound):
+                            if replay.speed_warning:
+                                audit(
+                                    thread_id,
+                                    event.turn_id,
+                                    "auto_replay_speed_unconfirmed",
+                                )
+                                return ContinueWork(replay.speed_warning)
                             audit(thread_id, event.turn_id, "auto_replay")
                             return ContinueWork(WorkContext.REPLAY)
                         if isinstance(replay, OwnerProfileChanged):

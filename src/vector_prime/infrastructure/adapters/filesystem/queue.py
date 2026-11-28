@@ -67,6 +67,8 @@ class FileQueueSlot:
         state["queued_input_digest"] = accepted.input_evidence.digest
         state["phase"] = "queued"
         state["queued_at"] = queued_at
+        if accepted.speed_receipt is not None:
+            state["speed_receipt"] = accepted.speed_receipt
         self.slot.save_record_transition(state)
 
     def reject(self) -> None:

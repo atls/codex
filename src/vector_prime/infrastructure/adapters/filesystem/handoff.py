@@ -80,6 +80,7 @@ def transfer_state(snapshot: FileRecord | None) -> TransferState | None:
             control,
             handoff_source(snapshot),
             snapshot.get("task_inference"),
+            snapshot.get("speed_receipt"),
         )
     if phase == "rejected":
         return RejectedTransfer(source, control)
@@ -92,7 +93,7 @@ def transfer_target(snapshot: FileRecord) -> TransferTarget | None:
     model, effort = snapshot.get("target_model"), snapshot.get("target_effort")
     if model is None or effort is None:
         return None
-    return TransferTarget(model, effort)
+    return TransferTarget(model, effort, snapshot.get("target_speed"))
 
 
 def staged_snapshot(preparation: TransferPreparation) -> FileRecord:
@@ -108,6 +109,8 @@ def staged_snapshot(preparation: TransferPreparation) -> FileRecord:
         "official_guidance": required_text(preparation["official_guidance"]),
         "task_inference": required_text(preparation["task_inference"]),
     }
+    if "target_speed" in preparation:
+        state["target_speed"] = preparation["target_speed"]
     if "control_turn_id" in preparation:
         state["control_turn_id"] = preparation["control_turn_id"]
     if "continuation_turn_ids" in preparation:

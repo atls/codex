@@ -50,6 +50,16 @@ class NativeCatalog:
             return False
         speed = profile["speed"]
         tiers = entry.get("additional_speed_tiers") or []
+        native_tiers = entry.get("service_tiers")
+        if (
+            speed == "fast"
+            and isinstance(native_tiers, list)
+            and any(
+                isinstance(tier, dict) and tier.get("id") == "priority"
+                for tier in native_tiers
+            )
+        ):
+            return True
         return speed in (None, "standard") or (
             isinstance(tiers, list) and speed in tiers
         )

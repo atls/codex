@@ -16,6 +16,10 @@ from vector_prime.application.handoff.control_message import CONTROL_PROMPTS
 from vector_prime.application.assessment.decoding import required_text, optional_text
 
 import vector_prime.infrastructure.adapters.codex.chat_profile as native_settings
+import json
+from pathlib import Path
+import subprocess
+import tempfile
 import vector_prime.infrastructure.adapters.codex.history as conversation
 from vector_prime.application.handoff.types.accepted_input import (
     AcceptedNativeInput,
@@ -133,26 +137,43 @@ class ConversationGateway:
     def profile(self, thread_id: str) -> tuple[str | None, str | None]:
         return native_settings.profile(self.reader, thread_id)
 
+    def supports_queued_tier(self) -> bool:
+        return supports_queued_tier()
+
     def enqueue(
-        self, thread_id: str, turn_id: str, content: list[dict[str, JsonValue]]
+        self,
+        thread_id: str,
+        turn_id: str,
+        content: list[dict[str, JsonValue]],
+        *,
+        speed: str | None = None,
     ) -> NativeQueueReceipt | NativeQueueRejection:
+        params: dict[str, JsonValue] = {
+            "threadId": thread_id,
+            "clientUserMessageId": turn_id,
+            "input": list[JsonValue](content),
+        }
+        tier = None
+        if speed is not None:
+            tier = {"fast": "priority", "standard": "default"}[speed]
+            params["serviceTierForTurn"] = tier
         try:
             result = self.reader.call(
-                "thread/queue/add",
-                {
-                    "threadId": thread_id,
-                    "clientUserMessageId": turn_id,
-                    "input": list[JsonValue](content),
-                },
-                conversation.RPC_TIMEOUT_SECONDS,
+                "thread/queue/add", params, conversation.RPC_TIMEOUT_SECONDS
             )
         except AppServerRPCError:
             return NativeQueueRejection.REJECTED
         receipt = checked_object(result["queuedSubmission"])
         accepted_content = receipt.get("input")
+        speed_receipt = None
+        if tier is not None:
+            speed_receipt = (
+                tier if receipt.get("serviceTierForTurn") == tier else "unconfirmed"
+            )
         return NativeQueueReceipt(
             required_text(receipt["id"]),
             accepted_content if native_content(accepted_content) else None,
+            speed_receipt,
         )
 
     def delete(self, thread_id: str, submission_id: str) -> bool:
@@ -186,3 +207,34 @@ class ConversationGateway:
             return None
         content = messages[0].get("content", [])
         return content if native_content(content) else None
+
+
+def supports_queued_tier() -> bool:
+    try:
+        with tempfile.TemporaryDirectory() as directory:
+            subprocess.run(
+                [
+                    "codex",
+                    "app-server",
+                    "generate-json-schema",
+                    "--experimental",
+                    "--out",
+                    directory,
+                ],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=15,
+            )
+            schema_dir = Path(directory) / "v2"
+            request = json.loads((schema_dir / "ThreadQueueAddParams.json").read_text())
+            response = json.loads(
+                (schema_dir / "ThreadQueueAddResponse.json").read_text()
+            )
+            receipt = response["definitions"]["QueuedSubmission"]
+            return (
+                "serviceTierForTurn" in request["properties"]
+                and "serviceTierForTurn" in receipt["properties"]
+            )
+    except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError):
+        return False

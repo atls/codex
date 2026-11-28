@@ -30,7 +30,11 @@ def queue_preparation(
     if isinstance(transfer, QueuedTransfer):
         if not transfer.submission_id:
             raise InvalidHandoff("invalid_state")
-        return QueueConfirmation(transfer.submission_id, already_confirmed=True)
+        return QueueConfirmation(
+            transfer.submission_id,
+            already_confirmed=True,
+            speed_receipt=transfer.speed_receipt,
+        )
     if candidate.pending_assessment:
         raise HandoffConflict("pending_assessment")
     if isinstance(transfer, RejectedTransfer):

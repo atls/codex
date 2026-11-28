@@ -33,6 +33,8 @@ AUDIT_DETAIL_TYPES = {
     "active_effort": str,
     "recommended_model": str,
     "recommended_effort": str,
+    "speed_receipt": str,
+    "queued_submission_id": str,
     "task_sha256": str,
     "context_sha256": str,
     "root_session_id": str,

@@ -66,7 +66,7 @@ You should not have to retype the request or reattach an image just to change pr
 ## Current scope and limits
 
 - A recommendation does not guarantee task quality, lower latency or lower cost
-- Automatic model/effort handoff depends on the native capabilities of the installed Codex version. Full automatic speed-tier changes are not implemented
+- Automatic model/effort handoff depends on the native capabilities of the installed Codex version. Desktop speed handoff requires a queue protocol with serviceTierForTurn in both the add request and its receipt
 - Ephemeral input and direct app-tool turns without lifecycle callbacks can be outside the supported history path
 - A final-answer relevance check cannot undo tool actions that already happened
 - The separately observed scheduled-heartbeat stale-replay issue is not fixed by this package
@@ -102,4 +102,4 @@ Use `--include-provenance` to include a validated `provenance` object with the d
 
 The archive includes the CLI runtime and the selection rules.
 
-When the current speed is unknown, the evaluator output schema permits only null for active and recommended speed. A speed change from unknown state is rejected as UnknownSpeedChange; the CLI does not infer Standard or Fast. Known-speed assessment does not imply automatic Desktop speed switching.
+When the current speed is unknown, the evaluator output schema permits only null for active and recommended speed. A speed change from unknown state is rejected as UnknownSpeedChange; the CLI does not infer Standard or Fast. The Desktop hook reads the active turn’s sampled service tier when available. For a supported speed change, it attaches priority (Fast) or default (Standard) to the queued input. The queue command reports the tier acknowledged by the producer, or unconfirmed if it omitted or changed the value. The replay is checked against the observed profile.
